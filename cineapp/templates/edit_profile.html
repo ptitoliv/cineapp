@@ -25,72 +25,100 @@
 		{{ form.hidden_tag() }}
 		  {% if state == "user" %}
 		  <div class="form-group">
-		    <label class="col-lg-3 control-label">Email:</label>
-		    <div class="col-lg-8">
-			{{ render_field(form.email,label_visible=false) }}
+		    <div class="row">
+			    <div class="col-xs-6 col-md-4">
+			    	<label class="col-lg-3 pull-right control-label">Email:</label>
+			    </div>
+			    <div class="col-xs-6 col-md-8">
+				{{ render_field(form.email,label_visible=false) }}
+			    </div>
 		    </div>
-		    <label class="col-lg-3 control-label">Avatar:</label>
-		    <div class="col-lg-8" style="padding-left:0px;">
-			{{ render_field(form.upload_avatar,label_visible=false,parse_class=False,style="vertical-align:top;",group=False) }}
+		    <div class="row">
+			    <div class="col-xs-6 col-md-4">
+			    	<label class="col-lg-3 pull-right control-label">Avatar:</label>
+		            </div>
+			    <div class="col-xs-6 col-md-8">
+				{{ render_field(form.upload_avatar,label_visible=false,parse_class=False,style="vertical-align:top;",group=False) }}
+			    </div>
 		    </div>
 		  </div>
 		  <h3>Notifications</h3>
 		  <div class="form-group">
-		    <div class="col-lg-3">
-			    <label class="pull-right">Mes propres activites:</label>
+		    <div class="row">
+			    <div class="col-xs-6 col-md-4">
+				    <div class="pull-right"><strong>Mes propres activites:</strong></div>
+			    </div>
+			    <div class="col-xs-6 col-md-8">
+				<div class="pull-left">{{ render_field(form.notif_own_activity,label_visible=false,parse_class=false) }}</div>
+			    </div>
 		    </div>
-		    <div class="col-lg-8">
-			{{ render_field(form.notif_own_activity,label_visible=false,parse_class=false) }}
+		    <div class="row">
+			    <div class="col-xs-6 col-md-4">
+				    <div class="pull-right"><strong>Ajout/Mise à jour d'un film:</strong></div>
+			    </div>
+			    <div class="col-xs-6 col-md-8">
+				<div class="pull-left">{{ render_field(form.notif_movie_add,label_visible=false,parse_class=false) }}</div>
+			    </div>
+   		    </div>
+		    <div class="row">
+			    <div class="col-xs-6 col-md-4">
+				    <label class="pull-right">Note d'un film:</label>
+			    </div>
+			    <div class="col-xs-6 col-md-8">
+				{{ render_field(form.notif_mark_add,label_visible=false,parse_class=false) }}
+			    </div>
 		    </div>
-		    <div class="col-lg-3">
-			    <label class="pull-right">Ajout/Mise à jour d'un film:</label>
+		    <div class="row">
+			    <div class="col-xs-6 col-md-4">
+				    <label class="pull-right">Ajout d'un devoir:</label>
+			    </div>
+			    <div class="col-xs-6 col-md-8">
+				{{ render_field(form.notif_homework_add,label_visible=false,parse_class=false) }}
+			    </div>
 		    </div>
-		    <div class="col-lg-8">
-			{{ render_field(form.notif_movie_add,label_visible=false,parse_class=false) }}
+		    <div class="row">
+			    <div class="col-xs-6 col-md-4">
+				    <label class="pull-right">Ajout d'un commentaire:</label>
+			    </div>
+			    <div class="col-xs-6 col-md-8">
+				{{ render_field(form.notif_comment_add,label_visible=false,parse_class=false) }}
+			    </div>
 		    </div>
-		    <div class="col-lg-3">
-			    <label class="pull-right">Note d'un film:</label>
-		    </div>
-		    <div class="col-lg-8">
-			{{ render_field(form.notif_mark_add,label_visible=false,parse_class=false) }}
-		    </div>
-		    <div class="col-lg-3">
-			    <label class="pull-right">Ajout d'un devoir:</label>
-		    </div>
-		    <div class="col-lg-8">
-			{{ render_field(form.notif_homework_add,label_visible=false,parse_class=false) }}
-		    </div>
-		    <div class="col-lg-3">
-			    <label class="pull-right">Ajout d'un commentaire:</label>
-		    </div>
-		    <div class="col-lg-8">
-			{{ render_field(form.notif_comment_add,label_visible=false,parse_class=false) }}
-		    </div>
-		    <div class="col-lg-3">
-			    <label class="pull-right">Films favoris:</label>
-		    </div>
-		    <div class="col-lg-8">
-			{{ render_field(form.notif_favorite_update,label_visible=false,parse_class=false) }}
-		    </div>
-		    <div class="col-lg-3">
-			    <label class="pull-right">Citations dans le chat:</label>
-		    </div>
-		    <div class="col-lg-8">
-			{{ render_field(form.notif_chat_message,label_visible=false,parse_class=false) }}
-		    </div>
+		    <div class="row">
+			    <div class="col-xs-6 col-md-4">
+				    <label class="pull-right">Films favoris:</label>
+			    </div>
+			    <div class="col-xs-6 col-md-8">
+				{{ render_field(form.notif_favorite_update,label_visible=false,parse_class=false) }}
+			    </div>
+                    </div>
+		    <div class="row">
+			    <div class="col-xs-6 col-md-4">
+				    <label class="pull-right">Citations dans le chat:</label>
+			    </div>
+			    <div class="col-xs-6 col-md-8">
+				{{ render_field(form.notif_chat_message,label_visible=false,parse_class=false) }}
+			    </div>
+		     </div>
 		  </div>
 		  {% elif state=="password" %}
 		  <div class="form-group">
-		    <label class="col-md-3 control-label">Mot de passe:</label>
-		    <div class="col-md-8">
-			{{ render_field(form.password,label_visible=false,message=true) }}
-		    </div>
-		  </div>
-		  <div class="form-group">
-		    <label class="col-md-3 control-label">Confirmation:</label>
-		    <div class="col-md-8">
-			{{ render_field(form.confirm,label_visible=false) }}
-		    </div>
+			  <div class="row">
+				 <div class="col-xs-6 col-md-4">
+					<label class="pull-right control-label">Mot de passe:</label>
+				 </div>
+				 <div class="col-xs-6 col-md-8">
+				{{ render_field(form.password,label_visible=false,message=true) }}
+				</div>
+			  </div>
+			  <div class="row">
+				 <div class="col-xs-6 col-md-4">
+					<label class="pull-right control-label">Confirmation:</label>
+				 </div>
+				 <div class="col-xs-6 col-md-8">
+					{{ render_field(form.confirm,label_visible=false) }}
+				</div>
+			  </div>
 		  </div>
 		  {% endif %}
 		  <div class="form-group">
