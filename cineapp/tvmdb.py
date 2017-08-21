@@ -57,7 +57,10 @@ def search_movies(query,page=1):
 		movies_list=tmvdb_connect(os.path.join(app.config['API_URL'],("search/movie?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.quote(query.encode('utf-8')))) + "&page=" + str(page))
 
 		for cur_movie in movies_list['results']:
-			complete_list.append(get_movie(cur_movie['id'],False))
+			temp_movie=get_movie(cur_movie['id'],False)
+			# Only append if we have a real movie object
+			if temp_movie != None:
+				complete_list.append(temp_movie)
 
 	return complete_list
 
@@ -66,8 +69,16 @@ def get_movie(id,fetch_poster=True):
 		Function that fill a movie object using TVMDB database
 	"""
 
+	# Check if there is an id. If not return None
+	if id == None:
+		return None
+
 	# Fetch the movie data
 	movie=tmvdb_connect(os.path.join(app.config['API_URL'],("movie/" + str(id) + "?api_key=" + app.config['API_KEY'] + "&append_to_response=credits,details&language=fr")))
+
+	# Check if we did a successfull search using the API
+	if movie == None:
+		return None
 
 	# Fetch the director form the casting
 	director=""
