@@ -795,6 +795,7 @@ def confirm_movie():
 
 			# Update the object that will be stored in the database
 			movie.name=temp_movie.name
+			movie.original_name=temp_movie.original_name
 			movie.release_date=temp_movie.release_date
 			movie.url=temp_movie.url
 			movie.tmvdb_id=temp_movie.tmvdb_id
