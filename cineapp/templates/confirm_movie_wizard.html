@@ -2,10 +2,10 @@
 {% block content %}
 	<div class="container">
 		<div class="centered text-center">
-			<h1>{{ movie.name }}</h1>
-		</div>
-		<div class="centered text-center">
-			<h4>Sortie le: {{ movie.release_date|date_format("%d/%m/%Y") }}</h4>
+			<h1 class="title_position">{{ movie.name }}</h1>
+			{% if movie.original_name != None %}
+			<h3 class="title_position"><em>({{ movie.original_name }})</em></h3>
+			{% endif %}
 		</div>
 		<div class="row">
 			<div class="col-md-2">

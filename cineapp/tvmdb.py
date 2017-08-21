@@ -22,7 +22,7 @@ def tmvdb_connect(url):
 					time.sleep(delay)
 
 		except urllib2.HTTPError:
-			continue
+			return None
 		break
 
 	return json.load(data)
@@ -114,6 +114,7 @@ def get_movie(id,fetch_poster=True):
 	# Create the movie object
 	movie_obj=Movie(name=movie['title'],
 		release_date=movie['release_date'],
+		original_name=movie['original_title'],
 		url=os.path.join(app.config['TMVDB_BASE_URL'],str(id)),
 		tmvdb_id=id,
 		poster_path=url,

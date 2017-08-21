@@ -25,7 +25,10 @@ aria-hidden="true">&rarr;</span></a>
 	{% endif %}
 	<div class="container">
 	<div class="centered text-center">
-		<h1>{{ movie.name }}</h1>
+		<h1 class="title_position">{{ movie.name }}</h1>
+		{% if movie.original_name != None %}
+		<h3 class="title_position"><em>({{ movie.original_name }})</em></h3>
+		{% endif %}
 	</div>
 	<div class="row">
 		<div class="col-md-2">
