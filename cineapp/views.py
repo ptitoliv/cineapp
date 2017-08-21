@@ -642,8 +642,13 @@ def select_movie(page=1):
 		has_next = False
 
 	# Fetch the query from the previous form in order to fill correctly the radio choices
-	select_form=SelectMovieForm(search_movies(query_movie,page))
+	movies_list=search_movies(query_movie,page)
+	select_form=SelectMovieForm(movies_list)
 	session["page"] = page
+
+	# Put the current movies_list into the session
+	# We'll need it to fill the form in the next wizard step
+	session["movies_list"] = movies_list
 
 	# Check if we have some results, if not tell the user that there is no matching results
 	# and propose it to make a new search
@@ -668,11 +673,7 @@ def confirm_movie():
 	if select_form.submit_select.data:
 
 		# Fetch the query from the previous form in order to fill correctly the radio choices
-		query_movie = session.get('query_movie', None)
-		page = session.get('page', 1)
-
-		if query_movie != None and page != None:
-			select_form=SelectMovieForm(search_movies(query_movie,page))
+		select_form=SelectMovieForm(session.get("movies_list",None))
 
 		# If we are here, we displayed the form once and we want to go to the wizard next step doing a form validation
 		if select_form.validate_on_submit():
@@ -705,6 +706,9 @@ def confirm_movie():
 				# And then update the others fields
 				confirm_form.movie_id.data=select_form.movie.data
 				confirm_form.submit_confirm.label.text=u"Mettre à jour le film"
+
+			# Delete the session object since we don't need it anymore
+			session.pop("movies_list")
 
 			# Go to the final confirmation form
 			return render_template('confirm_movie_wizard.html', movie=movie_form_tmvdb, form=confirm_form, endpoint=endpoint)
