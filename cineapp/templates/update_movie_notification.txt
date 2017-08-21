@@ -7,6 +7,7 @@ Tu viens de modifier la fiche du film : {{ notif["old"]["name"]  }}
 Anciennes informations
 ----------------------
 Nom du film: {{ notif["old"]["name"] }}
+Nom original: {{ notif["old"]["original_name"] }}
 Réalisateur: {{ notif["old"]["director"] }}
 Date de sortie: {{ notif["old"]["release_date"] }}
 Genre: {{ notif["old"]["type"] }}
@@ -17,6 +18,7 @@ Résumé: {% if notif["old"]["overview"] %}{{ notif["old"]["overview"] }}{% else
 Nouvelles Informations
 ----------------------
 Nom du film: {{ notif["new"]["name"] }}
+Nom original: {{ notif["new"]["original_name"] }}
 Réalisateur: {{ notif["new"]["director"] }}
 Date de sortie: {{ notif["new"]["release_date"] }}
 Genre: {{ notif["new"]["type"] }}

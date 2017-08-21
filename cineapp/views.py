@@ -785,6 +785,7 @@ def confirm_movie():
 			# Put the notifications into a dictionnary since I can't get 
 			notification_data={}
 			notification_data["old"]={ "name": movie.name,
+					"original_name": movie.original_name,
 					"release_date" : movie.release_date,
 					"director" : movie.director,
 					"type" : movie.type_object.type,
@@ -821,6 +822,7 @@ def confirm_movie():
 				
 				# Update the dictionnary with the update movie data
 				notification_data["new"]={ "name": movie.name,
+					"original_name": movie.original_name,
 					"release_date" : movie.release_date,
 					"director" : movie.director,
 					"type" : movie.type_object.type,
