@@ -61,9 +61,9 @@
 				  "className": "color_{{g.user.id}}",
 				   "render": function(data,type,row) {
 						if (row.my_where == 'C')  {
-							return '<span title="Vu au cinema" data-toggle="popover" data-placement="top" data-trigger="hover" data-content="Oui">' + row.my_when + "</span>"
+							return '<span class="seen_in_theaters">' + row.my_when + "</span>"
 						} else {
-							return '<span title="Vu au cinema" data-toggle="popover" data-placement="top" data-trigger="hover" data-content="Non">' + row.my_when + "</span>"
+							return '<span>' + row.my_when + '</span>'
 						}
 					}
 				 },

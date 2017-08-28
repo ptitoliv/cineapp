@@ -404,3 +404,8 @@ footer {
 	margin-top:10px;
 	margin-bottom:10px;
 }
+
+.seen_in_theaters {
+	color:red;
+	font-weight: bold;
+}
