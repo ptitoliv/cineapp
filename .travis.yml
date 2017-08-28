@@ -13,6 +13,11 @@ before_install:
 - mkdir -p /home/travis/build/ptitoliv/cineapp/migrations/versions
 - mysql -e 'create database cineapp_ci;'
 script:
+- cd /home/travis/build/ptitoliv/cineapp/
+- vapid -g
+- vapid --applicationServerKey
+- KEY=`vapid --applicationServerKey |cut -d '=' -f2 |tr -d ' ' |head -n 1` &&  sed -i s/__NOTIFICATION_APPLICATION_KEY__/${KEY}/g /home/travis/build/ptitoliv/cineapp/cineapp/configs/settings_test.cfg
+- cat /home/travis/build/ptitoliv/cineapp/cineapp/configs/settings_test.cfg
 - python manage.py db upgrade
 - python tests/unit_tests.py
 - coverage run --omit=/home/travis/virtualenv/* tests/unit_tests.py
