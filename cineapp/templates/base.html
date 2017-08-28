@@ -34,12 +34,16 @@
 	<!-- ChartJS -->
 	<script type="text/javascript" language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.1.0/Chart.min.js"></script>
 
+	<!-- Service Worker -->
+	<script type="text/javascript" language="javascript" src="/static/sw_main.js"></script>
+
     {%if movie %}
     <title>{{ movie.name }} - CineApp</title>
     {% else %}
     <title>CineApp</title>
     {% endif %}
   </head>
+
   <body>
 	<nav class="navbar navbar-default navbar-inverse navbar-static-top">
 		<div class="container-fluid">
@@ -128,5 +132,56 @@ window.setTimeout(function() {
     });
 }, 2000);
   </script>
+
+<script>
+// Application server key for Push notifications
+const applicationServerPublicKey = '{{ config["NOTIF_APPLICATION_KEY_STRING"] }}';
+
+// Check service worker subscription capability
+if ('serviceWorker' in navigator && 'PushManager' in window) {
+  console.log('Service Worker and Push is supported');
+
+  // Register the service worker on first launch
+  navigator.serviceWorker.register('/static/sw.js')
+  .then(function(swReg) {
+    console.log('Service Worker is registered', swReg);
+
+    // Update the Service Worker with the last version
+    swReg.update();
+
+    // Check the subscription object
+   swReg.pushManager.getSubscription()
+   // Set the initial subscription value
+  .then(function(subscription) {
+    isSubscribed = !(subscription === null);
+
+  {% if g.user.is_authenticated %}
+  // Then subscribe the user
+    if (isSubscribed) {
+      console.log('User IS already subscribed - Do nothing.');
+    } else {
+      console.log('User is NOT subscribed - Lets subscribe him');
+      subscribeUser(swReg);
+    }
+  {% else %}
+    if (isSubscribed) {
+      console.log('User IS subscribed but we are not logged in - Unsubscribe him.');
+      unsubscribeUser(swReg);
+    } else {
+      console.log('User is NOT subscribed and its normal');
+    }
+  {% endif %}
+  });
+
+  })
+  .catch(function(error) {
+    console.error('Service Worker Error', error);
+  });
+} else {
+  console.warn('Push messaging is not supported');
+  pushButton.textContent = 'Push Not Supported';
+}
+
+</script>
   </body>
 </html>
