@@ -23,6 +23,7 @@ class User(db.Model):
 	graph_color = db.Column(db.String(6))
 	added_movies = db.relationship('Movie', backref='added_by', lazy='dynamic')
 	posted_messages = db.relationship('ChatMessage', backref='posted_by', lazy='dynamic')
+	subscriptions = db.relationship('PushNotification',backref='user',lazy="dynamic")
 
 	@property
 	def is_authenticated(self):
@@ -215,6 +216,25 @@ class FavoriteType(db.Model):
 			"star_type": self.star_type,
 			"star_message": self.star_message,
 		}
+
+class PushNotification(db.Model):
+	__tablename__ = "push_notifications"
+	__table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
+
+	endpoint_id = db.Column(db.String(255), primary_key=True)
+	auth_token = db.Column(db.String(128))
+	public_key = db.Column(db.String(128))
+	session_id = db.Column(db.String(255),index=True,unique=True)
+	user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+
+	def serialize(self):
+		return {
+			"endpoint": self.endpoint_id,
+			"keys":
+				{ 'p256dh': self.public_key,
+				  'auth': self.auth_token
+				}
+			}
 
 # Enable FTS indexation
 whooshalchemy.whoosh_index(app, Movie)
