@@ -189,7 +189,7 @@ aria-hidden="true">&rarr;</span></a>
 						<i>Pas de commentaire possible car pas de note</i>
 					{% endif %}
 					{% for cur_comment in cur_mark["mark_comments"] %}
-					<div class="media media_comment" id="media_comment_{{ cur_comment.markcomment_id }}" style="background-color:{{ cur_comment.user.graph_color }}">
+					<div class="media media_comment" id="media_comment_{{ cur_comment.markcomment_id }}" style="background-color:#{{ cur_comment.user.graph_color }}">
 						<div class="media-left">
 						    <img src="{{ config.AVATARS_URL}}{{ cur_comment.user.avatar }}" class="img-circle avatar" alt="user profile image">
 						</div>
