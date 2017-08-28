@@ -91,7 +91,7 @@ class Movie(db.Model):
 	__table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
 
 	# Settings for FTS (WooshAlchemy)
-	__searchable__ = [ 'name', 'director' ]
+	__searchable__ = [ 'name', 'director', 'original_name' ]
 	charmap = charset_table_to_dict(default_charset)
 	__analyzer__ =  NgramWordAnalyzer(2) | CharsetFilter(charmap)
 
