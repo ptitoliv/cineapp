@@ -6,9 +6,11 @@ from flask.ext.login import login_user, logout_user, current_user, login_require
 from flask.ext.socketio import SocketIO, emit
 from cineapp.models import ChatMessage, User
 from cineapp.emails import chat_message_notification
+from cineapp.push import notification_send
 from datetime import datetime, timedelta
 from sqlalchemy import desc
 import re
+from multiprocessing import Process
 
 def transmit_message(message,notify=False):
 	""" This functions sends a message on the socket
@@ -32,7 +34,17 @@ def transmit_message(message,notify=False):
 
 	# Notify users only if we have to
 	if notify==True:
-	
+
+		# Send a notification to all users excluding the user who typed the message
+		for cur_user in User.query.all():
+
+			if cur_user.id != logged_user.id:
+
+				# Let's handle the notifications in another dedicated process
+				# in order to avoid blocking the chat
+				p = Process(target=notification_send, args=(message.posted_by.nickname + ":  " + message.message, cur_user.subscriptions))
+				p.start()
+
 		# Check if we have a user name into the message
 		user_named = set(re.findall(r'@\w+',message.message))
 
@@ -45,7 +57,6 @@ def transmit_message(message,notify=False):
 				if user != None and user.id != logged_user.id:
 					# We found a user, let's send him a notification who is not ourself
 					chat_message_notification(message,user)
-
 			except Exception,e:
 				print e
 
