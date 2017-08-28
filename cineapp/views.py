@@ -9,10 +9,11 @@ from wtforms.ext.sqlalchemy.orm import model_form
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from cineapp import app, db, lm
 from cineapp.forms import LoginForm, AddUserForm, AddMovieForm, MarkMovieForm, SearchMovieForm, SelectMovieForm, ConfirmMovieForm, FilterForm, UserForm, PasswordForm, HomeworkForm, UpdateMovieForm, DashboardGraphForm
-from cineapp.models import User, Movie, Mark, Origin, Type, FavoriteMovie, FavoriteType
+from cineapp.models import User, Movie, Mark, Origin, Type, FavoriteMovie, FavoriteType, PushNotification
 from cineapp.tvmdb import search_movies,get_movie,download_poster, search_page_number
 from cineapp.emails import add_movie_notification, mark_movie_notification, add_homework_notification, update_movie_notification
 from cineapp.utils import frange, get_activity_list, resize_avatar
+from cineapp.push import notification_unsubscribe
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
 from sqlalchemy import desc, or_, and_, Table
@@ -76,6 +77,12 @@ def login():
 @app.route('/logout')
 def logout():
 	logout_user()
+
+	# Purge all the subscriptions objects from the current session
+	subscriptions_to_delete=PushNotification.query.filter(PushNotification.session_id==session.sid).all()
+	for cur_subscription in subscriptions_to_delete:
+		notification_unsubscribe(cur_subscription)
+
 	return redirect(url_for('index'))
 
 @app.route('/movies/list')
