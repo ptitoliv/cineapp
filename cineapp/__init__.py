@@ -29,7 +29,8 @@ app.config['GRAPH_LIST'] = [
 		{ "graph_endpoint": "average_by_type", "graph_label": u"Moyenne par type" },
 		{ "graph_endpoint": "average_by_origin", "graph_label": u"Moyenne par origine" },
 		{ "graph_endpoint": "graph_by_year", "graph_label": u"Répartition par année" },
-		{ "graph_endpoint": "graph_by_year_theater", "graph_label": u"Films vus au ciné" }
+		{ "graph_endpoint": "graph_by_year_theater", "graph_label": u"Films vus au ciné" },
+		{ "graph_endpoint": "average_by_year", "graph_label": u"Moyenne par année" }
 	]
 
 # Upload image control

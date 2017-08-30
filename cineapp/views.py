@@ -1215,6 +1215,7 @@ def list_homeworks():
 @app.route('/graph/year_theater', endpoint="graph_by_year_theater")
 @app.route('/graph/average_type', endpoint="average_by_type")
 @app.route('/graph/average_origin', endpoint="average_by_origin")
+@app.route('/graph/average_by_year', endpoint="average_by_year")
 @login_required
 def show_graphs():
 
@@ -1399,6 +1400,29 @@ def show_graphs():
 			for cur_year in range(min_year,max_year+1,1):
 				data[cur_user.nickname]["data"].append(Mark.query.filter(Mark.mark!=None,Mark.user_id==cur_user.id,Mark.seen_where=="C",db.func.year(Mark.seen_when)==cur_year).count())
 
+	elif graph_to_generate == "average_by_year":
+
+		# Average by year
+		graph_type="line"
+
+		# Search the min and max year in order to generate a optimized graph
+		min_year=int(db.session.query(db.func.min(Mark.seen_when).label("min_year")).one().min_year.strftime("%Y"))
+		max_year=int(db.session.query(db.func.max(Mark.seen_when).label("max_year")).one().max_year.strftime("%Y"))
+
+		for cur_year in range(min_year,max_year+1,1):
+			labels.append(cur_year)
+
+		# Fill the dictionnary with average mark for each user by year
+		for cur_user in users:
+			data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : []}
+			for cur_year in range(min_year,max_year+1,1):
+				avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).filter(Mark.mark!=None,Mark.user_id==cur_user.id,db.func.year(Mark.seen_when)==cur_year).one()
+
+				# If no mark => Put null
+				if avg_query.average == None:
+					data[cur_user.nickname]["data"].append("null")
+				else:
+					data[cur_user.nickname]["data"].append(round(float(avg_query.average),2))
 
 	return render_template('show_graphs.html',graph_title=graph_title,graph_type=graph_type,labels=labels,data=data,prev_graph=prev_graph,next_graph=next_graph)
 
