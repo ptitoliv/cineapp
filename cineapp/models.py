@@ -208,6 +208,7 @@ class FavoriteType(db.Model):
 	__table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
 
 	star_type = db.Column(db.String(20), primary_key=True)
+	star_weight = db.Column(db.Integer)
 	star_message = db.Column(db.String(100))
 	movies = db.relationship('FavoriteMovie',backref='star_type_obj',lazy="dynamic")
 

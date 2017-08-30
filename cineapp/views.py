@@ -217,6 +217,8 @@ def update_datatable():
 			filter_field = Mark.mark
 		elif m.group(1) == "when":
 			filter_field = Mark.seen_when
+		elif m.group(1) == "favs":
+			filter_field = FavoriteType.star_weight
 			
 	# Filtering by logged user mark
 	elif order_column == "my_mark":
@@ -227,6 +229,11 @@ def update_datatable():
 	elif order_column == "my_when":
 		filter_user = g.user.id
 		filter_field = Mark.seen_when
+
+	# Filtering by favorite
+	elif order_column == "my_fav":
+		filter_user = g.user.id
+		filter_field = FavoriteType.star_weight
 	else:
 		filter_user = None
 
@@ -235,7 +242,7 @@ def update_datatable():
 
 		# Let's build the filtered requested following what has been posted in the filter form
 		filter_fields=session.get('query')
-		movies_query = Movie.query.outerjoin(Mark).filter_by(user_id=filter_user)
+		movies_query = Movie.query.outerjoin(Mark).outerjoin(FavoriteMovie).filter_by(user_id=filter_user).join(FavoriteType)
 
 		# Check that we have a real list in order to avoid an exception	
 		if isinstance(filter_fields,dict):
@@ -264,35 +271,35 @@ def update_datatable():
 				movies_query = movies_query.filter(Mark.movie_id.in_(array_movies_seen_in_theater))
 
 			if filter_fields['favorite'] !=None:
-				movies_query = movies_query.join(FavoriteMovie).filter(FavoriteMovie.user_id==filter_fields['favorite'])
+				movies_query = movies_query.filter(FavoriteMovie.user_id==filter_fields['favorite'])
 
 		# Sort my desc marks
 		if order_dir == "desc":
 			if session.get('search_type') == 'list': 
-				movies = Movie.query.outerjoin(Mark).filter_by(user_id=filter_user).filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
-				count_movies=Movie.query.outerjoin(Mark).filter_by(user_id=filter_user).count()
+				movies = movies_query.filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
+				count_movies=movies_query.count()
 
 			elif session.get('search_type') == 'filter_origin_type':
 				movies = movies_query.filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
 				count_movies=movies_query.filter(Mark.mark != None).count()
 					
 			elif session.get('search_type') == 'filter':
-				movies = Movie.query.outerjoin(Mark).whoosh_search(session.get('query')).filter_by(user_id=filter_user).filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
-				count_movies=Movie.query.outerjoin(Mark).whoosh_search(session.get('query')).filter_by(user_id=filter_user).filter(filter_field != None).count()
+				movies = movies_query.whoosh_search(session.get('query')).filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
+				count_movies=movies_query.whoosh_search(session.get('query')).filter(filter_field != None).count()
 
 		# Sort by asc marks
 		else:
 			if session.get('search_type') == 'list': 
-				movies = Movie.query.outerjoin(Mark).filter_by(user_id=filter_user).filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
-				count_movies=Movie.query.outerjoin(Mark).filter_by(user_id=filter_user).count()
+				movies = movies_query.filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
+				count_movies=movies_query.count()
 			elif session.get('search_type') == 'filter_origin_type':
 				movies = movies_query.filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
 				count_movies=movies_query.filter(filter_field != None).count()
 			elif session.get('search_type') == 'filter':
-				movies = Movie.query.outerjoin(Mark).whoosh_search(session.get('query')).filter_by(user_id=filter_user).filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
-				count_movies=Movie.query.outerjoin(Mark).whoosh_search(session.get('query')).filter_by(user_id=filter_user).count()
+				movies = movies_query.whoosh_search(session.get('query')).filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
+				count_movies=movies_query.whoosh_search(session.get('query')).count()
 	else:
-		# If we are are => No sort by user but only global sort or no sort
+		# If we are here => No sort by user but only global sort or no sort
 		if session.get('search_type') == 'list': 
 			if order_column == "average":
 				if order_dir == "desc":
@@ -309,7 +316,7 @@ def update_datatable():
 		elif session.get('search_type') == 'filter_origin_type':
 			# Let's build the filtered requested following what has been posted in the filter form
 			filter_fields=session.get('query')
-			movies_query = Movie.query.outerjoin(Mark)
+			movies_query = Movie.query.outerjoin(Mark).outerjoin(FavoriteMovie)
 
 			if filter_fields['origin'] != None:
 				movies_query = movies_query.filter(Movie.origin==filter_fields['origin'])
@@ -321,7 +328,7 @@ def update_datatable():
 				movies_query = movies_query.filter_by(user_id=filter_fields['seen_where']).filter(Mark.seen_where=='C')
 
 			if filter_fields['favorite'] !=None:
-				movies_query = movies_query.outerjoin(FavoriteMovie).filter(FavoriteMovie.user_id==filter_fields['favorite'])
+				movies_query = movies_query.filter(FavoriteMovie.user_id==filter_fields['favorite'])
 
 			# Build the request
 			if order_column == "average":

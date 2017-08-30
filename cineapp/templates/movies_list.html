@@ -36,7 +36,7 @@
 			        },
 				{ "data": "director"},
 			  	{ "data": "average", "orderable" : true },
-				{ "data": "my_fav", "orderable": false,
+				{ "data": "my_fav", "orderable": true,
 				  "className": "color_{{g.user.id}}",
 				  "render": function(data,type,row) {
 						if (row.my_fav == null)  {
@@ -69,7 +69,7 @@
 				 },
 			{% for cur_user in users %}
 				{% if g.user.id != cur_user.id %}
-				 { "data": "other_favs.{{ cur_user.id }}", "orderable": false,
+				 { "data": "other_favs.{{ cur_user.id }}", "orderable": true,
 				  "className": "color_{{cur_user.id}}",
 				  "render": function(data,type,row) {
 						if (row.other_favs[{{cur_user.id}}]  == null)  {
