@@ -97,9 +97,9 @@
 				  "className": "color_{{cur_user.id}}",
 				   "render" : function(data,type,row) {
 						if (row.other_where[{{cur_user.id}}]  == 'C')  {
-							return '<span title="Vu au cinema" data-toggle="popover" data-placement="top" data-trigger="hover" data-content="Oui">' + row.other_when[{{cur_user.id}}] + "</span>"
+							return '<span class="seen_in_theaters">' + row.other_when[{{cur_user.id}}] + "</span>"
 						} else {
-							return '<span title="Vu au cinema" data-toggle="popover" data-placement="top" data-trigger="hover" data-content="Non">' + row.other_when[{{cur_user.id}}] + "</span>"
+							return '<span>' + row.other_when[{{cur_user.id}}] + "</span>"
 						}
 					},
 				  },
