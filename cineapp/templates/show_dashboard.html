@@ -63,15 +63,21 @@
 	</div>
 	<div class="container-fluid">
 		<div class="row">	
-			<div class="col-md-6">
-				<div class="panel panel-default">
+			<div class="col-md-6" id="graphs">
+				<div class="panel panel-default" id="graph_1">
 					  <div class="panel-heading text-center">
-					  <button id="year_nav_left" value="{{ g.cur_date.year - 1 }}"  class="glyphicon glyphicon-menu-left" aria-hidden="true"></button>
-					  <span>Films vus par </span><span>{{ dashboard_graph_form.user_list }}</span><span> en </span><span id="graph_cur_year">{{cur_year}}</span>
-					  <button id="year_nav_right" value="{{ g.cur_date.year +1 }}" class="glyphicon glyphicon-menu-right" aria-hidden="true"></button>
+						  <button value="{{ g.cur_date.year - 1 }}"  class="glyphicon glyphicon-menu-left year_nav_left" aria-hidden="true"></button>
+						  <span>Films vus par </span><span>{{ dashboard_graph_form.user_list(class="user_list",id="user_list_canvas_1") }}</span><span> en </span><span class="graph_cur_year" id="graph_cur_year_canvas_1">{{cur_year}}</span>
+						  <button value="{{ g.cur_date.year +1 }}" class="glyphicon glyphicon-menu-right year_nav_right" aria-hidden="true"></button>
+							<a href="#" id="new_graph">
+								<span class="fa-stack pull-right" id="span_new_graph">
+									<i class="fa fa-square fa-stack-2x fa-bg-white"></i>
+									<i class="display_button fa fa-plus-square fa-stack-2x display" aria-hidden="true"></i>
+								</span>
+							</a>
 					  </div>
 					  <div class="panel-body">
-						<canvas id="canvas" width="200" height="100"></canvas>
+						<canvas id="canvas_1" width="200" height="100"></canvas>
 					  </div>
 				</div>
 			</div>
@@ -124,33 +130,37 @@
 </script>
 <script>
 // Context initialization
-var ctx = document.getElementById("canvas").getContext("2d");
+//var ctx = document.getElementById("canvas_main").getContext("2d");
 var json_data = { theaters: {}, others: {} };
-var data, graph;
+var graphs = {};
+var data;
 
-function draw_graph() {
+function draw_graph(canvas) {
 
     // Le code a exécuter !
     $.post(
 		"{{ url_for('graph_movies_by_year') }}",
 		{
-			year: $('#graph_cur_year').text(),
-			user: $('#user_list').val()
+			year: $('#graph_cur_year_' + canvas).text(),
+			user: $('#user_list_' + canvas).val()
 		},
-		update_graph_display,
+		function(data){ update_graph_display(data,canvas) },
 		"json" 
 	);
 }
 
 
 
-function update_graph_display(json_data) {
+function update_graph_display(json_data,canvas_id) {
 
 	// Destroy the graph if it is already initializes
 	// in order to clear all the previous data
-	if (graph != undefined) {
-		graph.destroy()
+	if (graphs[canvas_id] != undefined) {
+		graphs[canvas_id].destroy()
 	}
+
+	// Create context
+	ctx=document.getElementById(canvas_id).getContext("2d")   
 
 	// Data structure
 	data= { 
@@ -174,7 +184,7 @@ function update_graph_display(json_data) {
 		}
 
 	// Draw graph
-	graph=new Chart(ctx, {
+	graphs[canvas_id]=new Chart(ctx, {
 			type: "bar",
 			data: data,
 		    options: {
@@ -191,45 +201,95 @@ function update_graph_display(json_data) {
 	);
 }
 
-function update_graph_year_nav() {
-    if ($("#year_nav_right").val() > "{{ cur_year }}") {
-		$("#year_nav_right").hide()
+// Show/Hide buttons when needed
+function update_graph_year_nav(cur_button) {
+    if (cur_button.val() > "{{ cur_year }}") {
+		cur_button.hide()
 	}
 	else {
-		$("#year_nav_right").show()
+		cur_button.show()
 	}
 }
 
+// Add new graph on button click
+$("#new_graph").click(function(e) {
+
+	// Disable anchor behaviour in order to avoid to go back on the top of the page
+	e.preventDefault()
+
+	// Clone the graph
+	new_graph=$("#graph_1").clone(true)
+
+	//Replace the plus button by a minus one and update the click button
+	graph_id=Date.now()
+	new_graph.find(".display_button").removeClass("fa-plus-square").addClass("fa-minus-square delete_graph")
+	
+	new_graph.find("#new_graph").off("click").removeAttr("id").on("click",function(e) {
+
+		// Disable anchor behaviour in order to avoid to go back on the top of the page
+		e.preventDefault()
+		
+		// If we fire that event that means we want to remove the current graph
+		$(this).parents(".panel").slideUp("slow", function() {
+			$(this).remove()
+		});
+	});
+
+	// Define a new graph id and update fields
+	new_graph.attr("id","graph_" + graph_id)
+	new_graph.find("#canvas_1").attr("id","canvas_" + graph_id)
+	new_graph.find("#user_list_canvas_1").attr("id","user_list_canvas_" + graph_id).val($("#user_list_canvas_1").val())
+	new_graph.find("#graph_cur_year_canvas_1").attr("id","graph_cur_year_canvas_" + graph_id)
+	
+
+	// Draw the graph
+	new_graph.appendTo("#graphs")
+	draw_graph("canvas_" + graph_id)
+});
+
 // Update graph on user change
-$("#user_list").change(function() {
-	draw_graph();
+$(".user_list").change(function() {
+	canvas_name=($(this).parent().parent().next('div').children('canvas').attr('id'))
+	draw_graph(canvas_name);
 });
 
 // Update graph on button click
 $("button").click(function(){
-    // Let's update button and text values
-    $("#graph_cur_year").text($(this).val())
+    // Let's fetch the canvas id
+    canvas_name=$(this).parent().next('div').children('canvas').attr('id')
 	
-    if (this.id == "year_nav_left") {
-	    $("#year_nav_left").val(parseInt($("#year_nav_left").val()) - 1)
-	    $("#year_nav_right").val(parseInt($("#year_nav_right").val()) - 1)
+    if ($(this).hasClass("year_nav_left")) {
+            $(this).nextAll(".graph_cur_year:first").text($(this).val())
+	    $(this).val(parseInt($(this).val()) - 1)
+	    $(this).nextAll(".year_nav_right:first").val(parseInt($(this).nextAll(".year_nav_right:first").val()) - 1)
+
+	    // Update navbar button
+	    update_graph_year_nav($(this).nextAll(".year_nav_right:first"))
     }
-    else if (this.id == "year_nav_right") {
-	    $("#year_nav_left").val(parseInt($("#year_nav_left").val()) + 1)
-	    $("#year_nav_right").val(parseInt($("#year_nav_right").val()) + 1)
+    else if ($(this).hasClass("year_nav_right")) {
+            $(this).prevAll(".graph_cur_year:first").text($(this).val())
+	    $(this).val(parseInt($(this).val()) + 1)
+	    $(this).prevAll(".year_nav_left:first").val(parseInt($(this).prevAll(".year_nav_left:first").val()) + 1)
+
+	    // Update navbar button
+	    update_graph_year_nav($(this))
     }
 
     // Let's redraw the graph considering the new year
-    draw_graph();
+    draw_graph(canvas_name);
 
-    // Update navbar button
-    update_graph_year_nav()
 });
 
 // Let's draw the graph when the document is ready
 jQuery(document).ready(function($) {
-	draw_graph();
-        update_graph_year_nav();
+	var canvas_list = document.getElementsByTagName("canvas");
+	var cur_canvas;
+	for (cur_canvas = 0; cur_canvas < canvas_list.length; cur_canvas++) {
+		draw_graph(canvas_list[cur_canvas].id);
+	} 
+	
+	// Update the first navbar
+        update_graph_year_nav($("#graphs").find(".year_nav_right"));
 
 });
 </script>
