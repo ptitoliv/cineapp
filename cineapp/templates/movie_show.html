@@ -195,7 +195,7 @@ aria-hidden="true">&rarr;</span></a>
 						</div>
 						<div class="media-body">
 							<h4 class="media-heading">{{ cur_comment.user.nickname }}
-								<small><i>{{ cur_comment.posted_when }}</i></small>
+								<small><i>{{ cur_comment.posted_when.strftime("%d/%m/%Y - %H:%M:%S") }}</i></small>
 							</h4>
 							<div class="comment_edit_group" id="comment_edit_group_{{cur_comment.markcomment_id}}">
 								<div class="comment_nonedit_text" id="comment_nonedit_text_{{cur_comment.markcomment_id}}">

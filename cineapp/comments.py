@@ -37,7 +37,7 @@ def add_mark_comment():
 		db.session.commit()
 			
 		# TODO : DO BETEER REALLY !!!!
-		mark_comment.posted_when = mark_comment.posted_when.strftime('%Y-%m-%d %H:%M:%S')
+		mark_comment.posted_when = mark_comment.posted_when.strftime('%d/%m/%Y - %H:%M:%S')
 
 	except IntegrityError:
 		db.session.rollback()
