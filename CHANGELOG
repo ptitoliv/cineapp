@@ -1,3 +1,18 @@
+Version 2.1.0 (2017-08-31)
+-------------
+ * [FEAT]: Display mark comment date on a better format (#82)
+ * [FEAT]: Add new sort category based on favorites levels (#66)
+ * [FEAT]: New graph. Average per year (#75)
+ * [FEAT]: Additional graphs on the dashboard pages for doing comparisons (#67)
+ * [FEAT]: Improve application responsiveness especially for mobile display (#77)
+ * [FEAT]: Remove not wanted favorite star on the mark update page (#73)
+ * [FEAT]: Display seen date in colour when the movie has been seen in theater (#78)
+ * [FEAT]: Push notification on new chat message (#80)
+ * [FEAT]: Add original movie name on movie page (#79)
+ * [FIX]: Display mark comments with the correct background color (#81)
+ * [FIX]: Remove chat link when user is not authenticated (#72)
+ * [FIX]: Fix favorite movie filter (#76)
+
 Version 2.0.1 (2017-07-14)
 -------------
 * [FIX]: Chat messages are not broadcasted (#68)
