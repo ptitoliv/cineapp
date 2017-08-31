@@ -10,15 +10,20 @@ from cineapp import app,db, tvmdb
 from cineapp.models import Movie
 
 # Fetch objects only where we have a tmdb_id
-movies=Movie.query.filter(Movie.tmvdb_id!=None)
+movies=Movie.query.filter(Movie.original_name==None)
 
 # Process each movie
 for movie in movies:
 
 	temp_movie=tvmdb.get_movie(movie.tmvdb_id,True)
 
+	if temp_movie == None:
+		print u"%s non référencé" % movie.name
+		continue
+
 	# Update the movie
 	movie.name=temp_movie.name
+	movie.original_name=temp_movie.original_name
 	movie.release_date=temp_movie.release_date
 	movie.url=temp_movie.url
 	movie.tmvdb_id=temp_movie.tmvdb_id
