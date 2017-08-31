@@ -243,7 +243,7 @@ $("#new_graph").click(function(e) {
 	
 
 	// Draw the graph
-	new_graph.appendTo("#graphs")
+	new_graph.appendTo("#graphs").hide().slideDown("slow")
 	draw_graph("canvas_" + graph_id)
 });
 
