@@ -242,7 +242,15 @@ def update_datatable():
 
 		# Let's build the filtered requested following what has been posted in the filter form
 		filter_fields=session.get('query')
-		movies_query = Movie.query.outerjoin(Mark).outerjoin(FavoriteMovie).filter_by(user_id=filter_user).join(FavoriteType)
+
+		# If we must sort by favorite, the query is not the same. Let's generate here	
+		if filter_field == FavoriteType.star_weight:
+
+			# We only want movies with favorite defined for the concerned user
+			movies_query = Movie.query.outerjoin(Mark).outerjoin(FavoriteMovie).filter(FavoriteMovie.user_id==filter_user).outerjoin(FavoriteType)
+		else:
+			# All the others sorts refer to the Mark.user_id column
+			movies_query = Movie.query.outerjoin(Mark).outerjoin(FavoriteMovie).filter(Mark.user_id==filter_user).outerjoin(FavoriteType)
 
 		# Check that we have a real list in order to avoid an exception	
 		if isinstance(filter_fields,dict):
@@ -271,7 +279,15 @@ def update_datatable():
 				movies_query = movies_query.filter(Mark.movie_id.in_(array_movies_seen_in_theater))
 
 			if filter_fields['favorite'] !=None:
-				movies_query = movies_query.filter(FavoriteMovie.user_id==filter_fields['favorite'])
+
+				# Same behaviour than the previous one
+				favorite_movies = FavoriteMovie.query.filter(FavoriteMovie.user_id == filter_fields['favorite']).all()
+				favorite_movies_array = []
+
+				for cur_favorite_movie in favorite_movies:
+					favorite_movies_array.append(cur_favorite_movie.movie_id)
+
+				movies_query = movies_query.filter(FavoriteMovie.movie_id.in_(favorite_movies_array))
 
 		# Sort my desc marks
 		if order_dir == "desc":
@@ -325,7 +341,7 @@ def update_datatable():
 				movies_query = movies_query.filter(Movie.type==filter_fields['type'])
 
 			if filter_fields['seen_where'] !=None:
-				movies_query = movies_query.filter_by(user_id=filter_fields['seen_where']).filter(Mark.seen_where=='C')
+				movies_query = movies_query.filter(Mark.user_id==filter_fields['seen_where']).filter(Mark.seen_where=='C')
 
 			if filter_fields['favorite'] !=None:
 				movies_query = movies_query.filter(FavoriteMovie.user_id==filter_fields['favorite'])
