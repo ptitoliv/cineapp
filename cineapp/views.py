@@ -1155,64 +1155,31 @@ def delete_homework(movie_id,user_id):
 @login_required
 def list_homeworks():
 
-	# If we have a get request, we don't come fomr a form
-	# ==> Let's clean session variables
-	if request.method == "GET":	
-		session.pop('my_homework_filter','None')
-		session.pop('given_homework_filter','None')
+	# Create the form
+	homework_filter_form=HomeworkForm(to_user_filter=g.user)
 
-	# Create the two forms for user filtering
-	if session.get('my_homework_filter', None) != None:
-		my_homework_filter_form=HomeworkForm(label_name=u'Donné par :',prefix=u"my",user_filter=User.query.get(session.get('my_homework_filter',None)))
-	else:
-		my_homework_filter_form=HomeworkForm(label_name=u'Donné par :',prefix=u"my")
-
-	if session.get('given_homework_filter', None) != None:
-		given_homework_filter_form=HomeworkForm(label_name=u"Donné à:",prefix=u"given",user_filter=User.query.get(session.get('given_homework_filter')))
-	else:
-		given_homework_filter_form=HomeworkForm(label_name=u"Donné à:",prefix=u"given")
-
-	# Query generation considering from where we do come from
-	# We sort the results first by null results in order to show
+	# Intialize the SQL query
+     	# We sort the results first by null results in order to show
 	# movies we have to rate and them movies which have been rated
 	# For this query, we use a case statement
 	# http://stackoverflow.com/questions/1347894/order-by-null-first-then-order-by-other-variable
+	homework_query = Mark.query.join(Mark.movie).order_by(desc(case([(Mark.mark == None, 0)],1)),Movie.name).filter(Mark.homework_who != None)
 
-	# Fetch homeworks given by a user
-	if my_homework_filter_form.validate_on_submit():
+	# Fetch the homeworks
+	if homework_filter_form.validate_on_submit():
 
-		if my_homework_filter_form.user_filter.data != None:
-			# Save the filter into a session variable => Will be used if we do a search in the other form
-			session['my_homework_filter']=my_homework_filter_form.user_filter.data.id
+		# Build the request considering the used fields
+		if homework_filter_form.from_user_filter.data != None:
+			homework_query = homework_query.filter(Mark.homework_who == homework_filter_form.from_user_filter.data.id)
+
+		if homework_filter_form.to_user_filter.data != None:
+			homework_query = homework_query.filter(Mark.user_id == homework_filter_form.to_user_filter.data.id)
 			
-			my_homeworks = Mark.query.join(Mark.movie).filter(and_(Mark.user_id == g.user.id, Mark.homework_who != None, Mark.homework_who == my_homework_filter_form.user_filter.data.id)).order_by(desc(case([(Mark.mark == None, 0)],1)),Movie.name)
-		else:
-			my_homeworks = Mark.query.join(Mark.movie).filter(and_(Mark.user_id == g.user.id, Mark.homework_who != None)).order_by(desc(case([(Mark.mark == None, 0)],1)),Movie.name)
-
-	elif session.get('my_homework_filter', None) != None:
-		my_homeworks = Mark.query.join(Mark.movie).filter(and_(Mark.user_id == g.user.id, Mark.homework_who != None, Mark.homework_who == session.get('my_homework_filter'))).order_by(desc(case([(Mark.mark == None, 0)],1)),Movie.name)
+		homeworks=homework_query
 	else:
-		my_homeworks = Mark.query.join(Mark.movie).filter(and_(Mark.user_id == g.user.id, Mark.homework_who != None)).order_by(desc(case([(Mark.mark == None, 0)],1)),Movie.name)
+		homeworks=homework_query.filter(and_(Mark.user_id == g.user.id))
 
-	
-	# Fetch homeworks given to other users	
-	if given_homework_filter_form.validate_on_submit():
-
-		if given_homework_filter_form.user_filter.data != None:
-			
-			# Save the filter into a session variable => Will be used if we do a search in the other form
-			session['given_homework_filter']=given_homework_filter_form.user_filter.data.id
-
-			given_homeworks = Mark.query.join(Mark.movie).filter(and_(Mark.homework_who == g.user.id, Mark.homework_who != None, Mark.user_id == given_homework_filter_form.user_filter.data.id)).order_by(desc(case([(Mark.mark == None, 0)],1)),Movie.name)
-		else:
-			given_homeworks = Mark.query.join(Mark.movie).filter(and_(Mark.homework_who == g.user.id)).order_by(desc(case([(Mark.mark == None, 0)],1)),Movie.name)
-
-	elif session.get('given_homework_filter', None) != None:
-		given_homeworks = Mark.query.join(Mark.movie).filter(and_(Mark.homework_who == g.user.id, Mark.user_id == session.get('given_homework_filter'))).order_by(desc(case([(Mark.mark == None, 0)],1)),Movie.name)
-	else:
-		given_homeworks = Mark.query.join(Mark.movie).filter(Mark.homework_who == g.user.id).order_by(desc(case([(Mark.mark == None, 0)],1)),Movie.name)
-
-	return render_template('list_homeworks.html',my_homeworks=my_homeworks,given_homeworks=given_homeworks,my_homework_filter_form=my_homework_filter_form,given_homework_filter_form=given_homework_filter_form)
+	return render_template('list_homeworks.html',homework_filter_form=homework_filter_form,homeworks=homeworks)
 
 @app.route('/graph/mark', endpoint="graph_by_mark")
 @app.route('/graph/mark_percent', endpoint="graph_by_mark_percent")

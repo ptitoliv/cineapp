@@ -154,16 +154,9 @@ class PasswordForm(Form):
 	submit_user = SubmitField("Changer le mot de passe")
 
 class HomeworkForm(Form):
-	user_filter = QuerySelectField('Vu au cine par',query_factory=get_users,get_label='nickname',allow_blank=True,blank_text=u'--Pas de filtre--')
+	from_user_filter = QuerySelectField('De:',query_factory=get_users,get_label='nickname',allow_blank=True,blank_text=u'--Tous--')
+	to_user_filter = QuerySelectField('A:',query_factory=get_users,get_label='nickname',allow_blank=True,blank_text=u'--Tous--')
 	submit_homework = SubmitField('Filtrer')
-
-	# Specific constructor in order to initialize properly the user_filter label
-	def __init__(self,label_name=None,*args,**kwargs):
-		
-		# Call the parent constructor
-		super(HomeworkForm, self).__init__(*args,**kwargs)
-
-		self.user_filter.label.text=label_name
 
 class DashboardGraphForm(Form):
 	user_list = QuerySelectField(query_factory=get_users,get_label='nickname')

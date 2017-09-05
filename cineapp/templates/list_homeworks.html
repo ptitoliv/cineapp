@@ -1,69 +1,47 @@
 {% extends "base.html" %}
 {% block content %}
 	<div class="container">
-		<div class="col-md-6">
-			<h1 class="text-center">Mes devoirs</h1>
-			<!-- My Homeworks filter form -->
-			<div>
-				<form class="form-inline text-center" method="post" role="form" action={{ url_for('list_homeworks') }}>
-					{{ my_homework_filter_form.hidden_tag() }}
-					{{ render_field(my_homework_filter_form.user_filter) }}	
-					{{ render_field(my_homework_filter_form.submit_homework,label_visible=false,class="btn btn-success") }}
-				</form>
-				
-			</div>
-			<table class="table table-striped" id="myhomeworks">
-			<tr class="text-center">
-				<th class="text-center" >Titre du film</th>
-				<th class="text-center" >Réalisateur</th>
-				<th class="text-center"  style="width:20%;">Donné par:</th>
-				<th class="text-center" ></th>
-			</tr>
-			{% for cur_homework in my_homeworks %}
-			<tr class="text-center">
-				<td><a href="{{ url_for('show_movie',movie_id=cur_homework.movie_id) }}">{{ cur_homework.movie.name }}</a></td>
-				<td>{{ cur_homework.movie.director }}</td>
-				<td>{{ cur_homework.homework_who_user.nickname }} </td>
-				{% if cur_homework.mark == None %}
-  			        <td><a class="btn btn-primary btn-xs" href="{{ url_for('mark_movie',movie_id_form=cur_homework.movie.id) }}">Noter</a>
-				{% else %}
-				<td><strong>{{ cur_homework.mark }}</strong></td>
-				{% endif %}
-			</tr>
-			{% endfor %}
-			</table>
+		<h1 class="text-center">Liste des devoirs</h1>
+		<!-- My Homeworks filter form -->
+		<div style="width:100%;">
+			<form style="width:100%;" class="form-inline text-center" method="post" role="form" action={{ url_for('list_homeworks') }}>
+				{{ homework_filter_form.hidden_tag() }}
+				{{ render_field(homework_filter_form.from_user_filter) }}	
+				{{ render_field(homework_filter_form.to_user_filter) }}	
+				{{ render_field(homework_filter_form.submit_homework,label_visible=false,class="btn btn-success") }}
+			</form>
 		</div>
-		<div class="col-md-6">
-			<h1 class="text-center">Devoirs donnés</h1>
-			<!-- Given Homeworks filter form -->
-			<div>
-				<form class="form-inline text-center" method="post" role="form" action={{ url_for('list_homeworks') }}>
-					{{ given_homework_filter_form.hidden_tag() }}
-					{{ render_field(given_homework_filter_form.user_filter) }}	
-
-					{{ render_field(given_homework_filter_form.submit_homework,label_visible=false,class="btn btn-success") }}
-				</form>
-				
-			</div>
-			<table class="table table-striped" id="givenhomework">
-			<tr>
-				<th class="text-center">Titre du film</th>
+		<div>
+			<table class="table table-striped" id="homeworks_list">
+			<tr class="text-center">
+				<th class="text-center" style="width:25%;">Titre du film</th>
 				<th class="text-center">Réalisateur</th>
-				<th class="text-center" style="width:20%;">Donné à:</th>
+				<th class="text-center">De:</th>
+				<th class="text-center">A:</th>
+				<th class="text-center">Note</th>
 				<th class="text-center"></th>
 				<th class="text-center"></th>
 			</tr>
-			{% for cur_homework in given_homeworks %}
+			{% for cur_homework in homeworks %}
 			<tr class="text-center">
 				<td><a href="{{ url_for('show_movie',movie_id=cur_homework.movie_id) }}">{{ cur_homework.movie.name }}</a></td>
 				<td>{{ cur_homework.movie.director }}</td>
-				<td>{{ cur_homework.user.nickname }} </td>
+				<td>{{ cur_homework.user.nickname }}</td>
+				<td>{{ cur_homework.homework_who_user.nickname }}</td>
 				{% if cur_homework.mark == None %}
-  			       	<td><a class="disabled btn btn-warning btn-xs">En cours</a>
+					{% if cur_homework.user.id == g.user.id %}
+						<td><a class="btn btn-primary btn-xs" href="{{ url_for('mark_movie',movie_id_form=cur_homework.movie.id) }}">Noter</a>
+					{% else %}
+						 <td><a class="disabled btn btn-warning btn-xs">En cours</a>
+					{% endif %}
 				{% else %}
-				<td><strong>{{ cur_homework.mark }}</strong></td>
+					<td><strong>{{ cur_homework.mark }}</strong></td>
 				{% endif %}
-				<td><a href="{{ url_for("delete_homework", user_id=cur_homework.user.id,movie_id=cur_homework.movie.id) }}"<i class="fa fa-times fa-1x" id="redcross"/></a></td>
+				<td>
+					{% if cur_homework.homework_who == g.user.id and cur_homework.mark == None %}
+						<a href="{{ url_for("delete_homework", user_id=cur_homework.user.id,movie_id=cur_homework.movie.id) }}"<i class="fa fa-times fa-1x" id="redcross"/></a>
+					{% endif %}
+				</td>
 			</tr>
 			{% endfor %}
 			</table>
