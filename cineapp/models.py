@@ -93,7 +93,7 @@ class Movie(db.Model):
 	# Settings for FTS (WooshAlchemy)
 	__searchable__ = [ 'name', 'director', 'original_name' ]
 	charmap = charset_table_to_dict(default_charset)
-	__analyzer__ =  NgramWordAnalyzer(2) | CharsetFilter(charmap)
+	__analyzer__ = NgramWordAnalyzer(3) | CharsetFilter(charmap)
 
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(100),index=True)
