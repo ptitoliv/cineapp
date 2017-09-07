@@ -1,3 +1,9 @@
+Version 2.1.1 (2017-09-07)
+-------------
+ * [FEAT]: Homework page display redesign (#83)
+ * [FIX]: Fix filters and sorts on movies list (#84)
+ * [FIX]: Fix FTS search when using 2 characters string (#85)
+
 Version 2.1.0 (2017-08-31)
 -------------
  * [FEAT]: Display mark comment date on a better format (#82)
