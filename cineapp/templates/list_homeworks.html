@@ -26,8 +26,8 @@
 			<tr class="text-center">
 				<td><a href="{{ url_for('show_movie',movie_id=cur_homework.movie_id) }}">{{ cur_homework.movie.name }}</a></td>
 				<td>{{ cur_homework.movie.director }}</td>
-				<td>{{ cur_homework.user.nickname }}</td>
 				<td>{{ cur_homework.homework_who_user.nickname }}</td>
+				<td>{{ cur_homework.user.nickname }}</td>
 				{% if cur_homework.mark == None %}
 					{% if cur_homework.user.id == g.user.id %}
 						<td><a class="btn btn-primary btn-xs" href="{{ url_for('mark_movie',movie_id_form=cur_homework.movie.id) }}">Noter</a>
