@@ -105,14 +105,14 @@ def get_movie(id,fetch_poster=True):
 	# Fetch poster url !
 	try:
 		url = base_url + 'w185' + movie_poster['posters'][0]['file_path']
-	except IndexError:
+	except (IndexError,TypeError):
 
 		# No poster with the french or null language= => Fallback in english
 		movie_poster=tmvdb_connect(os.path.join(app.config['API_URL'],("movie/" + str(id) + "/images?api_key=" + app.config['API_KEY'])))
 
 		try:
 			url = base_url + 'w185' + movie_poster['posters'][0]['file_path']
-		except IndexError:
+		except (IndexError,TypeError):
 			pass
 
 	# Download the poster and update the database
