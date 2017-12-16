@@ -1,3 +1,9 @@
+Version 2.1.2 (2017-12-16)
+--------------------------
+  * [FIX]: Handle all exceptions when errors are provided by TVMDB API (#92)
+  * [FIX]: Improve comment display considering HTML formatting (#93)
+  * [FIX]: Fix error 500 when doing rollback on wizard (#94)
+
 Version 2.1.1 (2017-09-07)
 -------------
  * [FEAT]: Homework page display redesign (#83)
