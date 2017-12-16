@@ -427,7 +427,12 @@ def update_datatable():
 				if cur_mark.user.id == cur_user.id:
 					dict_mark[cur_user.id]=cur_mark.mark		
 					dict_where[cur_user.id]=cur_mark.seen_where
-					dict_comments[cur_user.id]=cur_mark.comment
+
+					if cur_mark.comment != None:
+						dict_comments[cur_user.id]=cur_mark.comment.replace('"','\'')
+					else:
+						dict_comments[cur_user.id]=cur_mark.comment
+
 					dict_homework[cur_user.id]["when"]=str(cur_mark.homework_when)
 
 					if cur_mark.homework_who_user != None:
@@ -1513,7 +1518,7 @@ def update_activity_flow():
 			if cur_activity["object"].comment == None:
 				comment=""
 			else:
-				comment=cur_activity["object"].comment
+				comment=cur_activity["object"].comment.replace('"','\'')
 
 			# Precise if this is a mark for an homework or a simple mark
 			if cur_activity["object"].updated_when != None and cur_activity["object"].homework_when != None:
@@ -1521,11 +1526,11 @@ def update_activity_flow():
 				entry_type+=" <a class=\"disabled btn btn-warning btn-xs\">Devoir</a>"	
 
 				# Define the text that will be shown on the datatable
-				entry_text=cur_activity["object"].user.nickname + u" vient de remplir son devoir sur le film <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].movie_id) +"\">" +  cur_activity["object"].movie.name + "</a> .La note est de <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
+				entry_text=cur_activity["object"].user.nickname + u" vient de remplir son devoir sur le film <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].movie_id) +"\">" +  cur_activity["object"].movie.name + "</a> .La note est de <span title=\"Commentaire\" data-html=\"true\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
 
 			else:
 				# Define the text that will be shown on the datatable
-				entry_text=cur_activity["object"].user.nickname + u" a noté le film <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].movie_id) +"\">" +  cur_activity["object"].movie.name + "</a> avec la note <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
+				entry_text=cur_activity["object"].user.nickname + u" a noté le film <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].movie_id) +"\">" +  cur_activity["object"].movie.name + "</a> avec la note <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
 
 		elif cur_activity["entry_type"] == "homeworks":
 			entry_type="<a class=\"disabled btn btn-warning btn-xs\">Devoir</a>"
@@ -1537,7 +1542,7 @@ def update_activity_flow():
 			entry_type="<a class=\"disabled btn btn-comment btn-xs\">Commentaire</a>"
 
 			# Define the text that will be shown on the datatable
-			entry_text=cur_activity["object"].user.nickname + " vient de poster un <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + cur_activity["object"].message + "\"><strong>commentaire</strong></span> sur le film <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].mark.movie.id) + "\">" +  cur_activity["object"].mark.movie.name + u"</a> en réponse à <strong><span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-html=\"true\" data-content=\"" + cur_activity["object"].mark.comment + "\">" + cur_activity["object"].mark.user.nickname + "</strong></span>"
+			entry_text=cur_activity["object"].user.nickname + " vient de poster un <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + cur_activity["object"].message + "\"><strong>commentaire</strong></span> sur le film <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].mark.movie.id) + "\">" +  cur_activity["object"].mark.movie.name + u"</a> en réponse à <strong><span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-html=\"true\" data-content=\"" + cur_activity["object"].mark.comment + "\">" + cur_activity["object"].mark.user.nickname + "</strong></span>"
 
 		elif cur_activity["entry_type"] == "favorites":
 			entry_type="<a class=\"disabled btn btn-favorite btn-xs\">Favori</a>"

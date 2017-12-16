@@ -52,7 +52,7 @@
 						if (row.my_mark == null)  {
   							return '<a class=\"btn btn-primary btn-xs\" href=' + row.DT_RowData.mark_link + '>Noter</a>'
 						} else {
-							return '<span title="' + row.name +'" data-toggle="popover" data-placement="top" data-trigger="hover" data-content="' + row.my_comment + '">' + row.my_mark + "</span>"
+							return '<span title="' + row.name +'" data-html="true" data-toggle="popover" data-placement="left" data-trigger="hover" data-content="' + row.my_comment + '">' + row.my_mark + "</span>"
 						}
 					
 					}
@@ -86,10 +86,10 @@
 						if (row.DT_RowData.homework_link[{{cur_user.id}}]["when"] == null) {
 							return '-';
 						} else {
-							return '<a disabled="true" title="Devoir donne par" data-toggle="popover" data-placement="top" data-trigger="hover" data-content="' + row.DT_RowData.homework_link[{{cur_user.id}}]["who"] +'" class="btn btn-warning btn-xs">Devoir</button>'
+							return '<a disabled="true" title="Devoir donne par" data-html="true" data-toggle="popover" data-placement="left" data-trigger="hover" data-content="' + row.DT_RowData.homework_link[{{cur_user.id}}]["who"] +'" class="btn btn-warning btn-xs">Devoir</button>'
 						}
 					} else {
-							return '<span title="' + row.name + '" data-toggle="popover" data-placement="top" data-trigger="hover" data-content="' + row.other_comments[{{cur_user.id}}] + '">' + row.other_marks[{{cur_user.id}}] + "</span>"
+							return '<span title="' + row.name + '" data-html="true" data-toggle="popover" data-placement="left" data-trigger="hover" data-content="' + row.other_comments[{{cur_user.id}}] + '">' + row.other_marks[{{cur_user.id}}] + "</span>"
 					}
 				   }
 				 },

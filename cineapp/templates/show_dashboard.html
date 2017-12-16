@@ -94,11 +94,11 @@
 
 									{% if cur_object["object"].updated_when != None and cur_object["object"].homework_when != None: %}
 									<td><a class="disabled btn btn-primary btn-xs">Note</a> <a class="disabled btn btn-warning btn-xs">Devoir</a></td>
-									<td>{{ cur_object["object"].user.nickname }} a rempli le devoir sur le film <a href="{{ url_for('show_movie', movie_id=cur_object["object"].movie_id) }}"> {{ cur_object["object"].movie.name }}</a> avec la note <span title="Commentaire" data-toggle="popover" data-placement="top" data-trigger="hover" data-content="{{ cur_object["object"].comment}}"><strong>{{ cur_object["object"].mark }}</strong></span></td>
+									<td>{{ cur_object["object"].user.nickname }} a rempli le devoir sur le film <a href="{{ url_for('show_movie', movie_id=cur_object["object"].movie_id) }}"> {{ cur_object["object"].movie.name }}</a> avec la note <span title="Commentaire" data-html="true" data-toggle="popover" data-placement="top" data-trigger="hover" data-content="{{ cur_object["object"].comment}}"><strong>{{ cur_object["object"].mark }}</strong></span></td>
 									{% else %}
 
 									<td><a class="disabled btn btn-primary btn-xs">Note</a></td>
-									<td>{{ cur_object["object"].user.nickname }} a noté le film <a href="{{ url_for('show_movie', movie_id=cur_object["object"].movie_id) }}"> {{ cur_object["object"].movie.name }}</a> avec la note <span title="Commentaire" data-toggle="popover" data-placement="top" data-trigger="hover" data-content="{{ cur_object["object"].comment}}"><strong>{{ cur_object["object"].mark }}</strong></span></td>
+									<td>{{ cur_object["object"].user.nickname }} a noté le film <a href="{{ url_for('show_movie', movie_id=cur_object["object"].movie_id) }}"> {{ cur_object["object"].movie.name }}</a> avec la note <span title="Commentaire" data-toggle="popover" data-html="true" data-placement="top" data-trigger="hover" data-content="{{ cur_object["object"].comment}}"><strong>{{ cur_object["object"].mark }}</strong></span></td>
 
 									{% endif %}
 
