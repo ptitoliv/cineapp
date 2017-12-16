@@ -715,7 +715,7 @@ def confirm_movie():
 		
 			# Last step : Set type and origin and add the movie
 			# Note : Movie_id is the TMVDB id
-			movie_form_tmvdb=get_movie(select_form.movie.data, False)
+			movie_form_tmvdb=get_movie(select_form.movie.data, True)
 
 			if endpoint == "add":
 
@@ -741,9 +741,6 @@ def confirm_movie():
 				# And then update the others fields
 				confirm_form.movie_id.data=select_form.movie.data
 				confirm_form.submit_confirm.label.text=u"Mettre à jour le film"
-
-			# Delete the session object since we don't need it anymore
-			session.pop("movies_list")
 
 			# Go to the final confirmation form
 			return render_template('confirm_movie_wizard.html', movie=movie_form_tmvdb, form=confirm_form, endpoint=endpoint)
