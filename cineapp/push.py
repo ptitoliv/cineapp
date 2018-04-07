@@ -3,7 +3,7 @@ from flask.ext.login import login_required, request
 from flask import jsonify, session, g, url_for
 from pywebpush import webpush, WebPushException
 from cineapp.models import PushNotification
-import json
+import json, traceback, sys, datetime, time
 
 @app.route('/notifications/subscribe', methods=['POST'])
 @login_required
@@ -31,21 +31,25 @@ def notification_send(text,active_subscriptions):
 
 	for cur_active_sub in active_subscriptions:
 		try:
+		    expiration_date = time.mktime((datetime.datetime.now() + datetime.timedelta(hours=12)).timetuple())
 		    webpush(cur_active_sub.serialize(),
 			data=json.dumps({ "url":url_for('chat'), "message_title": "Message depuis le chat", "message": text }) ,
 			vapid_private_key=app.config["NOTIF_PRIVATE_KEY_PATH"],
 			vapid_claims={
-			"sub": "mailto:ptitoliv@gmail.com"
+			"sub": "mailto:ptitoliv@gmail.com",
+			"exp": expiration_date
 			}
     	)
 		except WebPushException as ex:
 		    # If there is an error let's remove the subscription
 		    app.logger.error("Subscription for endpoint %s is incorrect ==> Delete it", cur_active_sub)
+		    print traceback.print_exc(file=sys.stdout);
 
 		    # Let's remove the notification
 		    notification_unsubscribe(cur_active_sub)
 			
 		    print("I'm sorry, Dave, but I can't do that: {}", repr(ex))
+                    print(ex.response.json())
 	
 def notification_unsubscribe(sub):
 	try:
