@@ -36,7 +36,13 @@ app.config['GRAPH_LIST'] = [
 # Upload image control
 app.config['ALLOWED_MIMETYPES'] = [ 'image/png', 'image/jpeg']
 app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024
-app.config['AVATARS_URL'] = "/static/avatars/"
+
+# Initialize path with default values if necessary
+if not app.config.has_key('AVATARS_URL'):
+	app.config['AVATARS_URL'] = "/static/avatars/"
+
+if not app.config.has_key('POSTERS_URL'):
+	app.config['POSTERS_URL'] = "/static/posters/"
 
 # TMVDB parameters
 app.config['TMVDB_BASE_URL'] = "https://themoviedb.org/movie"

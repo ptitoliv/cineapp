@@ -33,7 +33,7 @@ aria-hidden="true">&rarr;</span></a>
 	<div class="row">
 		<div class="col-md-2">
 			{% if movie.poster_path != None %}
-			<img src="/static/posters/{{ movie.poster_path }}"/>
+			<img src="{{ config['POSTERS_URL'] }}/{{ movie.poster_path }}"/>
 			{% else %}
 			<div class="jumbotron text-center">Pas d'affiche</div>
 			{% endif %}
