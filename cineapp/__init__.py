@@ -51,7 +51,7 @@ app.config['TMVDB_BASE_URL'] = "https://themoviedb.org/movie"
 if os.environ.get('TEST') == "yes":
 	app.config.from_pyfile('configs/settings_test.cfg')
 else:
-	app.config.from_pyfile('configs/settings.cfg')
+	app.config.from_pyfile(os.path.join(app.root_path,'../configs/settings.cfg'))
 
 # Check if API_KEY is defined
 if not app.config.has_key('API_KEY'):
