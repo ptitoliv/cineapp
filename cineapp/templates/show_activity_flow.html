@@ -9,7 +9,7 @@
 			  "processing": true,
 			  "serverSide": true,
 			  "displayLength": 100,
-		          "dom": '<"top"iflp<"clear">>',
+			  "dom": '<"top"ip>rt<"bottom"flp><"clear">',
 			  "ajax": {
 				"url": "{{ url_for('update_activity_flow') }}",
 				"type" : "POST",
@@ -41,6 +41,13 @@
 		table.on( 'draw', function () {
 	                    $('[data-toggle="popover"]').popover();
 		} );
+
+		// Scroll to top when pagination is clicked
+		table.on('page.dt', function() {
+		  $('html, body').animate({
+		    scrollTop: $("html").offset().top
+		   }, 'slow');
+		});
 	}
 )
 </script>
