@@ -417,3 +417,6 @@ footer {
 .display_button {
 	color:#5cb95c;
 }
+
+#activitylist.dataTable.display tbody tr:first-child td {
+  border-top: none; }

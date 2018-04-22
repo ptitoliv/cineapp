@@ -84,11 +84,10 @@
 			<div class="col-md-6">
 				<div class="panel panel-default">
 					  <div class="panel-heading text-center">Flux d'activité</div>
-						<table width="100%" id="activitylist" class="table table-striped">
+						<table width="100%" id="activitylist" class="table display">
 							<thead style="display:none;">
 								<tr>
-									<th style="width:15%">Type</th>
-									<th style="width:10%"></th>
+									<th>Type</th>
 									<th>Activité</th>
 								</tr>
 							</thead>
@@ -117,10 +116,9 @@
 			  },
 			  "columns" : [
 				{ "data" : "entry_type",
-				  "className": "text-right" },
-				{ "data" : null,
-				  "defaultContent": "" },
-				{ "data" : "entry_text" }
+				  "className": "text-center" },
+				{ "data" : "entry_text",
+				  "className": "text-center" }
 				]
 			}
 		)
