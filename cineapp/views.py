@@ -1519,6 +1519,11 @@ def update_activity_flow():
 	length = args.get('length')
 	draw = args.get('draw')
 
+	# Set default value to 20 for length
+	# if pagination is not enabled (Like in dashboard)
+	if length == -1:
+		length = 20
+
 	# Fetch the activity items
 	temp_activity_dict=get_activity_list(start,length)
 
@@ -1571,8 +1576,13 @@ def update_activity_flow():
 		elif cur_activity["entry_type"] == "comments":
 			entry_type="<a class=\"disabled btn btn-comment btn-xs\">Commentaire</a>"
 
+			# Check that the mark comment is not empty in order to avoid an exception
+			# when encoding the string
+			if cur_activity["object"].mark.comment == None:
+				cur_activity["object"].mark.comment = "N/A"
+
 			# Define the text that will be shown on the datatable
-			entry_text=cur_activity["object"].user.nickname + " vient de poster un <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + cur_activity["object"].message + "\"><strong>commentaire</strong></span> sur le film <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].mark.movie.id) + "\">" +  cur_activity["object"].mark.movie.name + u"</a> en réponse à <strong><span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-html=\"true\" data-content=\"" + cur_activity["object"].mark.comment + "\">" + cur_activity["object"].mark.user.nickname + "</strong></span>"
+			entry_text=cur_activity["object"].user.nickname.encode("utf-8") + " vient de poster un <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + cur_activity["object"].message.encode("utf-8") + "\"><strong>commentaire</strong></span> sur le film <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].mark.movie.id) + "\">" +  cur_activity["object"].mark.movie.name.encode("utf-8") + "</a> en réponse à <strong><span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-html=\"true\" data-content=\"" + cur_activity["object"].mark.comment.encode("utf-8") + "\">" + cur_activity["object"].mark.user.nickname.encode("utf-8") + "</strong></span>"
 
 		elif cur_activity["entry_type"] == "favorites":
 			entry_type="<a class=\"disabled btn btn-favorite btn-xs\">Favori</a>"

@@ -84,45 +84,61 @@
 			<div class="col-md-6">
 				<div class="panel panel-default">
 					  <div class="panel-heading text-center">Flux d'activité</div>
-						<table class="table table-responsive" id="myhomeworks">
-							{% for cur_object in activity_list %}
-							<tr class="text-center">
-								{% if cur_object["entry_type"] == "movies" %}
-								<td><a class="disabled btn btn-danger btn-xs">Entrée</a></td>
-								<td>Le film <a href="{{ url_for('show_movie', movie_id=cur_object["object"].id) }}"> {{ cur_object["object"].name }}</a> vient d'être ajouté par {{ cur_object["object"].added_by.nickname }}</td>
-								{% elif cur_object["entry_type"] == "marks" %}
-
-									{% if cur_object["object"].updated_when != None and cur_object["object"].homework_when != None: %}
-									<td><a class="disabled btn btn-primary btn-xs">Note</a> <a class="disabled btn btn-warning btn-xs">Devoir</a></td>
-									<td>{{ cur_object["object"].user.nickname }} a rempli le devoir sur le film <a href="{{ url_for('show_movie', movie_id=cur_object["object"].movie_id) }}"> {{ cur_object["object"].movie.name }}</a> avec la note <span title="Commentaire" data-html="true" data-toggle="popover" data-placement="top" data-trigger="hover" data-content="{{ cur_object["object"].comment}}"><strong>{{ cur_object["object"].mark }}</strong></span></td>
-									{% else %}
-
-									<td><a class="disabled btn btn-primary btn-xs">Note</a></td>
-									<td>{{ cur_object["object"].user.nickname }} a noté le film <a href="{{ url_for('show_movie', movie_id=cur_object["object"].movie_id) }}"> {{ cur_object["object"].movie.name }}</a> avec la note <span title="Commentaire" data-toggle="popover" data-html="true" data-placement="top" data-trigger="hover" data-content="{{ cur_object["object"].comment}}"><strong>{{ cur_object["object"].mark }}</strong></span></td>
-
-									{% endif %}
-
-								{% elif cur_object["entry_type"] == "homeworks" %}
-								<td><a class="disabled btn btn-warning btn-xs">Devoir</a></td>
-								<td>{{ cur_object["object"].homework_who_user.nickname }} vient de donner  <a href="{{ url_for('show_movie', movie_id=cur_object["object"].movie_id) }}"> {{ cur_object["object"].movie.name }}</a> en devoir à {{ cur_object["object"].user.nickname }}</td>
-
-								{% elif cur_object["entry_type"] == "comments" %}
-								<td><a class="disabled btn btn-comment btn-xs">Commentaire</a></td>
-								<td>{{ cur_object["object"].user.nickname }} vient de poster un <span title="Commentaire" data-toggle="popover" data-placement="top" data-trigger="hover" data-content="{{ cur_object["object"].message}}"><strong>commentaire</strong></span> sur le film  <a href="{{ url_for('show_movie', movie_id=cur_object["object"].mark.movie.id) }}"> {{ cur_object["object"].mark.movie.name }}</a> en réponse à <span title="Commentaire" data-toggle="popover" data-placement="top" data-html="true" data-trigger="hover" data-content="{{ cur_object["object"].mark.comment}}"><strong>{{ cur_object["object"].mark.user.nickname }}</strong></td>
-
-								{% elif cur_object["entry_type"] == "favorites" %}
-								<td><a class="disabled btn btn-favorite btn-xs">Favori</a></td>
-								<td>{{ cur_object["object"].user.nickname }} vient d'ajouter en favori <a href="{{ url_for('show_movie', movie_id=cur_object["object"].movie_id) }}"> {{ cur_object["object"].movie.name }}</a> - Niveau <i class="fa fa-star {{ cur_object["object"].star_type }}"></i></td>
- 
-								{% endif %}
-							</tr>
-							{% endfor %}
+						<table width="100%" id="activitylist" class="table table-striped">
+							<thead style="display:none;">
+								<tr>
+									<th style="width:15%">Type</th>
+									<th style="width:10%"></th>
+									<th>Activité</th>
+								</tr>
+							</thead>
 						</table>
 				</div>
 			</div>
 		</div>
 	</div>
 	<div>
+<script>
+	$(document).ready(function() {
+		var table=$('#activitylist').DataTable(
+			{ "searching":false,
+			  "stateSave": true,
+			  "ordering": false,
+			  "processing": true,
+			  "serverSide": true,
+			  "paging": false,
+			  "dom": 'rt',
+			  "ajax": {
+				"url": "{{ url_for('update_activity_flow') }}",
+				"type" : "POST",
+				"data": function(args) {
+				      return { "args": JSON.stringify( args ) };
+				},
+			  },
+			  "columns" : [
+				{ "data" : "entry_type",
+				  "className": "text-right" },
+				{ "data" : null,
+				  "defaultContent": "" },
+				{ "data" : "entry_text" }
+				]
+			}
+		)
+	
+		// Enable popover on table redraw	
+		table.on( 'draw', function () {
+	                    $('[data-toggle="popover"]').popover();
+		} );
+
+		// Scroll to top when pagination is clicked
+		table.on('page.dt', function() {
+		  $('html, body').animate({
+		    scrollTop: $("html").offset().top
+		   }, 'slow');
+		});
+	}
+)
+</script>
 <script>
 	$(document).ready(function(){
 	    $('[data-toggle="popover"]').popover();
