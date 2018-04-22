@@ -24,6 +24,7 @@ app.config['GRAVATAR_URL'] = "https://www.gravatar.com/avatar/"
 app.config['GRAPH_LIST'] = [
 		{ "graph_endpoint": "graph_by_mark", "graph_label": u"Répartition par note" },
 		{ "graph_endpoint": "graph_by_mark_percent", "graph_label": u"Répartition par note (en %)" },
+		{ "graph_endpoint": "graph_by_mark_interval", "graph_label": u"Répartition par intervalle" },
 		{ "graph_endpoint": "graph_by_type", "graph_label": u"Répartition par type" },
 		{ "graph_endpoint": "graph_by_origin", "graph_label": u"Répartition par origine" },
 		{ "graph_endpoint": "average_by_type", "graph_label": u"Moyenne par type" },

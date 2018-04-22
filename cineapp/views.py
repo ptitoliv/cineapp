@@ -1207,6 +1207,7 @@ def list_homeworks():
 
 @app.route('/graph/mark', endpoint="graph_by_mark")
 @app.route('/graph/mark_percent', endpoint="graph_by_mark_percent")
+@app.route('/graph/mark_interval', endpoint="graph_by_mark_interval")
 @app.route('/graph/type', endpoint="graph_by_type")
 @app.route('/graph/origin', endpoint="graph_by_origin")
 @app.route('/graph/year', endpoint="graph_by_year")
@@ -1254,7 +1255,6 @@ def show_graphs():
 		# Distributed marks graph
 		graph_type="line"
 
-		# Fill the labels_array with all marks possible
 		for cur_mark in frange(0,20,0.5):
 			labels.append(cur_mark)
 
@@ -1264,6 +1264,34 @@ def show_graphs():
 			for cur_mark in frange(0,20,0.5):
 				data[cur_user.nickname]["data"].append(Mark.query.filter(Mark.mark==cur_mark,Mark.user_id==cur_user.id).count())
 
+	if graph_to_generate == "mark_interval":
+
+		range_mark_array=[]
+		
+		# Distributed marks graph
+		graph_type="line"
+
+		for cur_mark in frange(0,20,0.5):
+			range_mark_array.append(cur_mark)
+	
+		# Fille the label array
+		for cur_index in range(0,len(range_mark_array)):
+			if cur_index < len(range_mark_array)-1:
+				labels.append(str(range_mark_array[cur_index]) + " - " + str(range_mark_array[cur_index+1]))
+			else:
+				labels.append(str(range_mark_array[cur_index]))
+
+		print labels
+
+		# Fill the dictionnary with distributed_marks by user
+		for cur_user in users:
+			data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
+			for cur_index in range(0,len(range_mark_array)):
+				if cur_index < len(range_mark_array)-1:
+					data[cur_user.nickname]["data"].append(Mark.query.filter(Mark.mark>=range_mark_array[cur_index],Mark.mark<range_mark_array[cur_index+1],Mark.user_id==cur_user.id).count())
+				else:
+					data[cur_user.nickname]["data"].append(Mark.query.filter(Mark.mark>=range_mark_array[cur_index],Mark.user_id==cur_user.id).count())
+
 	if graph_to_generate == "mark_percent":
 		
 		# Distributed marks graph
@@ -1272,7 +1300,6 @@ def show_graphs():
 		# Fill the labels_array with all marks possible
 		for cur_mark in frange(0,20,0.5):
 			labels.append(cur_mark)
-
 
 		# Fill the dictionnary with distributed_marks by user
 		for cur_user in users:
