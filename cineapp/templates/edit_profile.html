@@ -100,6 +100,14 @@
 				{{ render_field(form.notif_chat_message,label_visible=false,parse_class=false) }}
 			    </div>
 		     </div>
+		    <div class="row">
+			    <div class="col-xs-6 col-md-4">
+				    <label class="pull-right">Notifications Slack:</label>
+			    </div>
+			    <div class="col-xs-6 col-md-8">
+				{{ render_field(form.notif_slack,label_visible=false,parse_class=false) }}
+			    </div>
+		     </div>
 		  </div>
 		  {% elif state=="password" %}
 		  <div class="form-group">

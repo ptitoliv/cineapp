@@ -6,7 +6,8 @@ from cineapp import mail, db
 from cineapp.models import User
 from threading import Thread
 from cineapp import app
-import html2text
+from slackclient import SlackClient
+import html2text, time, json
 
 # Send mail into a dedicated thread in order to avoir the web app to wait
 def send_async_email(app, msg):
@@ -68,15 +69,24 @@ def mark_movie_notification(mark,notif_type):
 
 		# Send the mail if we have too	
 		if cur_user.notifications != None and cur_user.notifications["notif_movie_add"] == True and send_own_activity_mail==True:
-			if notif_type == "add":	
-				send_email('[Cineapp] - Note d\'un film' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
-				render_template('mark_movie_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
-			elif notif_type == "update":
-				send_email('[Cineapp] - Note mise à jour' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
-				render_template('mark_movie_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
-			elif notif_type == "homework":
-				send_email('[Cineapp] - Devoir rempli' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
-				render_template('mark_movie_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
+			try:
+				if notif_type == "add":	
+					send_email('[Cineapp] - Note d\'un film' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
+					render_template('mark_movie_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
+				elif notif_type == "update":
+					send_email('[Cineapp] - Note mise à jour' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
+					render_template('mark_movie_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
+				elif notif_type == "homework":
+					send_email('[Cineapp] - Devoir rempli' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
+					render_template('mark_movie_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
+
+				return 0
+			except:
+				app.logger.error("Impossible d'envoyer le mail: %s",str(e))
+				return 1
+
+	# Everything has been done correctly ==> return 0
+	return 0
 
 # Function which sends notification to user who received an homework
 # For the homework, just send a mail to the user who has to handle the homework.

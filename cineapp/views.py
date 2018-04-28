@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import urllib, hashlib, re, os, locale, json, copy, time
+import urllib, hashlib, re, os, locale, json, copy, time,html2text
 from datetime import datetime
 from flask import render_template, flash, redirect, url_for, g, request, session
 from flask.ext.login import login_user, logout_user, current_user, login_required
@@ -21,6 +21,7 @@ from sqlalchemy.sql.expression import select, case, literal
 from bcrypt import hashpw, gensalt
 from werkzeug.utils import secure_filename
 from random import randint
+from cineapp.slack import slack_mark_notification
 
 @app.route('/')
 @app.route('/index')
@@ -548,7 +549,7 @@ def mark_movie(movie_id_form):
 	marked_movie=Mark.query.get((g.user.id,movie_id_form))
 
 	# Test if the form has been submitted
-	if form.submit_mark.data:
+	if form.submit_mark.data or form.submit_mark_slack.data or form.submit_mark_only.data:
 
 		# Mark the movie and display the correct page
 		if form.validate_on_submit():
@@ -588,7 +589,21 @@ def mark_movie(movie_id_form):
 				flash(flash_message_success,'success')
 
 				# Send notification
-				mark_movie_notification(marked_movie,notif_type)
+				if mark_movie_notification(marked_movie,notif_type) == 0:
+					flash('Note envoyée par mail','success')
+				else:
+					flash('Impossible d\'envoyer la note par mail','danger')
+
+				# Send Slack Notification if needed
+				if g.user.notifications["notif_slack"]:
+					slack_result = slack_mark_notification(marked_movie,app)
+					if slack_result == 0:
+						flash('Note envoyée sur Slack','success')
+					elif slack_result == -1:
+						flash('Notifications Slack désactivées','warning')
+					else:
+						flash('Impossible d\'envoyer la note sur Slack','danger')
+
 				return redirect(url_for('show_movie',movie_id=movie_id_form))
 				
 			except IntegrityError:
@@ -610,6 +625,30 @@ def mark_movie(movie_id_form):
 		# Movie has already been marked => Fill the form with data
 		form=MarkMovieForm(mark=marked_movie.mark,comment=marked_movie.comment,seen_when=marked_movie.seen_when,seen_where=marked_movie.seen_where)
 		return render_template('movie_show.html', movie=movie, mark=True, marked_flag=True,form=form)
+
+@app.route('/movies/mark/publish/<int:movie_id>', methods=['GET'])
+@login_required
+def publish_mark(movie_id):
+
+	# Fetch the current comment for the logged user and send it on flask
+	# Let's do that only if there is a mark to send
+	mark = Mark.query.get_or_404((g.user.id,movie_id))
+
+	# Convert the HTML content to text in order to have a nice display in the mail
+	html_converter = html2text.HTML2Text()
+        mark.comment=html_converter.handle(mark.comment).strip()
+
+	# Send notification
+	if mark != None:
+		if g.user.notifications["notif_slack"]:
+			slack_result = slack_mark_notification(mark,app)
+			if slack_result == 0:
+				flash('Note envoyée sur Slack','success')
+			elif slack_result == -1:
+				flash('Notifications Slack désactivées','warning')
+			else:
+				flash('Impossible d\'envoyer la note sur Slack','danger')
+		return redirect(url_for('show_movie',movie_id=movie_id))
 
 @app.route('/movies/add', methods=['GET','POST'])
 @login_required
@@ -1017,6 +1056,7 @@ def edit_user_profile():
 		g.user.notifications["notif_comment_add"] = form.notif_comment_add.data
 		g.user.notifications["notif_favorite_update"] = form.notif_favorite_update.data
 		g.user.notifications["notif_chat_message"] = form.notif_chat_message.data
+		g.user.notifications["notif_slack"] = form.notif_slack.data
 
 		# Update the avatar if we have to
 		if 'upload_avatar' in request.files:

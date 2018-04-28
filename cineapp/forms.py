@@ -45,6 +45,8 @@ class MarkMovieForm(Form):
 	seen_where = RadioField('Ou j\'ai vu le film', [Required(message="Date invalide")],choices=[('C', u'Cinema'), ('M', 'Maison')], default='M')
 	seen_when = DateField('Vu le :', default=datetime.now,format="%d/%m/%Y")
 	submit_mark = SubmitField('Noter')
+	submit_mark_only = SubmitField('Noter uniquement')
+	submit_mark_slack = SubmitField('Noter et publier')
 
 	# The method name is important
 	# A validate_XXX method will validate a field named XXX
@@ -115,6 +117,7 @@ class UserForm(Form):
 	notif_comment_add = BooleanField()
 	notif_favorite_update = BooleanField()
 	notif_chat_message = BooleanField()
+	notif_slack = BooleanField()
 	submit_user = SubmitField("Sauver")
 	upload_avatar = FileField("Image de profil")
 
@@ -147,6 +150,9 @@ class UserForm(Form):
 
 			if "notif_chat_message" in user.notifications and user.notifications["notif_chat_message"] != None:
 				self.notif_chat_message.data=user.notifications["notif_chat_message"]
+
+			if "notif_slack" in user.notifications and user.notifications["notif_slack"] != None:
+				self.notif_slack.data=user.notifications["notif_slack"]
 
 class PasswordForm(Form):
 	password = PasswordField('Mot de passe',[DataRequired('Champ Requis'), EqualTo('confirm',message='Les mots de passe ne correspondent pas')])
