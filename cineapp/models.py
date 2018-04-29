@@ -50,8 +50,7 @@ class User(db.Model):
 	def __repr__(self):
 		return '<User %r>' % (self.nickname)
 
-    	def __init__(self):
-		self.guest = False
+    	def __init__(self,guest=False):
 		self.notifications={ "notif_own_activity" : None,
 			"notif_movie_add" : None,
 			"notif_mark_add": None,
@@ -61,9 +60,6 @@ class User(db.Model):
 			"notif_chat_message": None,
 			"notif_slack": None
 		}
-
-    	def __init__(self,guest=False):
-		super(User,self)
 		if guest == True:
 			self.nickname = "Guest"
 			self.id = -1
