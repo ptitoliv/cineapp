@@ -495,6 +495,10 @@ def show_movie_random():
 	# Get the random id
 	random_id = randint(1,count)
 
+	# Check if the movie exists
+	while Movie.query.get(random_id) is None:
+		random_id = randint(1,count)
+
 	# Redirect to the movie sheet selected randomly
 	return redirect(url_for('show_movie',movie_id=random_id))
 
