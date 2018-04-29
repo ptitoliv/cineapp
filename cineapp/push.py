@@ -4,9 +4,11 @@ from flask import jsonify, session, g, url_for
 from pywebpush import webpush, WebPushException
 from cineapp.models import PushNotification
 import json, traceback, sys, datetime, time
+from cineapp.auth import guest_control
 
 @app.route('/notifications/subscribe', methods=['POST'])
 @login_required
+@guest_control
 def notification_subscribe():
 
 	app.logger.info('New user subscription !!')

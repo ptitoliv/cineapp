@@ -94,7 +94,7 @@ aria-hidden="true">&rarr;</span></a>
 			</table>
 		</div>
 	</div>
-		{% if not mark %}
+		{% if not g.user.is_guest and not mark %}
 		<div class="text-center">
 			<form method="post" action="{{url_for("update_movie") }}" name="updatemovie" style="display:inline;">
 				{{ update_movie_form.hidden_tag() }}
@@ -168,7 +168,7 @@ aria-hidden="true">&rarr;</span></a>
 				{% if cur_mark["mark"] == "homework_in_progress" %}
 					<a class="disabled btn btn-warning btn-xs fa-bg-white btn-mark">Devoir</a>
 				{% elif cur_mark["mark"] == None %}
-					{% if g.user.id != (cur_mark["user"]).id %}
+					{% if g.user.id != (cur_mark["user"]).id and not g.user.is_guest %}
 						<a href={{ url_for("add_homework",movie_id=movie.id,user_id=cur_mark["user"].id) }} class="btn btn-success btn-xs btn-mark">Donner un devoir</a>
 					{% else %}
 						<a class="disabled btn btn-danger btn-xs btn-mark">Pas de note</a>
@@ -208,14 +208,20 @@ aria-hidden="true">&rarr;</span></a>
 				</p>
 				<div class="comment_toolbar" id="comment_toolbar_{{ cur_mark["user"].id }}" style="display:none;">
 					{% if cur_mark["mark"] != None and cur_mark["mark"] != "homework_in_progress" %}
-					<div class="input-group comment_form" id="comment_form_{{ cur_mark["user"].id }}"> 
-					    <input class="form-control comment_text" placeholder="Réagir sur la note de {{ cur_mark["user"].nickname }}" type="text" id="comment_text_{{ cur_mark["user"].id }}">
-					    <span class="input-group-addon">
-						<a class="post_comment" id="comment_link_{{ cur_mark["user"].id }}" href="#"><i class="fa fa-edit"></i></a>
-					    </span>
-					</div>
+						{% if not g.user.is_guest %}
+							<div class="input-group comment_form" id="comment_form_{{ cur_mark["user"].id }}"> 
+							    <input class="form-control comment_text" placeholder="Réagir sur la note de {{ cur_mark["user"].nickname }}" type="text" id="comment_text_{{ cur_mark["user"].id }}">
+							    <span class="input-group-addon">
+								<a class="post_comment" id="comment_link_{{ cur_mark["user"].id }}" href="#"><i class="fa fa-edit"></i></a>
+							    </span>
+							</div>
+						{% endif %}
 					{% else %}
-						<i>Pas de commentaire possible car pas de note</i>
+						{% if not g.user.is_guest %}
+							<i>Pas de commentaire possible</i>
+						{% else %}
+							<i>Pas de commentaire</i>
+						{% endif %}
 					{% endif %}
 					{% for cur_comment in cur_mark["mark_comments"] %}
 					<div class="media media_comment" id="media_comment_{{ cur_comment.markcomment_id }}" style="background-color:#{{ cur_comment.user.graph_color }}">
@@ -236,7 +242,7 @@ aria-hidden="true">&rarr;</span></a>
 									<a class="post_comment comment_edit_link" id="comment_edit_link_{{ cur_comment.markcomment_id }}" href="#"><i class="fa fa-edit"></i></a>
 								    </span>
 								</div>
-							{% if g.user.id == cur_comment.user_id %}
+							{% if g.user.id == cur_comment.user_id and not g.user.is_guest %}
 							<div class="comment_tools" id="comment_tools_{{cur_comment.markcomment_id}}">
 								<a href="#" class="btn btn-primary btn-sm edit_comment" id="edit_comment_{{ cur_comment.markcomment_id }}"><span class="glyphicon glyphicon-edit"></span> Editer</a>
 								<a href="#" class="btn btn-danger btn-sm delete_comment" id="delete_comment_{{ cur_comment.markcomment_id }}"><span class="glyphicon glyphicon-trash"></span> Supprimer</a>

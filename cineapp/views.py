@@ -22,6 +22,7 @@ from bcrypt import hashpw, gensalt
 from werkzeug.utils import secure_filename
 from random import randint
 from cineapp.slack import slack_mark_notification
+from cineapp.auth import guest_control
 
 @app.route('/')
 @app.route('/index')
@@ -54,7 +55,14 @@ def login():
 	# If we are here, we are not login. Build the form and try the login.
 	form = LoginForm()
 	if form.validate_on_submit():
+
 		# Let's validate the user
+		if form.username.data == "guest" and form.password.data == "guest":
+			user = User(guest=True)
+			# User authenticated => Let's login it
+			login_user(user)
+			return redirect(request.args.get('next') or url_for('list_movies'))
+
 		user=User.query.filter_by(nickname=form.username.data).first()
 		if user is None:
 			flash("Mauvais utilisateur !",'danger')
@@ -89,6 +97,7 @@ def logout():
 @app.route('/movies/list')
 @app.route('/movies/reset', endpoint="reset_list")
 @app.route('/movies/filter', methods=[ 'GET', 'POST' ], endpoint="filter_form")
+@login_required
 def list_movies():
 
 	# Display the search form
@@ -540,6 +549,7 @@ def show_movie(movie_id):
 
 @app.route('/movies/mark/<int:movie_id_form>', methods=['GET','POST'])
 @login_required
+@guest_control
 def mark_movie(movie_id_form):
 	# Select movie
 	form=MarkMovieForm()
@@ -628,6 +638,7 @@ def mark_movie(movie_id_form):
 
 @app.route('/movies/mark/publish/<int:movie_id>', methods=['GET'])
 @login_required
+@guest_control
 def publish_mark(movie_id):
 
 	# Fetch the current comment for the logged user and send it on flask
@@ -652,6 +663,7 @@ def publish_mark(movie_id):
 
 @app.route('/movies/add', methods=['GET','POST'])
 @login_required
+@guest_control
 def add_movie():
 	# First, generate all the forms that we going to use in the view
 	search_form=SearchMovieForm() 
@@ -664,6 +676,7 @@ def add_movie():
 @app.route('/movies/update/select/<int:page>', methods=['GET','POST'], endpoint="select_update_movie")
 @app.route('/movies/update/select', methods=['POST'], endpoint="select_update_movie")
 @login_required
+@guest_control
 def select_movie(page=1):
 
 	"""
@@ -741,6 +754,7 @@ def select_movie(page=1):
 @app.route('/movies/add/confirm', methods=['POST'], endpoint="confirm_add_movie")
 @app.route('/movies/update/confirm', methods=['POST'], endpoint="confirm_update_movie")
 @login_required
+@guest_control
 def confirm_movie():
 
 	# Calculate endpoint
@@ -930,6 +944,7 @@ def confirm_movie():
 
 @app.route('/movies/update',methods=['POST'])
 @login_required
+@guest_control
 def update_movie():
 
 	# Generate the list with the choices returned via the API
@@ -1006,16 +1021,22 @@ def update_movie():
 @app.route('/my/marks')
 @app.route('/my/marks/<int:page>')
 @login_required
+@guest_control
 def list_my_movies(page=1):
 	marked_movies=Mark.query.filter_by(user_id=g.user.id).paginate(page,15,False)
 	return render_template('marks.html', marked_movies=marked_movies)
 
 @lm.user_loader
 def load_user(id):
-	return User.query.get(int(id))
+	if id == "-1":
+		user = User(guest=True)
+		return user
+	else:
+		return User.query.get(int(id))
 
 @app.route('/users/add', methods=['GET','POST'])
 @login_required
+@guest_control
 def add_user():
 	form=AddUserForm()
 	if form.validate_on_submit():
@@ -1035,6 +1056,7 @@ def add_user():
 
 @app.route('/my/profile', methods=['GET', 'POST'])
 @login_required
+@guest_control
 def edit_user_profile():
 
 	# Init the form
@@ -1123,6 +1145,7 @@ def edit_user_profile():
 
 @app.route('/my/password', methods=['GET', 'POST'])
 @login_required
+@guest_control
 def change_user_password():
 
 	# Init the form
@@ -1144,6 +1167,7 @@ def change_user_password():
 
 @app.route('/homework/add/<int:movie_id>/<int:user_id>')
 @login_required
+@guest_control
 def add_homework(movie_id,user_id):
 	
 	# Create the mark object
@@ -1175,6 +1199,7 @@ def add_homework(movie_id,user_id):
 
 @app.route('/homework/delete/<int:movie_id>/<int:user_id>')
 @login_required
+@guest_control
 def delete_homework(movie_id,user_id):
 
 	# Check if the homework exists and if the user has the right to delete it
@@ -1217,6 +1242,7 @@ def delete_homework(movie_id,user_id):
 		
 @app.route('/homework/list',methods=['GET','POST'])
 @login_required
+@guest_control
 def list_homeworks():
 
 	# Create the form
@@ -1256,6 +1282,7 @@ def list_homeworks():
 @app.route('/graph/average_origin', endpoint="average_by_origin")
 @app.route('/graph/average_by_year', endpoint="average_by_year")
 @login_required
+@guest_control
 def show_graphs():
 
 	# Retrieve the graph_list from the app context and use it in a local variable
@@ -1493,6 +1520,7 @@ def show_graphs():
 
 @app.route('/dashboard')
 @login_required
+@guest_control
 def show_dashboard():
 
 	# Variables declaration which will contains all the stats needed for the dashboard
@@ -1545,11 +1573,13 @@ def show_dashboard():
 
 @app.route('/activity/show')
 @login_required
+@guest_control
 def show_activity_flow():
 	return render_template('show_activity_flow.html')
 
 @app.route('/activity/update', methods=['POST'])
 @login_required
+@guest_control
 def update_activity_flow():
 	
 	# Local variables for handling the datatable
@@ -1638,6 +1668,7 @@ def update_activity_flow():
 
 @app.route('/json/graph_by_year', methods=['POST'])
 @login_required
+@guest_control
 def graph_movies_by_year():
 	
 	# Fetch the year in the post data

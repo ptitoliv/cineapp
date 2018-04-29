@@ -56,10 +56,15 @@
 				<span class="icon-bar"></span>
 			      </button>
 			{% endif %}
-			      <a class="navbar-brand" href="{{ url_for('index') }}">CineApp</a>
+				{% if not g.user.is_guest %}
+			      		<a class="navbar-brand" href="{{ url_for('index') }}">CineApp</a>
+				{% else %}
+			      		<a class="navbar-brand" href="{{ url_for('list_movies') }}">CineApp</a>
+				{% endif %}
 			 </div>	
 			{% if g.user.is_authenticated %}
 			<div class="collapse navbar-collapse" id="main_navbar">
+				{% if not g.user.is_guest %}
 				<ul class="nav navbar-nav">
 					<li><a href="{{ url_for('list_homeworks') }}">Devoirs</a></li>
 					<li><a href="{{ url_for('show_activity_flow') }}">Activité</a></li>
@@ -75,6 +80,7 @@
 					  </li>
 					  <li><a href="{{ url_for('chat') }}">Chat</a></li>
 				</ul>
+				{% endif %}
 				{%from "_formhelpers.html" import render_field %}
 				<form class="navbar-form navbar-left" method="post" action="{{ url_for('filter_form') }}">
 					{{ g.search_form.hidden_tag() }}
@@ -88,13 +94,17 @@
 				<ul class="nav navbar-nav navbar-right">
 					<li class="dropdown">
 						<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
+							{% if not g.user.is_guest %}
 							<img src="{{ config.AVATARS_URL }}{{ g.user.avatar }}" height="20" width="20" class="avatar img-circle" alt="avatar">
+							{% endif %}
 						Welcome <strong>{{ g.user.nickname }}</strong>
 						</a>
 						<ul class="dropdown-menu">
+							{% if not g.user.is_guest %}
 							<li><a href="{{ url_for('edit_user_profile') }}"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> Profil</a></li>
 							<li><a href="{{ url_for('change_user_password') }}"><span class="glyphicon glyphicon-lock" aria-hidden="true"></span> Mot de passe</a></li>
 							<li role="separator" class="divider"></li>
+							{% endif %}
 							<li><a href="{{ url_for('logout') }}"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span> Se Deconnecter</a></li>
 						</ul>
 					</li>
@@ -133,6 +143,7 @@ window.setTimeout(function() {
 }, 2000);
   </script>
 
+{% if not g.user.is_guest %}
 <script>
 // Application server key for Push notifications
 const applicationServerPublicKey = '{{ config["NOTIF_APPLICATION_KEY_STRING"] }}';
@@ -183,5 +194,6 @@ if ('serviceWorker' in navigator && 'PushManager' in window) {
 }
 
 </script>
+{% endif %}
   </body>
 </html>

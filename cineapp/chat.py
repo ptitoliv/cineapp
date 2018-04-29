@@ -7,6 +7,7 @@ from flask.ext.socketio import SocketIO, emit
 from cineapp.models import ChatMessage, User
 from cineapp.emails import chat_message_notification
 from cineapp.push import notification_send
+from cineapp.auth import guest_control
 from datetime import datetime, timedelta
 from sqlalchemy import desc
 import re
@@ -65,6 +66,7 @@ def transmit_message(message,notify=False):
 
 @app.route('/chat')
 @login_required
+@guest_control
 def chat():
     return render_template('chat.html')
 

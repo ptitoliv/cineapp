@@ -36,6 +36,7 @@
 			        },
 				{ "data": "director"},
 			  	{ "data": "average", "orderable" : true },
+				{% if not g.user.is_guest %}
 				{ "data": "my_fav", "orderable": true,
 				  "className": "color_{{g.user.id}}",
 				  "render": function(data,type,row) {
@@ -67,6 +68,7 @@
 						}
 					}
 				 },
+			  	 {% endif %}
 			{% for cur_user in users %}
 				{% if g.user.id != cur_user.id %}
 				 { "data": "other_favs.{{ cur_user.id }}", "orderable": true,
@@ -165,12 +167,14 @@
 					<th class="text-center" style="border:0;width:35%;"></th>
 					<th class="text-center" style="border:0;width:25%;"></th>
 					<th class="text-center" style="border:0;"></th>
+					{% if not g.user.is_guest %}
 					<th colspan="3" class="text-center hidden-xs">
 						<div>
 							<img src="{{ config.AVATARS_URL }}{{ g.user.avatar }}" height="50" width="50" class="avatar img-circle" alt="avatar">
 						</div>
 						<strong>Mes Notes</strong>
 					</th>
+					{% endif %}
 						{% for cur_user in users %}
 							{% if g.user.id != cur_user.id %}
 							<th colspan="3" class="text-center hidden-xs">
@@ -185,9 +189,11 @@
 					<th class="text-center" style="border:0;width:35%;">Titre</th>
 					<th class="text-center" style="border:0;width:35%;">Realisateur</th>
 					<th class="text-center" style="border:0;">Moyenne</th>
+					{% if not g.user.is_guest %}
 					<th class="text-center" style="border:0;">Favori</th>
 					<th class="text-center" style="border:0;">Note</th>
 					<th class="text-center" style="border:0;">Date</th>
+					{% endif %}
 					{% for cur_user in users %}
 						{% if g.user.id != cur_user.id %}
 						<th class="text-center" style="border:0;">Favori</th>
