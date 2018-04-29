@@ -1,3 +1,16 @@
+Version 2.2.0 (2018-04-30)
+--------------------------
+  * [FEAT]: New graph with marks by interval (#51)
+  * [FEAT]: Configuration file is now outside of sources (#86)
+  * [FEAT]: Read-only access (#87)
+  * [FEAT]: Page navigation bar is available in the activity page bottom (#89)
+  * [FEAT]: Refactoring activity flow display (#99)
+  * [FEAT]: Slack Notifications (#100)
+  * [FIX]: Ugly display when using over effects on comment (#93)
+  * [FIX]: Remove harcoded URL for posters path (#95)
+  * [FIX]: Fix stars display on movies list (#97)
+  * [FIX]: Fix chat notifications (#98)
+
 Version 2.1.2 (2017-12-16)
 --------------------------
   * [FIX]: Handle all exceptions when errors are provided by TVMDB API (#92)
