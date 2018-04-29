@@ -37,6 +37,10 @@ class User(db.Model):
 	def is_anonymous(self):
 		return False
 
+	@property
+	def is_guest(self):
+		return self.guest
+
 	def get_id(self):
 		try:
 			return unicode(self.id) # Python 2
@@ -56,6 +60,13 @@ class User(db.Model):
 			"notif_chat_message": None,
 			"notif_slack": None
 		}
+
+    	def __init__(self,guest=False):
+		super(User,self)
+		if guest == True:
+			self.nickname = "Guest"
+			self.id = -1
+			self.guest=guest
 
 	def serialize(self):
 		return {
