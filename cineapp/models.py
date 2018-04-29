@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from cineapp import app,db
-from sqlalchemy import desc,text, DefaultClause
+from sqlalchemy import desc,text, DefaultClause, orm
 import flask.ext.whooshalchemy as whooshalchemy
 from whoosh.analysis import CharsetFilter, NgramWordAnalyzer
 from whoosh import fields
@@ -51,6 +51,7 @@ class User(db.Model):
 		return '<User %r>' % (self.nickname)
 
     	def __init__(self):
+		self.guest = False
 		self.notifications={ "notif_own_activity" : None,
 			"notif_movie_add" : None,
 			"notif_mark_add": None,
@@ -66,7 +67,13 @@ class User(db.Model):
 		if guest == True:
 			self.nickname = "Guest"
 			self.id = -1
-			self.guest=guest
+
+		self.guest=guest
+
+
+	@orm.reconstructor
+    	def init_on_load(self):
+        	self.guest=False
 
 	def serialize(self):
 		return {
