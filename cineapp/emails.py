@@ -6,7 +6,6 @@ from cineapp import mail, db
 from cineapp.models import User
 from threading import Thread
 from cineapp import app
-from slackclient import SlackClient
 import html2text, time, json
 
 # Send mail into a dedicated thread in order to avoir the web app to wait
