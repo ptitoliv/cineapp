@@ -50,7 +50,7 @@ app.config['TMVDB_BASE_URL'] = "https://themoviedb.org/movie"
 
 # Configuration file reading
 if os.environ.get('TEST') == "yes":
-	app.config.from_pyfile('configs/settings_test.cfg')
+	app.config.from_pyfile('../configs/settings_test.cfg')
 else:
 	app.config.from_pyfile(os.path.join(app.root_path,'../configs/settings.cfg'))
 

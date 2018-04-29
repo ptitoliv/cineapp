@@ -18,7 +18,7 @@ class FlaskrTestCase(unittest.TestCase):
         self.app = app.test_client()
 
 	# Source test configuration
-	app.config.from_pyfile('configs/settings_test.cfg')
+	app.config.from_pyfile('../configs/settings_test.cfg')
 
 	if os.environ.get('TRAVIS') == "yes":
 		app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root@127.0.0.1/cineapp_ci'
@@ -99,6 +99,7 @@ class FlaskrTestCase(unittest.TestCase):
 	u.nickname="ptitoliv"
 	u.password=hashed_password
 	u.email="ptitoliv@ptitoliv.net"
+	print u.notifications
 
 	db.session.add(u)
 	db.session.commit()
