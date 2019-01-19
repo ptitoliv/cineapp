@@ -1,0 +1,85 @@
+# Python CircleCI 2.0 configuration file
+#
+# Check https://circleci.com/docs/2.0/language-python/ for more details
+#
+version: 2
+jobs:
+  build:
+    docker:
+      # specify the version you desire here
+      # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
+      - image: circleci/python:2.7.15
+        environment:
+         TEST: "yes"
+      
+      # Specify service dependencies here if necessary
+      # CircleCI maintains a library of pre-built images
+      # documented at https://circleci.com/docs/2.0/circleci-images/
+      # - image: circleci/postgres:9.4
+
+      - image: mariadb
+        environment:
+          MYSQL_ALLOW_EMPTY_PASSWORD: yes
+          MYSQL_ROOT_PASSWORD: ''
+          MYSQL_DATABASE: cineapp_ci
+
+    working_directory: ~/cine_app
+
+    steps:
+      - checkout
+
+      # Download and cache dependencies
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "requirements.txt" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+
+      - run:
+          name: Wait for DB
+          command: dockerize -wait tcp://127.0.0.1:3306 -timeout 120s
+
+      - run:
+          name: install virtualenv
+          command: |
+            pip install virtualenv
+      
+      - run:
+          name: install dependencies
+          command: |
+            python2 -m virtualenv venv
+            . venv/bin/activate
+            pip install -r requirements.txt
+            pip install python-coveralls
+
+      - run:
+          name: Init DB
+          command: |
+            . venv/bin/activate
+            python manage.py db upgrade
+
+      - run:
+          name: Run tests
+          command: |
+            . venv/bin/activate
+            sudo bash -c 'echo fr_FR.UTF-8 UTF-8 > /etc/locale.gen'
+            sudo dpkg-reconfigure locales
+            LC_ALL=fr_FR.UTF-8 PYTHONPATH=. python tests/unit_tests.py
+
+      - run:
+          name: Coverage
+          command: |
+            . venv/bin/activate
+            LC_ALL=fr_FR.UTF-8 PYTHONPATH=. coverage run --omit=cineapp/templates/* tests/unit_tests.py
+            coveralls
+
+      - save_cache:
+          paths:
+            - . venv/bin/activate
+          key: v1-dependencies-{{ checksum "requirements.txt" }}
+        
+      # run tests!
+      # this example uses Django's built-in test-runner
+      # other common Python testing frameworks include pytest and nose
+      # https://pytest.org
+      # https://nose.readthedocs.io
