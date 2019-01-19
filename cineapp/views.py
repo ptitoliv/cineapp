@@ -411,7 +411,7 @@ def update_datatable():
 				if cur_mark.comment != None:
 					my_comment=cur_mark.comment.replace('"','\'')
 				else:
-					my_comment[cur_user.id]=cur_mark.comment
+					my_comment=cur_mark.comment
 
 				# Convert the date object only if seen_when field is not null (Homework UC)
 				if cur_mark.seen_when != None:
