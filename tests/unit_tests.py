@@ -11,11 +11,12 @@ import StringIO
 
 class FlaskrTestCase(unittest.TestCase):
 
-    def setUp(self):
+    @classmethod
+    def setUpClass(cls):
 	# Define the test directory
-        self.dir = os.path.dirname(__file__)
+        cls.dir = os.path.dirname(__file__)
 
-        self.app = app.test_client()
+        cls.app = app.test_client()
 
 	# Source test configuration
 	app.config.from_pyfile('../configs/settings_test.cfg')
@@ -41,7 +42,18 @@ class FlaskrTestCase(unittest.TestCase):
 
         db.create_all()
 
-    def tearDown(self):
+	# Create the default user for tests
+	hashed_password=hashpw("toto1234".encode('utf-8'),gensalt())
+	u = User()
+	u.nickname="ptitoliv"
+	u.password=hashed_password
+	u.email="ptitoliv@ptitoliv.net"
+
+	db.session.add(u)
+	db.session.commit()
+
+    @classmethod
+    def tearDownClass(cls):
 	# Remove directories
 	shutil.rmtree(app.config['POSTERS_PATH'])
 	shutil.rmtree(app.config['AVATARS_FOLDER'])
@@ -52,31 +64,22 @@ class FlaskrTestCase(unittest.TestCase):
     def test_populateUsers(self):
 	hashed_password=hashpw("toto1234".encode('utf-8'),gensalt())
 	u = User()
-	u.nickname="ptitoliv"
+	u.nickname="foo"
 	u.password=hashed_password
-	u.email="ptitoliv@ptitoliv.net"
+	u.email="foo@bar.net"
 
 	db.session.add(u)
 	db.session.commit()
 
 	# Try to fetch user
-	u = User.query.get(1)
-	assert u.nickname == 'ptitoliv'
+	u = User.query.get(2)
+	assert u.nickname == 'foo'
 
     def test_index(self):
         rv = self.app.get('/login')
 	assert "Welcome to CineApp" in rv.data
 
     def test_login_logout(self):
-	hashed_password=hashpw("toto1234".encode('utf-8'),gensalt())
-	u = User()
-	u.nickname="ptitoliv"
-	u.password=hashed_password
-	u.email="ptitoliv@ptitoliv.net"
-
-	db.session.add(u)
-	db.session.commit()
-	assert u.nickname == 'ptitoliv'
 
 	# Bad user
 	rv=self.app.post('/login',data=dict(username="user",password="pouet"), follow_redirects=True)
@@ -94,16 +97,6 @@ class FlaskrTestCase(unittest.TestCase):
 	assert "Welcome to CineApp" in rv.data
 
     def test_add_movie(self):
-	hashed_password=hashpw("toto1234".encode('utf-8'),gensalt())
-	u = User()
-	u.nickname="ptitoliv"
-	u.password=hashed_password
-	u.email="ptitoliv@ptitoliv.net"
-	print u.notifications
-
-	db.session.add(u)
-	db.session.commit()
-
 	# Add types
 	t = Type()
 	t.id="C"
@@ -140,15 +133,10 @@ class FlaskrTestCase(unittest.TestCase):
 	assert "Film ajout" in rv.data
 	assert "Affiche" in rv.data
 
-    def test_upload_avatar(self):
-	hashed_password=hashpw("toto1234".encode('utf-8'),gensalt())
-	u = User()
-	u.nickname="ptitoliv"
-	u.password=hashed_password
-	u.email="ptitoliv@ptitoliv.net"
+	rv=self.app.get('/logout', follow_redirects=True)
+	assert "Welcome to CineApp" in rv.data
 
-	db.session.add(u)
-	db.session.commit()
+    def test_upload_avatar(self):
 
 	rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
 	assert "Welcome <strong>ptitoliv</strong>" in rv.data 
@@ -164,6 +152,8 @@ class FlaskrTestCase(unittest.TestCase):
 	assert "Informations mises à jour" in rv.data
 	assert "Avatar correctement mis à jour" in rv.data
 
+	rv=self.app.get('/logout', follow_redirects=True)
+	assert "Welcome to CineApp" in rv.data
 
     def test_mark_movie(self):
 
@@ -176,5 +166,6 @@ class FlaskrTestCase(unittest.TestCase):
 
 	rv=self.app.get('/logout', follow_redirects=True)
 	assert "Welcome to CineApp" in rv.data
+
 if __name__ == '__main__':
     unittest.main()
