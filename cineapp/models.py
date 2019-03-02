@@ -117,7 +117,7 @@ class Movie(db.Model):
 	type = db.Column(db.String(5), db.ForeignKey('types.id'),index=True)
 	url = db.Column(db.String(100), index=True)
 	origin = db.Column(db.String(5), db.ForeignKey('origins.id'), index=True)
-	director = db.Column(db.String(50), index=True)
+	director = db.Column(db.String(500), index=True)
 	duration = db.Column(db.Integer())
 	overview = db.Column(db.String(2000))
 	tmvdb_id = db.Column(db.Integer, unique=True)
