@@ -36,9 +36,6 @@ def add_mark_comment():
 		db.session.add(mark_comment)
 		db.session.commit()
 			
-		# TODO : DO BETEER REALLY !!!!
-		mark_comment.posted_when = mark_comment.posted_when.strftime('%d/%m/%Y - %H:%M:%S')
-
 	except IntegrityError:
 		db.session.rollback()
 
@@ -47,6 +44,9 @@ def add_mark_comment():
 
 	# Build the dict we're going to send to the frontend
 	data_dict = { "user": g.user.serialize(), "mark_comment": mark_comment.serialize(), "mark_comment_number": MarkComment.query.filter(MarkComment.mark_user_id==dest_user,MarkComment.mark_movie_id==movie_id,MarkComment.deleted_when==None).count()}
+
+	# Format the date for correct JS display
+	data_dict["mark_comment"]["posted_when"] = data_dict["mark_comment"]["posted_when"].strftime("%d/%m/%Y - %H:%M:%S");
 
 	# Let's send the JSON Response to the frontend
 	return jsonify(data_dict)
