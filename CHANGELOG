@@ -1,3 +1,10 @@
+Version 2.2.1 (2018-03-01)
+--------------------------
+  * [FIX]: Disable fixed headers feature for datatable display (#105)
+  * [FIX]: Fix mark comment display when adding a new comment (#104)
+  * [FIX]: Increase director field size (#103)
+  * [FIX]: Fix typo on "Montrer" button (#102)
+
 Version 2.2.0 (2018-04-30)
 --------------------------
   * [FEAT]: New graph with marks by interval (#51)
