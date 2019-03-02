@@ -164,5 +164,17 @@ class FlaskrTestCase(unittest.TestCase):
 	assert "Informations mises à jour" in rv.data
 	assert "Avatar correctement mis à jour" in rv.data
 
+
+    def test_mark_movie(self):
+
+	rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+	assert "Welcome <strong>ptitoliv</strong>" in rv.data 
+
+	# We are logged => mark the movie
+	rv=self.app.post('/movies/mark/1',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1),follow_redirects=True)
+	assert "Note ajout" in rv.data
+
+	rv=self.app.get('/logout', follow_redirects=True)
+	assert "Welcome to CineApp" in rv.data
 if __name__ == '__main__':
     unittest.main()
