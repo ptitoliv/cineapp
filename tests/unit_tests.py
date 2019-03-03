@@ -76,7 +76,7 @@ class FlaskrTestCase(unittest.TestCase):
         rv = self.app.get('/login')
 	assert "Welcome to CineApp" in rv.data
 
-    def test_03X_login_logout(self):
+    def test_03_login_logout(self):
 
 	# Bad user
 	rv=self.app.post('/login',data=dict(username="user",password="pouet"), follow_redirects=True)
@@ -87,6 +87,13 @@ class FlaskrTestCase(unittest.TestCase):
 	assert "Mot de passe incorrect !" in rv.data 
 
 	# Good login
+	rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+	assert "Welcome <strong>ptitoliv</strong>" in rv.data 
+
+	rv=self.app.get('/logout', follow_redirects=True)
+	assert "Welcome to CineApp" in rv.data
+
+	# Login as guest
 	rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
 	assert "Welcome <strong>ptitoliv</strong>" in rv.data 
 
