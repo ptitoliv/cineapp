@@ -184,5 +184,17 @@ class FlaskrTestCase(unittest.TestCase):
 	rv=self.app.get('/logout', follow_redirects=True)
 	assert "Welcome to CineApp" in rv.data
 
+    def test_08_random_movie(self):
+
+	rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+	assert "Welcome <strong>ptitoliv</strong>" in rv.data 
+
+	# We are logged => mark the movie
+	rv=self.app.get('/movies/show/random', follow_redirects=True)
+	assert "Sortie" in rv.data 
+
+	rv=self.app.get('/logout', follow_redirects=True)
+	assert "Welcome to CineApp" in rv.data
+
 if __name__ == '__main__':
     unittest.main()
