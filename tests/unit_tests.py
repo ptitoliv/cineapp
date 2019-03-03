@@ -168,6 +168,10 @@ class FlaskrTestCase(unittest.TestCase):
 	rv=self.app.post('/movies/mark/1',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1),follow_redirects=True)
 	assert "Note ajout" in rv.data
 
+	# We are logged => mark the movie
+	rv=self.app.post('/movies/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1),follow_redirects=True)
+	assert "Note mise" in rv.data
+
 	rv=self.app.get('/logout', follow_redirects=True)
 	assert "Welcome to CineApp" in rv.data
 
