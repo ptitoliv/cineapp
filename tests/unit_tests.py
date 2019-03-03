@@ -216,5 +216,23 @@ class FlaskrTestCase(unittest.TestCase):
 	rv=self.app.get('/logout', follow_redirects=True)
 	assert "Welcome to CineApp" in rv.data
 
+    def test_10_edit_mark_movie(self):
+
+	rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+	assert "Welcome <strong>ptitoliv</strong>" in rv.data 
+
+	# We are logged => mark the movie
+	rv=self.app.post('/json/edit_mark_comment',data=dict(comment_id=1,comment_text="plup"),follow_redirects=True)
+	rv=self.app.get('/movies/show/1', follow_redirects=True)
+	assert "plup" in rv.data 
+
+	# Delete the comment	
+	rv=self.app.post('/json/delete_mark_comment',data=dict(comment_id=1),follow_redirects=True)
+	rv=self.app.get('/movies/show/1', follow_redirects=True)
+	assert "plup" not in rv.data 
+
+	rv=self.app.get('/logout', follow_redirects=True)
+	assert "Welcome to CineApp" in rv.data
+
 if __name__ == '__main__':
     unittest.main()
