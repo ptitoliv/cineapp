@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import os, sys
+import os, sys, json
 from cineapp import app, db
 from cineapp.models import User, Type, Origin
 from bcrypt import hashpw, gensalt
@@ -181,6 +181,7 @@ class FlaskrTestCase(unittest.TestCase):
 	rv=self.app.get('/movies/show/1', follow_redirects=True)
 	assert "plop" in rv.data 
 
+
 	rv=self.app.get('/logout', follow_redirects=True)
 	assert "Welcome to CineApp" in rv.data
 
@@ -204,6 +205,13 @@ class FlaskrTestCase(unittest.TestCase):
 	# We are logged => mark the movie
 	rv=self.app.get('/movies/list', follow_redirects=True)
 	assert "Liste des films" in rv.data
+
+	args = {u'search': {u'regex': False, u'value': u''}, u'draw': 1, u'start': 0, u'length': 100, u'order': [{u'column': 0, u'dir': u'asc'}], u'columns': [{u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'name', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'director', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'average', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'my_fav', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'my_mark', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'my_when', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'other_favs.1', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'other_marks.1', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'other_when.1', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'other_favs.2', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'other_marks.2', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'other_when.2', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'other_favs.3', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'other_marks.3', u'name': u'', u'searchable': True}, {u'orderable': True, u'search': {u'regex': False, u'value': u''}, u'data': u'other_when.3', u'name': u'', u'searchable': True}]}
+
+	rv=self.app.get('/movies/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+
+	response_args=json.loads(rv.data)["data"]
+	assert "Les Tuche" in response_args[0]["name"]
 
 	rv=self.app.get('/logout', follow_redirects=True)
 	assert "Welcome to CineApp" in rv.data
