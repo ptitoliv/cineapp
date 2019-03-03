@@ -70,7 +70,7 @@ jobs:
           name: Coverage
           command: |
             . venv/bin/activate
-            LC_ALL=fr_FR.UTF-8 PYTHONPATH=. coverage run --omit=cineapp/templates/* tests/unit_tests.py
+            LC_ALL=fr_FR.UTF-8 PYTHONPATH=. coverage run --omit=cineapp/templates/*,venv/* tests/unit_tests.py
             coveralls
 
       - save_cache:
