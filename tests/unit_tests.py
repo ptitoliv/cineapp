@@ -58,7 +58,7 @@ class FlaskrTestCase(unittest.TestCase):
 	db.session.commit()
 	db.drop_all()
 
-    def test_populateUsers(self):
+    def test_01_populateUsers(self):
 	hashed_password=hashpw("toto1234".encode('utf-8'),gensalt())
 	u = User()
 	u.nickname="foo"
@@ -72,11 +72,11 @@ class FlaskrTestCase(unittest.TestCase):
 	u = User.query.get(2)
 	assert u.nickname == 'foo'
 
-    def test_index(self):
+    def test_02_index(self):
         rv = self.app.get('/login')
 	assert "Welcome to CineApp" in rv.data
 
-    def test_login_logout(self):
+    def test_03X_login_logout(self):
 
 	# Bad user
 	rv=self.app.post('/login',data=dict(username="user",password="pouet"), follow_redirects=True)
@@ -93,7 +93,7 @@ class FlaskrTestCase(unittest.TestCase):
 	rv=self.app.get('/logout', follow_redirects=True)
 	assert "Welcome to CineApp" in rv.data
 
-    def test_add_movie(self):
+    def test_04_add_movie(self):
 	# Add types
 	t = Type()
 	t.id="C"
@@ -133,7 +133,7 @@ class FlaskrTestCase(unittest.TestCase):
 	rv=self.app.get('/logout', follow_redirects=True)
 	assert "Welcome to CineApp" in rv.data
 
-    def test_upload_avatar(self):
+    def test_05_upload_avatar(self):
 
 	rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
 	assert "Welcome <strong>ptitoliv</strong>" in rv.data 
@@ -152,7 +152,7 @@ class FlaskrTestCase(unittest.TestCase):
 	rv=self.app.get('/logout', follow_redirects=True)
 	assert "Welcome to CineApp" in rv.data
 
-    def test_mark_movie(self):
+    def test_06_mark_movie(self):
 
 	rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
 	assert "Welcome <strong>ptitoliv</strong>" in rv.data 
@@ -160,6 +160,19 @@ class FlaskrTestCase(unittest.TestCase):
 	# We are logged => mark the movie
 	rv=self.app.post('/movies/mark/1',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1),follow_redirects=True)
 	assert "Note ajout" in rv.data
+
+	rv=self.app.get('/logout', follow_redirects=True)
+	assert "Welcome to CineApp" in rv.data
+
+    def test_07_comment_mark(self):
+
+	rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+	assert "Welcome <strong>ptitoliv</strong>" in rv.data 
+
+	# We are logged => mark the movie
+	rv=self.app.post('/json/add_mark_comment',data=dict(movie_id=1,dest_user=1,comment="plop"),follow_redirects=True)
+	rv=self.app.get('/movies/show/1', follow_redirects=True)
+	assert "plop" in rv.data 
 
 	rv=self.app.get('/logout', follow_redirects=True)
 	assert "Welcome to CineApp" in rv.data
