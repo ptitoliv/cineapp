@@ -29,11 +29,11 @@ jobs:
       - checkout
 
       # Download and cache dependencies
-      - restore_cache:
-          keys:
-          - v1-dependencies-{{ checksum "requirements.txt" }}
-          # fallback to using the latest cache if no exact match is found
-          - v1-dependencies-
+#      - restore_cache:
+#          keys:
+#          - v1-dependencies-{{ checksum "requirements.txt" }}
+#          # fallback to using the latest cache if no exact match is found
+#          - v1-dependencies-
 
       - run:
           name: Wait for DB
@@ -50,7 +50,7 @@ jobs:
             python2 -m virtualenv venv
             . venv/bin/activate
             pip install -r requirements.txt
-            pip install python-coveralls
+            pip install coveralls
 
       - run:
           name: Init DB
@@ -73,10 +73,10 @@ jobs:
             LC_ALL=fr_FR.UTF-8 PYTHONPATH=. coverage run --omit=cineapp/templates/*,venv/* tests/unit_tests.py
             coveralls
 
-      - save_cache:
-          paths:
-            - . venv/bin/activate
-          key: v1-dependencies-{{ checksum "requirements.txt" }}
+#      - save_cache:
+#          paths:
+#            - . venv/bin/activate
+#          key: v1-dependencies-{{ checksum "requirements.txt" }}
         
       # run tests!
       # this example uses Django's built-in test-runner
