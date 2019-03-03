@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import os
+import os, sys
 from cineapp import app, db
 from cineapp.models import User, Type, Origin
 from bcrypt import hashpw, gensalt
@@ -18,13 +18,10 @@ class FlaskrTestCase(unittest.TestCase):
 
         cls.app = app.test_client()
 
-	# Source test configuration
-	app.config.from_pyfile('../configs/settings_test.cfg')
-
-	if os.environ.get('TRAVIS') == "yes":
-		app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql://root@127.0.0.1/cineapp_ci'
-		app.config['POSTER_PATH'] = "/home/travis/cineapp_ci/static/posters"
-		app.config['AVATARS_FOLDER'] = "/home/travis/cineapp_ci/static/avatars"
+	if os.environ.get('LOCAL') == "yes":
+		app.config.from_pyfile('../configs/settings_tests_local.cfg')
+	else:
+		app.config.from_pyfile('../configs/settings_test.cfg')
 
 	app.config['WTF_CSRF_ENABLED'] = False
 	app.config['TESTING'] = True
