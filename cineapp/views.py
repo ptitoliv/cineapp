@@ -208,6 +208,7 @@ def update_datatable():
 
 	# Local variables for handling the datatable
 	args = json.loads(request.values.get("args"))
+	print args
 	columns = args.get("columns")
 	start = args.get('start')
 	length = args.get('length')
@@ -609,7 +610,7 @@ def mark_movie(movie_id_form):
 					flash('Impossible d\'envoyer la note par mail','danger')
 
 				# Send Slack Notification if needed
-				if g.user.notifications["notif_slack"]:
+				if g.user.notifications["notif_slack"] and form.submit_mark_slack.data:
 					slack_result = slack_mark_notification(marked_movie,app)
 					if slack_result == 0:
 						flash('Note envoyée sur Slack','success')
@@ -655,7 +656,7 @@ def publish_mark(movie_id):
 
 	# Send notification
 	if mark != None:
-		if g.user.notifications["notif_slack"]:
+		if g.user.notifications["notif_slack"] and form.submit_mark_slack.data:
 			slack_result = slack_mark_notification(mark,app)
 			if slack_result == 0:
 				flash('Note envoyée sur Slack','success')
