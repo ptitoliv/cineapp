@@ -1,10 +1,16 @@
 # -*- coding: utf-8 -*-
 
-import urllib, hashlib, re, os, locale, json, copy, time,html2text
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import next
+from builtins import str
+from builtins import range
+import urllib.request, urllib.parse, urllib.error, hashlib, re, os, locale, json, copy, time,html2text
 from datetime import datetime
 from flask import render_template, flash, redirect, url_for, g, request, session
-from flask.ext.login import login_user, logout_user, current_user, login_required
-from flask.ext.wtf import Form
+from flask_login import login_user, logout_user, current_user, login_required
+from flask_wtf import Form
 from wtforms.ext.sqlalchemy.orm import model_form
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from cineapp import app, db, lm
@@ -16,7 +22,7 @@ from cineapp.utils import frange, get_activity_list, resize_avatar
 from cineapp.push import notification_unsubscribe
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
-from sqlalchemy import desc, or_, and_, Table
+from sqlalchemy import desc, or_, and_, Table, text
 from sqlalchemy.sql.expression import select, case, literal
 from bcrypt import hashpw, gensalt
 from werkzeug.utils import secure_filename
@@ -68,9 +74,10 @@ def login():
 			flash("Mauvais utilisateur !",'danger')
 			return redirect(url_for('login'))
 		else:
-			if hashpw(form.password.data.encode('utf-8'), user.password.encode('utf-8')) != user.password:
+			if hashpw(form.password.data.encode('utf-8'), user.password.encode('utf-8')).decode('utf-8') != user.password:
 				flash("Mot de passe incorrect !",'danger')
 				return redirect(url_for('login'))
+
 			# User authenticated => Let's login it
 			login_user(user)
 
@@ -206,9 +213,10 @@ def list_movies():
 @login_required
 def update_datatable():
 
+	app.logger.info('Entering update_datatables function')
+
 	# Local variables for handling the datatable
 	args = json.loads(request.values.get("args"))
-	print args
 	columns = args.get("columns")
 	start = args.get('start')
 	length = args.get('length')
@@ -250,6 +258,8 @@ def update_datatable():
 
 	# If we enter here, we are going to filter by user (my_* column or others_* column)	
 	if filter_user != None:
+
+		app.logger.info('Entering filter_user is not Null')
 
 		# Let's build the filtered requested following what has been posted in the filter form
 		filter_fields=session.get('query')
@@ -311,8 +321,8 @@ def update_datatable():
 				count_movies=movies_query.filter(Mark.mark != None).count()
 					
 			elif session.get('search_type') == 'filter':
-				movies = movies_query.whoosh_search(session.get('query')).filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
-				count_movies=movies_query.whoosh_search(session.get('query')).filter(filter_field != None).count()
+				movies = movies_query.msearch(session.get('query')).filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
+				count_movies=movies_query.msearch(session.get('query')).filter(filter_field != None).count()
 
 		# Sort by asc marks
 		else:
@@ -323,11 +333,15 @@ def update_datatable():
 				movies = movies_query.filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
 				count_movies=movies_query.filter(filter_field != None).count()
 			elif session.get('search_type') == 'filter':
-				movies = movies_query.whoosh_search(session.get('query')).filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
-				count_movies=movies_query.whoosh_search(session.get('query')).count()
+				movies = movies_query.msearch(session.get('query')).filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
+				count_movies=movies_query.msearch(session.get('query')).count()
 	else:
+
+		app.logger.info('Entering filter_user is Null')
+
 		# If we are here => No sort by user but only global sort or no sort
 		if session.get('search_type') == 'list': 
+			app.logger.info('Entering list search_type')
 			if order_column == "average":
 				if order_dir == "desc":
 					movies=db.session.query(Movie).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length))
@@ -336,11 +350,12 @@ def update_datatable():
 				
 				count_movies=db.session.query(Movie).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
 			else:
-				movies = Movie.query.order_by(order_column + " " + order_dir).slice(int(start),int(start) + int(length))
+				movies = Movie.query.order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
 				count_movies=Movie.query.count()
 
 		# Let's use the filter form
 		elif session.get('search_type') == 'filter_origin_type':
+			app.logger.info('Entering list filter_origin_type')
 			# Let's build the filtered requested following what has been posted in the filter form
 			filter_fields=session.get('query')
 			movies_query = Movie.query.outerjoin(Mark).outerjoin(FavoriteMovie)
@@ -360,25 +375,28 @@ def update_datatable():
 			# Build the request
 			if order_column == "average":
 				if order_dir == "desc":
+					app.logger.info("Requete par moyenne desecendante")
 					movies=movies_query.group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length)).all()
 				else:
+					app.logger.info("Requete par moyenne ascendante")
 					movies=movies_query.group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
 			else:
-				movies = movies_query.order_by(order_column + " " + order_dir).slice(int(start),int(start) + int(length))
+				movies = movies_query.order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
 
 			count_movies=movies_query.count()
 
 		# Here, this is for the string search (Movie or director)
 		elif session.get('search_type') == 'filter':
+			app.logger.info('Entering list filter')
 			if order_column == "average":
 				if order_dir == "desc":
-					movies=Movie.query.whoosh_search(session.get('query')).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length)).all()
+					movies=Movie.query.msearch(session.get('query')).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length)).all()
 				else:
-					movies=Movie.query.whoosh_search(session.get('query')).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
-				count_movies=Movie.query.whoosh_search(session.get('query')).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
+					movies=Movie.query.msearch(session.get('query')).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
+				count_movies=Movie.query.msearch(session.get('query')).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
 			else:
-				movies = Movie.query.whoosh_search(session.get('query')).order_by(order_column + " " + order_dir).slice(int(start),int(start) + int(length))
-				count_movies=Movie.query.whoosh_search(session.get('query')).count()
+				movies = Movie.query.msearch(session.get('query')).order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
+				count_movies=Movie.query.msearch(session.get('query')).count()
 
 	# Let's fetch all the users, I will need them
 	users = User.query.all()
@@ -548,9 +566,9 @@ def show_movie(movie_id):
 	favorite_type_list = FavoriteType.query.all()
 
 	if marked_movie is None or marked_movie.mark == None:
-		return render_template('movie_show.html', movie=movie, mark_users=mark_users, movie_next=movie.next(),movie_prev=movie.prev(),marked_flag=False,update_movie_form=update_movie_form,favorite_type_list=favorite_type_list)
+		return render_template('movie_show.html', movie=movie, mark_users=mark_users, movie_next=next(movie),movie_prev=movie.prev(),marked_flag=False,update_movie_form=update_movie_form,favorite_type_list=favorite_type_list)
 	else:
-		return render_template('movie_show.html', movie=movie, mark_users=mark_users, movie_next=movie.next(),movie_prev=movie.prev(),marked_flag=True, update_movie_form=update_movie_form,favorite_type_list=favorite_type_list)
+		return render_template('movie_show.html', movie=movie, mark_users=mark_users, movie_next=next(movie),movie_prev=movie.prev(),marked_flag=True, update_movie_form=update_movie_form,favorite_type_list=favorite_type_list)
 
 @app.route('/movies/mark/<int:movie_id_form>', methods=['GET','POST'])
 @login_required
@@ -652,7 +670,7 @@ def publish_mark(movie_id):
 
 	# Convert the HTML content to text in order to have a nice display in the mail
 	html_converter = html2text.HTML2Text()
-        mark.comment=html_converter.handle(mark.comment).strip()
+	mark.comment=html_converter.handle(mark.comment).strip()
 
 	# Send notification
 	if mark != None:
@@ -1101,7 +1119,7 @@ def edit_user_profile():
 				old_avatar = g.user.avatar
 
 				# Generate the new avatar
-				g.user.avatar = hashlib.sha256(g.user.nickname + str(int(time.time()))).hexdigest()
+				g.user.avatar = hashlib.sha256((g.user.nickname + str(int(time.time()))).encode('utf-8')).hexdigest()
 				new_avatar.save(os.path.join(app.config['AVATARS_FOLDER'], g.user.avatar ))
 
 				# Resize the image
@@ -1113,7 +1131,7 @@ def edit_user_profile():
 							os.remove(os.path.join(app.config['AVATARS_FOLDER'], old_avatar))
 
 						flash("Avatar correctement mis à jour","success")
-					except OSError,e:
+					except OSError as e:
 						app.logger.error('Impossible de supprimer l\'avatar')
 						app.logger.error(str(e))
 				else:
@@ -1121,7 +1139,7 @@ def edit_user_profile():
 					flash("Impossible de redimensionner l\'image","success")
 					try:
 						os.remove(os.path.join(app.config['AVATARS_FOLDER'], g.user.avatar))
-					except OSError,e:
+					except OSError as e:
 						app.logger.error('Impossible de supprimer le nouvel avatar')
 						app.logger.error(str(e))
 	
@@ -1136,8 +1154,8 @@ def edit_user_profile():
 
 			flash('Informations mises à jour','success')
 
-		except Exception,e:
-			print e
+		except Exception as e:
+			print(e)
 			flash('Impossible de mettre à jour l\'utilisateur', 'danger')
 
 	else:
@@ -1187,7 +1205,7 @@ def add_homework(movie_id,user_id):
 		db.session.commit()
 		flash('Devoir ajouté','success')
 	
-	except Exception,e: 
+	except Exception as e: 
 		flash('Impossible de creer le devoir','danger')
 		return redirect(url_for('list_movies'))
 
@@ -1353,7 +1371,7 @@ def show_graphs():
 			else:
 				labels.append(str(range_mark_array[cur_index]))
 
-		print labels
+		print(labels)
 
 		# Fill the dictionnary with distributed_marks by user
 		for cur_user in users:
@@ -1535,7 +1553,7 @@ def show_dashboard():
 	labels=[]
 
 	# Generate a field with the user list
-        dashboard_graph_form = DashboardGraphForm(user_list=g.user)
+	dashboard_graph_form = DashboardGraphForm(user_list=g.user)
 	
 	# Fetch the last 20 last activity records
 	activity_dict=get_activity_list(0,20)
@@ -1569,7 +1587,7 @@ def show_dashboard():
 	# Set month in French
 	locale.setlocale(locale.LC_ALL, "fr_FR.UTF-8")
 	for cur_month in range(1,13,1):
-		labels.append(datetime.strptime(str(cur_month), "%m").strftime("%B").decode('utf-8'))
+		labels.append(datetime.strptime(str(cur_month), "%m").strftime("%B"))
 
 	# Go back to default locale
 	locale.setlocale(locale.LC_ALL,locale.getdefaultlocale())
@@ -1618,7 +1636,7 @@ def update_activity_flow():
 				user=cur_activity["object"].added_by.nickname
 
 			# Define the text that will be shown on the datatable
-		        entry_text="Le film <a href=\"" +  url_for('show_movie', movie_id=cur_activity["object"].id) + "\">" + cur_activity["object"].name + u"</a> vient d'être ajouté par " + user
+			entry_text="Le film <a href=\"" +  url_for('show_movie', movie_id=cur_activity["object"].id) + "\">" + cur_activity["object"].name + u"</a> vient d'être ajouté par " + user
 
 		elif cur_activity["entry_type"] == "marks":
 			entry_type="<a class=\"disabled btn btn-primary btn-xs\">Note</a>"	
@@ -1657,7 +1675,7 @@ def update_activity_flow():
 				cur_activity["object"].mark.comment = "N/A"
 
 			# Define the text that will be shown on the datatable
-			entry_text=cur_activity["object"].user.nickname.encode("utf-8") + " vient de poster un <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + cur_activity["object"].message.encode("utf-8") + "\"><strong>commentaire</strong></span> sur le film <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].mark.movie.id) + "\">" +  cur_activity["object"].mark.movie.name.encode("utf-8") + "</a> en réponse à <strong><span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-html=\"true\" data-content=\"" + cur_activity["object"].mark.comment.encode("utf-8") + "\">" + cur_activity["object"].mark.user.nickname.encode("utf-8") + "</strong></span>"
+			entry_text=cur_activity["object"].user.nickname + " vient de poster un <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + cur_activity["object"].message + "\"><strong>commentaire</strong></span> sur le film <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].mark.movie.id) + "\">" +  cur_activity["object"].mark.movie.name + "</a> en réponse à <strong><span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-html=\"true\" data-content=\"" + cur_activity["object"].mark.comment + "\">" + cur_activity["object"].mark.user.nickname + "</strong></span>"
 
 		elif cur_activity["entry_type"] == "favorites":
 			entry_type="<a class=\"disabled btn btn-favorite btn-xs\">Favori</a>"

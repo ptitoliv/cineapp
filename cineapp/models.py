@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
+from builtins import str
 from cineapp import app,db
 from sqlalchemy import desc,text, DefaultClause, orm
-import flask.ext.whooshalchemy as whooshalchemy
+from flask_msearch import Search
 from whoosh.analysis import CharsetFilter, NgramWordAnalyzer
 from whoosh import fields
 from whoosh.support.charset import accent_map
@@ -43,14 +44,14 @@ class User(db.Model):
 
 	def get_id(self):
 		try:
-			return unicode(self.id) # Python 2
+			return str(self.id) # Python 2
 		except NameError:
 			return str(self.id) # Python 3
 
 	def __repr__(self):
 		return '<User %r>' % (self.nickname)
 
-    	def __init__(self,guest=False):
+	def __init__(self,guest=False):
 		self.notifications={ "notif_own_activity" : None,
 			"notif_movie_add" : None,
 			"notif_mark_add": None,
@@ -68,7 +69,7 @@ class User(db.Model):
 
 
 	@orm.reconstructor
-    	def init_on_load(self):
+	def init_on_load(self):
         	self.guest=False
 
 	def serialize(self):
@@ -108,7 +109,7 @@ class Movie(db.Model):
 	# Settings for FTS (WooshAlchemy)
 	__searchable__ = [ 'name', 'director', 'original_name' ]
 	charmap = charset_table_to_dict(default_charset)
-	__analyzer__ = NgramWordAnalyzer(3) | CharsetFilter(charmap)
+	__msearch_analyzer__ = NgramWordAnalyzer(3) | CharsetFilter(charmap)
 
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(100),index=True)
@@ -128,7 +129,7 @@ class Movie(db.Model):
 	def __repr__(self):
 		return '<Movie %r>' % (self.name)
 
-	def next(self):
+	def __next__(self):
 		"""
 			Return the next item into the database
 			Let's consider alphabetical order
@@ -174,16 +175,16 @@ class ChatMessage(db.Model):
 	message = db.Column(db.String(1000))
 
 class MarkComment(db.Model):
-        __tablename__ = "mark_comment"
-        __table_args__ = (db.ForeignKeyConstraint([ "mark_user_id", "mark_movie_id" ], [ "marks.user_id", "marks.movie_id" ]), {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'} )
-
-        markcomment_id = db.Column(db.Integer, primary_key=True)
-        user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-        mark_user_id = db.Column(db.Integer)
-        mark_movie_id = db.Column(db.Integer)
-        posted_when = db.Column(db.DateTime())
-        deleted_when = db.Column(db.DateTime())
-        message = db.Column(db.String(1000))
+	__tablename__ = "mark_comment"
+	__table_args__ = (db.ForeignKeyConstraint([ "mark_user_id", "mark_movie_id" ], [ "marks.user_id", "marks.movie_id" ]), {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'} )
+	
+	markcomment_id = db.Column(db.Integer, primary_key=True)
+	user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+	mark_user_id = db.Column(db.Integer)
+	mark_movie_id = db.Column(db.Integer)
+	posted_when = db.Column(db.DateTime())
+	deleted_when = db.Column(db.DateTime())
+	message = db.Column(db.String(1000))
 	user = db.relationship("User", backref="comments")
 	old_message = None
 
@@ -200,14 +201,14 @@ class MarkComment(db.Model):
 class FavoriteMovie(db.Model):
 	__tablename__ = "favorite_movies"
 	__table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
-
+	
 	movie_id = db.Column(db.Integer, db.ForeignKey('movies.id'), primary_key=True)
 	user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
 	movie = db.relationship('Movie', backref='favorite_users',lazy="joined")
 	user = db.relationship('User', backref='favorite_movies',foreign_keys='FavoriteMovie.user_id',lazy="joined")
 	star_type = db.Column(db.String(100),db.ForeignKey('favorite_types.star_type'))
-        added_when = db.Column(db.DateTime())
-        deleted_when = db.Column(db.DateTime())
+	added_when = db.Column(db.DateTime())
+	deleted_when = db.Column(db.DateTime())
 
 	def serialize(self):
 		return {
@@ -252,5 +253,7 @@ class PushNotification(db.Model):
 				}
 			}
 
-# Enable FTS indexation
-whooshalchemy.whoosh_index(app, Movie)
+# FTS Search engine init (Based on Flask-Msearch
+#search = Search()
+#search.init_app(app)
+#search.create_index(Movie, update=True)

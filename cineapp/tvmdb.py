@@ -1,5 +1,10 @@
 # -*- coding: utf-8 -*-
-import json, urllib2,sys, time, urllib, os, math
+from __future__ import print_function
+from future import standard_library
+standard_library.install_aliases()
+from builtins import str
+import json, sys, time, urllib.request, urllib.parse, urllib.error, os, math
+from urllib.request import urlopen
 from datetime import datetime
 from cineapp import app,db
 from cineapp.models import Movie
@@ -9,21 +14,11 @@ def tmvdb_connect(url):
 		Internal function which handles connection to the API
 		using the API rate limiting of the API
 	"""
-	while True:
-		try:
-			data=urllib2.urlopen(url)
-			remain=int(data.info().getheader('X-RateLimit-Remaining'))
-			if remain < 2:
-				timestamp_now=time.time()
-				timestamp_reset=int(data.info().getheader('X-RateLimit-Reset'))
-
-				if timestamp_now < timestamp_reset:
-					delay=math.ceil(timestamp_reset-timestamp_now)
-					time.sleep(delay)
-
-		except urllib2.HTTPError:
-			return None
-		break
+	try:
+		data=urlopen(url)
+	
+	except urllib.error.HTTPError:
+		return None
 
 	return json.load(data)
 
@@ -32,7 +27,7 @@ def download_poster(url):
 	""" Function that downloads the poster from the tvmdb and update the database with the correct path
 	"""
 	try:
-		img = urllib2.urlopen(url)
+		img = urlopen(url)
 		localFile = open(os.path.join(app.config['POSTERS_PATH'], os.path.basename(url)), 'wb')
 		localFile.write(img.read())
 		localFile.close()
@@ -54,7 +49,7 @@ def search_movies(query,page=1):
 
 	# Query the API using the query in parameter
 	for cur_language in languages_list:
-		movies_list=tmvdb_connect(os.path.join(app.config['API_URL'],("search/movie?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.quote(query.encode('utf-8')))) + "&page=" + str(page))
+		movies_list=tmvdb_connect(os.path.join(app.config['API_URL'],("search/movie?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.parse.quote(query.encode('utf-8')))) + "&page=" + str(page))
 
 		for cur_movie in movies_list['results']:
 			temp_movie=get_movie(cur_movie['id'],False)
@@ -122,6 +117,10 @@ def get_movie(id,fetch_poster=True):
 		else:
 			url=None
 
+	# Set date to None if the string is empty
+	if len(movie['release_date']) == 0:
+		movie['release_date']=None;
+
 	# Create the movie object
 	movie_obj=Movie(name=movie['title'],
 		release_date=movie['release_date'],
@@ -146,7 +145,7 @@ def search_page_number(query):
 
 	# Query the API using the query in parameter
 	for cur_language in languages_list:
-		result=tmvdb_connect(os.path.join(app.config['API_URL'],("search/movie?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.quote(query.encode('utf-8')))))
+		result=tmvdb_connect(os.path.join(app.config['API_URL'],("search/movie?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.parse.quote(query.encode('utf-8')))))
 
 	# Return the page number if we have someone to return
 	if result != None:
@@ -157,10 +156,10 @@ def search_page_number(query):
 if __name__ == "__main__":
 	test=search_movies("tuche")
 	for cur_test in test:
-		print cur_test
+		print(cur_test)
 
 	movie=get_movie(550)
-	print movie.name
-	print movie.director
-	print movie.release_date
-	print movie.poster_path
+	print(movie.name)
+	print(movie.director)
+	print(movie.release_date)
+	print(movie.poster_path)

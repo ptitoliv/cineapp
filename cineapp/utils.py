@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import division
+from past.utils import old_div
 from cineapp import db
 from cineapp.models import Movie, Mark, MarkComment, FavoriteMovie
 from sqlalchemy.sql.expression import literal, desc
@@ -74,12 +76,12 @@ def resize_avatar(avatar_path):
 		img = img.resize((basewidth, hsize), PIL.Image.ANTIALIAS)
 
 		# And then we crop
-		half_the_width = img.size[0] / 2
-		half_the_height = img.size[1] / 2
-		img = img.crop( ( half_the_width - ( basewidth /2 ),
-				half_the_height - ( basewidth /2 ),
-				half_the_width + ( basewidth /2 ),
-				half_the_height + ( basewidth /2 ) )
+		half_the_width = old_div(img.size[0], 2)
+		half_the_height = old_div(img.size[1], 2)
+		img = img.crop( ( half_the_width - ( old_div(basewidth,2) ),
+				half_the_height - ( old_div(basewidth,2) ),
+				half_the_width + ( old_div(basewidth,2) ),
+				half_the_height + ( old_div(basewidth,2) ) )
 			)
 			
 		# Save the image
@@ -90,7 +92,7 @@ def resize_avatar(avatar_path):
 
 		# Return true
 		return True
-	except Exception,e:
+	except Exception as e:
 
 		# Try to remove the temporary picture if it exists
 		if os.path.isfile(avatar_path + '.png'):

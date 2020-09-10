@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
+from builtins import str
 from flask import render_template,g
-from flask.ext.mail import Message
+from flask_mail import Message
 from cineapp import mail, db
 from cineapp.models import User
 from threading import Thread
@@ -49,7 +50,7 @@ def mark_movie_notification(mark,notif_type):
 
 	# Convert the HTML content to text in order to have a nice display in the mail
 	html_converter = html2text.HTML2Text()
-        mark.comment=html_converter.handle(mark.comment).strip()
+	mark.comment=html_converter.handle(mark.comment).strip()
 
 	for cur_user in users:
 		# Check if the cur_user is the logged user who added the movie

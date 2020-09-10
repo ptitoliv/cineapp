@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from __future__ import print_function
+from past.builtins import basestring
 from cineapp import app
 import datetime
 
@@ -25,6 +27,6 @@ def date_format(date,format_date):
 			return date_to_convert.strftime(format_date)
 		else:
 			return date.strftime(format_date)
-	except Exception,e:
-		print e
+	except Exception as e:
+		print(e)
 		return None

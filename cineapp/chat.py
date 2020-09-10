@@ -1,9 +1,10 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
 from cineapp import app, lm, socketio, db
 from flask import render_template, flash, redirect, url_for, g, request, session
-from flask.ext.login import login_user, logout_user, current_user, login_required
-from flask.ext.socketio import SocketIO, emit
+from flask_login import login_user, logout_user, current_user, login_required
+from flask_socketio import SocketIO, emit
 from cineapp.models import ChatMessage, User
 from cineapp.emails import chat_message_notification
 from cineapp.push import notification_send
@@ -58,8 +59,8 @@ def transmit_message(message,notify=False):
 				if user != None and user.id != logged_user.id:
 					# We found a user, let's send him a notification who is not ourself
 					chat_message_notification(message,user)
-			except Exception,e:
-				print e
+			except Exception as e:
+				print(e)
 
 	# Send the message
 	emit('message', { 'user': message.posted_by.nickname, 'date': message_date_formatted, 'avatar': message.posted_by.avatar, 'msg' : message.message }, broadcast=True)
