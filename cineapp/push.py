@@ -1,6 +1,7 @@
+from __future__ import print_function
 from cineapp import app, db, lm
-from flask.ext.login import login_required, request
-from flask import jsonify, session, g, url_for
+from flask_login import login_required
+from flask import jsonify, session, g, url_for, request
 from pywebpush import webpush, WebPushException
 from cineapp.models import PushNotification
 import json, traceback, sys, datetime, time
@@ -43,15 +44,15 @@ def notification_send(text,active_subscriptions):
 			}
     	)
 		except WebPushException as ex:
-		    # If there is an error let's remove the subscription
-		    app.logger.error("Subscription for endpoint %s is incorrect ==> Delete it", cur_active_sub)
-		    print traceback.print_exc(file=sys.stdout);
-
-		    # Let's remove the notification
-		    notification_unsubscribe(cur_active_sub)
+			# If there is an error let's remove the subscription
+			app.logger.error("Subscription for endpoint %s is incorrect ==> Delete it", cur_active_sub)
+			print(traceback.print_exc(file=sys.stdout));
 			
-		    print("I'm sorry, Dave, but I can't do that: {}", repr(ex))
-                    print(ex.response.json())
+			# Let's remove the notification
+			notification_unsubscribe(cur_active_sub)
+			
+			print(("I'm sorry, Dave, but I can't do that: {}", repr(ex)))
+			print(ex.response.json())
 	
 def notification_unsubscribe(sub):
 	try:

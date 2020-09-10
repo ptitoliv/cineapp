@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from flask.ext.wtf import Form
-from flask.ext.wtf.html5 import SearchField
+from builtins import object
+from flask_wtf import FlaskForm as Form
+from wtforms.fields.html5 import SearchField
 from wtforms import StringField, PasswordField, RadioField, SubmitField, HiddenField, SelectField, TextAreaField, BooleanField, DateField, FileField
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from wtforms.validators import Required,DataRequired, EqualTo, Email, URL, ValidationError
@@ -37,7 +38,7 @@ class AddMovieForm(Form):
 	type = QuerySelectField(query_factory=get_types,get_label='type')
 
 class MarkMovieForm(Form):
-	class Meta:
+	class Meta(object):
 		locales = ('de_DE', 'de')
 
 	mark = StringField('Note du Film', [DataRequired()])

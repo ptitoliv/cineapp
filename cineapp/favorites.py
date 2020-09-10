@@ -1,11 +1,13 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import print_function
+from __future__ import absolute_import
 from cineapp import app, db, lm
 from flask import render_template, flash, redirect, url_for, g, request, session, jsonify
-from flask.ext.login import login_required
+from flask_login import login_required
 from cineapp.models import User, FavoriteMovie
 from datetime import datetime
-from emails import favorite_update_notification
+from .emails import favorite_update_notification
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
 
@@ -42,9 +44,9 @@ def set_favorite_movie(movie,user):
 		app.logger.error("Erreur SQL sur l'ajout du favori")
 		return jsonify({ "status": "danger", "message": u"Film déja défini comme favori" })
 
-	except Exception,e:
+	except Exception as e:
 		db.session.rollback()
-		print e
+		print(e)
 		app.logger.error("Erreur générale sur l'ajout du favori")
 		return jsonify({ "status": "danger", "message": u"Impossible d'ajouter le film en favori" })
 
@@ -78,8 +80,8 @@ def delete_favorite_movie(movie,user):
 		app.logger.error("Erreur SQL sur la suppression du favori")
 		return jsonify({ "status": "danger", "message": u"Le film n\'est pas enregistré comme un favori" })
 
-	except Exception,e:
+	except Exception as e:
 		db.session.rollback()
-		print e
+		print(e)
 		app.logger.error("Erreur générale sur la suppression du favori")
 		return jsonify({ "status": "danger", "message": u"Impossible de supprimer le film en favori" })

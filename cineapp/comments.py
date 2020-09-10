@@ -1,11 +1,12 @@
 # -*- coding: utf-8 -*-
 
+from __future__ import absolute_import
 from cineapp import app, db, lm
 from flask import render_template, flash, redirect, url_for, g, request, session, jsonify
-from flask.ext.login import login_required
+from flask_login import login_required
 from cineapp.models import User, MarkComment
 from datetime import datetime
-from emails import mark_comment_notification
+from .emails import mark_comment_notification
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
 

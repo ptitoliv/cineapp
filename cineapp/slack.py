@@ -1,21 +1,23 @@
-from slackclient import SlackClient
+from builtins import str
+from builtins import object
+from slack import WebClient
 import json
 
-class SlackChannel:
+class SlackChannel(object):
 
 	"""Class describing a slack channel on which one we can send some notifications """
 
 	def __init__(self,slack_token,channel_name):
 
-                self.channel_id = None
-                self.channel_name = None
+		self.channel_id = None
+		self.channel_name = None
 		self.slack_token = None
 		
                 # This is here we are going to send the Slack notification
-                self.slack_token = SlackClient(slack_token)
-                
-                # Let's try to find a match with the channel name
-                response=self.slack_token.api_call("channels.list")
+		self.slack_token = SlackClient(slack_token)
+		
+		# Let's try to find a match with the channel name
+		response=self.slack_token.api_call("channels.list")
 		
 		if response["ok"] == True:
 			for cur_channel in response["channels"]:
@@ -23,7 +25,7 @@ class SlackChannel:
 					self.channel_id = cur_channel["name"]
 					self.channel_name = cur_channel["id"]
 					break;
-                
+		
 			# If there is no matching with the channels list, let's try with the private groups
 			if self.channel_id == None:
 				response=self.slack_token.api_call("groups.list")
@@ -54,7 +56,7 @@ class SlackChannel:
 def slack_mark_notification(mark,app):
 
 	# Create a Slack object
-	if app.config.has_key("SLACK_TOKEN") and app.config["SLACK_NOTIFICATION_CHANNEL"]:
+	if "SLACK_TOKEN" in app.config and app.config["SLACK_NOTIFICATION_CHANNEL"]:
 		slack_channel = SlackChannel(app.config["SLACK_TOKEN"],app.config["SLACK_NOTIFICATION_CHANNEL"])
 		app.logger.info("Notification sur SLACK pour la note de %s sur le film %s" % (mark.user.nickname,mark.movie.name))
 		try:

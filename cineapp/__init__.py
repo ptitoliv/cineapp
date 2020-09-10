@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from werkzeug.contrib.fixers import ProxyFix
+from __future__ import print_function
+from werkzeug.middleware.proxy_fix import ProxyFix
 from flask import Flask
-from flask.ext.login import login_user, logout_user, current_user, login_required, LoginManager
-from flask.ext.sqlalchemy import SQLAlchemy
+from flask_login import login_user, logout_user, current_user, login_required, LoginManager
+from flask_sqlalchemy import SQLAlchemy
 from flask import Flask, session
-from flask.ext.session import Session
-from flask.ext.mail import Mail
-from flask.ext.babel import Babel
+from flask_session import Session
+from flask_mail import Mail
+from flask_babel import Babel
 import logging, sys, os
 from logging.handlers import RotatingFileHandler
 from flask_socketio import SocketIO
+from flask_msearch import Search
 
 app = Flask(__name__)
 
@@ -39,10 +41,10 @@ app.config['ALLOWED_MIMETYPES'] = [ 'image/png', 'image/jpeg']
 app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024
 
 # Initialize path with default values if necessary
-if not app.config.has_key('AVATARS_URL'):
+if 'AVATARS_URL' not in app.config:
 	app.config['AVATARS_URL'] = "/static/avatars/"
 
-if not app.config.has_key('POSTERS_URL'):
+if 'POSTERS_URL' not in app.config:
 	app.config['POSTERS_URL'] = "/static/posters/"
 
 # TMVDB parameters
@@ -55,7 +57,7 @@ else:
 	app.config.from_pyfile(os.path.join(app.root_path,'../configs/settings.cfg'))
 
 # Check if API_KEY is defined
-if not app.config.has_key('API_KEY'):
+if 'API_KEY' not in app.config:
 	# Let's import it from environnment
 	if os.environ.get('API_KEY') != None:
 		app.config['API_KEY'] = os.environ.get('API_KEY')
@@ -93,7 +95,7 @@ try:
 	if not os.path.isdir(app.config['LOGDIR']):
 		os.makedirs(app.config['LOGDIR'],0o755)
 except:
-	print "Unable to create " + app.config['LOGDIR']
+	print("Unable to create " + app.config['LOGDIR'])
 	sys.exit(2)
 
 # Create the avatar directory if it doesn't exists
@@ -101,7 +103,7 @@ try:
 	if not os.path.isdir(app.config['AVATARS_FOLDER']):
 		os.makedirs(app.config['AVATARS_FOLDER'],0o755)
 except:
-	print "Unable to create " + app.config['AVATARS_FOLDER']
+	print("Unable to create " + app.config['AVATARS_FOLDER'])
 	sys.exit(2)
 
 # Open a file rotated every 100MB
