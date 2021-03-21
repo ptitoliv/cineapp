@@ -19,25 +19,25 @@ class SlackChannel(object):
 
                 """ Function that sends a message using SLACK API"""
                 # Send the message
-                response=self.slack_token.chat_postMessage(
-                  channel=self.channel_name,
-                  text=message,
-                  attachments=attachment,
-                  link_names=1,
-                  unfurl_links=True
-                )
+                try:
+                    response=self.slack_token.chat_postMessage(
+                      channel=self.channel_name,
+                      text=message,
+                      attachments=attachment,
+                      link_names=1,
+                      unfurl_links=True
+                    )
 
-                # Return the result
-                if response["ok"] == False:
-                        raise SystemError("Slack API Error : %s" % response["error"])
+                except Exception as e:
+                        raise SystemError("Slack API Error")
 
 def slack_mark_notification(mark,app):
 
         # Create a Slack object
-        if "SLACK_TOKEN" in app.config and app.config["SLACK_NOTIFICATION_CHANNEL"]:
-                slack_channel = SlackChannel(app.config["SLACK_TOKEN"],app.config["SLACK_NOTIFICATION_CHANNEL"])
-                app.logger.info("Notification sur SLACK pour la note de %s sur le film %s" % (mark.user.nickname,mark.movie.name))
+        if ("SLACK_TOKEN" in app.config and app.config["SLACK_TOKEN"] != None) and app.config["SLACK_NOTIFICATION_CHANNEL"]:
                 try:
+                        slack_channel = SlackChannel(app.config["SLACK_TOKEN"],app.config["SLACK_NOTIFICATION_CHANNEL"])
+                        app.logger.info("Notification sur SLACK pour la note de %s sur le film %s" % (mark.user.nickname,mark.movie.name))
                         attachment = json.dumps([
                             {
                                 "text": mark.comment

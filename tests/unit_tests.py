@@ -4,6 +4,7 @@ from future import standard_library
 standard_library.install_aliases()
 import os, sys, json
 from cineapp import app, db
+from cineapp import slack
 from cineapp.models import User, Type, Origin
 from bcrypt import hashpw, gensalt
 import unittest
@@ -260,6 +261,24 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.app.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
+    def test_11_slack_fail_cases(self):
+
+        # Let's try to send a slack notification which is going to fail because we don't have Slack Token
+
+        # First : a notification without configured token
+        temp_slack_token=app.config["SLACK_TOKEN"]
+        app.config["SLACK_TOKEN"]=None
+        assert slack.slack_mark_notification(None,app) == -1
+        app.config["SLACK_TOKEN"]=temp_slack_token
+
+        # Then, A notification with a bad channel configured
+        slack_channel = slack.SlackChannel(app.config["SLACK_TOKEN"],"achannelthatdoesentexist")
+
+        # Syntex tip : https://ongspxm.gitlab.io/blog/2016/11/assertraises-testing-for-errors-in-unittest/
+        with self.assertRaises(SystemError):slack_channel.send_message("ZBRAH")
+
+        # Let's do the same but with the slack_mark_notification method (In order to catch the exception)
+        assert slack.slack_mark_notification(None,app) == 1
+
 if __name__ == '__main__':
     unittest.main()
-
