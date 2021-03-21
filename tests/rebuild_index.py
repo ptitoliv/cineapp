@@ -23,9 +23,9 @@ program_start = datetime.datetime.utcnow()
 def log(message):
     logtime = datetime.datetime.utcnow()
     logdiff = logtime - program_start
-    print("{0} (+{1:.3f}): {2}".format(logtime.strftime("%Y-%m-%d %H:%M:%S"),
+    print(("{0} (+{1:.3f}): {2}".format(logtime.strftime("%Y-%m-%d %H:%M:%S"),
                                     logdiff.total_seconds(),
-                                    message))
+                                    message)))
 
 def rebuild_index(model):
     """Rebuild search index of Flask-SQLAlchemy model"""
@@ -42,9 +42,9 @@ def rebuild_index(model):
         for entry in entries:
             index_attrs = {}
             for field in searchables:
-                index_attrs[field] = unicode(getattr(entry, field))
+                index_attrs[field] = str(getattr(entry, field))
 
-            index_attrs[primary_field] = unicode(getattr(entry, primary_field))
+            index_attrs[primary_field] = str(getattr(entry, primary_field))
             writer.update_document(**index_attrs)
             entry_count += 1
 
