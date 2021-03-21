@@ -57,12 +57,11 @@ else:
 	app.config.from_pyfile(os.path.join(app.root_path,'../configs/settings.cfg'))
 
 # Check if API_KEY is defined
-if 'API_KEY' not in app.config:
-	# Let's import it from environnment
-	if os.environ.get('API_KEY') != None:
-		app.config['API_KEY'] = os.environ.get('API_KEY')
-	else:
-		sys.exit(1)
+for cur_item in [ "API_KEY", "SLACK_TOKEN" ]:
+    if cur_item not in app.config:
+            # Let's import it from environnment
+            if os.environ.get(cur_item) != None:
+                    app.config[cur_item] = os.environ.get(cur_item)
 
 # Database Initialization
 db = SQLAlchemy(app)
