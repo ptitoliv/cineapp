@@ -175,11 +175,11 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
         
         # We are logged => mark the movie
-        rv=self.app.post('/movies/mark/1',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1),follow_redirects=True)
+        rv=self.app.post('/movies/mark/1',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note ajout" in str(rv.data)
         
         # We are logged => mark the movie
-        rv=self.app.post('/movies/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1),follow_redirects=True)
+        rv=self.app.post('/movies/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note mise" in str(rv.data)
         
         rv=self.app.get('/logout', follow_redirects=True)
