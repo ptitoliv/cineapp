@@ -21,19 +21,19 @@ class FlaskrTestCase(unittest.TestCase):
         cls.app = app.test_client()
         
         if os.environ.get('LOCAL') == "yes":
-        	app.config.from_pyfile('../configs/settings_tests_local.cfg')
+                app.config.from_pyfile('../configs/settings_tests_local.cfg')
         else:
-        	app.config.from_pyfile('../configs/settings_test.cfg')
+                app.config.from_pyfile('../configs/settings_test.cfg')
         
         app.config['WTF_CSRF_ENABLED'] = False
         app.config['TESTING'] = True
         
         # Delete the directories if they exisits
         if os.path.isdir(os.path.join(app.config['POSTERS_PATH'])):
-        	shutil.rmtree(app.config['POSTERS_PATH'])
+                shutil.rmtree(app.config['POSTERS_PATH'])
         
         if os.path.isdir(os.path.join(app.config['AVATARS_FOLDER'])):
-        	shutil.rmtree(app.config['AVATARS_FOLDER'])
+                shutil.rmtree(app.config['AVATARS_FOLDER'])
         
         # Create directories
         os.makedirs(app.config['POSTERS_PATH'])
@@ -47,6 +47,16 @@ class FlaskrTestCase(unittest.TestCase):
         u.nickname="ptitoliv"
         u.password=hashed_password
         u.email="ptitoliv@ptitoliv.net"
+        u.notifications={
+            "notif_own_activity" : True,
+            "notif_movie_add" : True,
+            "notif_mark_add": True,
+            "notif_homework_add": True,
+            "notif_comment_add": True,
+            "notif_favorite_update": True,
+            "notif_chat_message": True,
+            "notif_slack": True
+            }
         
         db.session.add(u)
         db.session.commit()
@@ -148,11 +158,11 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
         
         with open(self.dir + '/ressources/test_avatar.png', 'rb') as img1:
-        	img1BytesIO = io.BytesIO(img1.read())
+                img1BytesIO = io.BytesIO(img1.read())
         
         rv=self.app.post('/my/profile',
                              content_type='multipart/form-data',
-        		     data=dict(email="ptitoliv+test@ptitoliv.net",upload_avatar=(img1BytesIO, 'test_avatar.png')), follow_redirects=True)
+                             data=dict(email="ptitoliv+test@ptitoliv.net",upload_avatar=(img1BytesIO, 'test_avatar.png')), follow_redirects=True)
         assert 'Informations mises à jour' in rv.data.decode("utf-8")
         assert "Avatar correctement mis à jour" in rv.data.decode("utf-8")
         
@@ -229,7 +239,7 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.app.get('/movies/show/1', follow_redirects=True)
         assert "plup" in str(rv.data) 
         
-        # Delete the comment	
+        # Delete the comment    
         rv=self.app.post('/json/delete_mark_comment',data=dict(comment_id=1),follow_redirects=True)
         rv=self.app.get('/movies/show/1', follow_redirects=True)
         assert "plup" not in str(rv.data) 
