@@ -621,6 +621,10 @@ def mark_movie(movie_id_form):
                                 db.session.commit()
                                 flash(flash_message_success,'success')
 
+                                # Let's display some debug for notifications
+                                app.logger.debug("Notifications de l'utilisateur : %s", g.user.notifications)
+                                app.logger.debug("Envoi des notifications SLACK %s", form.submit_mark_slack.data)
+
                                 # Send notification
                                 if mark_movie_notification(marked_movie,notif_type) == 0:
                                         flash('Note envoyée par mail','success')
