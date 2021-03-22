@@ -1,3 +1,10 @@
+Version 2.3.0 (2021-03-22)
+--------------------------
+  * [FEAT]: Migrate to python 3 / Upgrade dependencies (#114)
+  * [FIX]: Fix Slack API Deprecation (#115)
+  * [FIX]: Fix the FTS engine / Migrate to flask-msearch (#116)
+  * [FIX]: Fix CKEditor display (#117)
+
 Version 2.2.1 (2018-03-01)
 --------------------------
   * [FIX]: Disable fixed headers feature for datatable display (#105)
