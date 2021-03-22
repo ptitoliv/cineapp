@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 from builtins import str
-from cineapp import app,db
+from cineapp import app,db, search
 from sqlalchemy import desc,text, DefaultClause, orm
 from flask_msearch import Search
 from whoosh.analysis import CharsetFilter, NgramWordAnalyzer
@@ -109,7 +109,7 @@ class Movie(db.Model):
 	# Settings for FTS (WooshAlchemy)
 	__searchable__ = [ 'name', 'director', 'original_name' ]
 	charmap = charset_table_to_dict(default_charset)
-	__msearch_analyzer__ = NgramWordAnalyzer(3) | CharsetFilter(charmap)
+	__msearch_analyzer__ = NgramWordAnalyzer(2) | CharsetFilter(charmap)
 
 	id = db.Column(db.Integer, primary_key=True)
 	name = db.Column(db.String(100),index=True)
@@ -252,8 +252,5 @@ class PushNotification(db.Model):
 				  'auth': self.auth_token
 				}
 			}
-
-# FTS Search engine init (Based on Flask-Msearch
-#search = Search()
-#search.init_app(app)
-#search.create_index(Movie, update=True)
+# Build the FTS index
+search.create_index(Movie,update=True)
