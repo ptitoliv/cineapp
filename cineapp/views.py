@@ -678,7 +678,7 @@ def publish_mark(movie_id):
 
         # Send notification
         if mark != None:
-                if g.user.notifications["notif_slack"] and form.submit_mark_slack.data:
+                if g.user.notifications["notif_slack"]:
                         slack_result = slack_mark_notification(mark,app)
                         if slack_result == 0:
                                 flash('Note envoyée sur Slack','success')
