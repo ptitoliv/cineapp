@@ -8,12 +8,12 @@ class CKTextAreaWidget(widgets.TextArea):
 	def __call__(self, field, **kwargs):
 		kwargs.setdefault('class_', 'ckeditor')
 		html_string = super(CKTextAreaWidget, self).__call__(field, **kwargs)
-		html_string += ("""<script>
+		html_string += Markup(("""<script>
 			CKEDITOR.replace( '%s', {
 				enterMode: CKEDITOR.ENTER_BR
 		        } );	
-			</script>""" % field.id)
-		return widgets.HTMLString(Markup(html_string))
+			</script>""" % field.id))
+		return widgets.HTMLString(html_string)
 
 class CKTextAreaField(fields.TextAreaField):
 	widget = CKTextAreaWidget()
