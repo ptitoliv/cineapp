@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from wtforms import fields, widgets
+from flask import Markup
 
 # Define wtforms widget and field
 class CKTextAreaWidget(widgets.TextArea):
@@ -12,7 +13,7 @@ class CKTextAreaWidget(widgets.TextArea):
 				enterMode: CKEDITOR.ENTER_BR
 		        } );	
 			</script>""" % field.id)
-		return widgets.HTMLString(html_string)
+		return widgets.HTMLString(Markup(html_string))
 
 class CKTextAreaField(fields.TextAreaField):
 	widget = CKTextAreaWidget()
