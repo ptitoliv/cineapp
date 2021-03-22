@@ -85,6 +85,10 @@ babel = Babel(app)
 socketio=SocketIO()
 socketio.init_app(app)
 
+# FTS Engine
+search=Search()
+search.init_app(app)
+
 ##################
 # Logging system #
 ##################
