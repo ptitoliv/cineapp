@@ -321,8 +321,8 @@ def update_datatable():
                                 count_movies=movies_query.filter(Mark.mark != None).count()
                                         
                         elif session.get('search_type') == 'filter':
-                                movies = movies_query.msearch(session.get('query')).filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
-                                count_movies=movies_query.msearch(session.get('query')).filter(filter_field != None).count()
+                                movies = movies_query.msearch(session.get('query'),fields=["name","original_name","director"]).filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
+                                count_movies=movies_query.msearch(session.get('query'),fields=["name","original_name","director"]).filter(filter_field != None).count()
 
                 # Sort by asc marks
                 else:
@@ -333,8 +333,8 @@ def update_datatable():
                                 movies = movies_query.filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
                                 count_movies=movies_query.filter(filter_field != None).count()
                         elif session.get('search_type') == 'filter':
-                                movies = movies_query.msearch(session.get('query')).filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
-                                count_movies=movies_query.msearch(session.get('query')).count()
+                                movies = movies_query.msearch(session.get('query'),fields=["name","original_name","director"]).filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
+                                count_movies=movies_query.msearch(session.get('query'),fields=["name","original_name","director"]).count()
         else:
 
                 app.logger.info('Entering filter_user is Null')
@@ -390,13 +390,13 @@ def update_datatable():
                         app.logger.info('Entering list filter')
                         if order_column == "average":
                                 if order_dir == "desc":
-                                        movies=Movie.query.msearch(session.get('query')).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length)).all()
+                                        movies=Movie.query.msearch(session.get('query'),fields=["name","original_name","director"]).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length)).all()
                                 else:
-                                        movies=Movie.query.msearch(session.get('query')).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
-                                count_movies=Movie.query.msearch(session.get('query')).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
+                                        movies=Movie.query.msearch(session.get('query'),fields=["name","original_name","director"]).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
+                                count_movies=Movie.query.msearch(session.get('query'),fields=["name","original_name","director"]).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
                         else:
-                                movies = Movie.query.msearch(session.get('query')).order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
-                                count_movies=Movie.query.msearch(session.get('query')).count()
+                                movies = Movie.query.msearch(session.get('query'),fields=["name","original_name","director"]).order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
+                                count_movies=Movie.query.msearch(session.get('query'),fields=["name","original_name","director"]).count()
 
         # Let's fetch all the users, I will need them
         users = User.query.all()
