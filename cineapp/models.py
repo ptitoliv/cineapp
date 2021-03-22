@@ -252,5 +252,3 @@ class PushNotification(db.Model):
 				  'auth': self.auth_token
 				}
 			}
-# Build the FTS index
-search.create_index(Movie,update=True)
