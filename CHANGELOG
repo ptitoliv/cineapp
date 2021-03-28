@@ -4,8 +4,9 @@ Version 2.3.0 (2021-03-22)
   * [FIX]: Fix Slack API Deprecation (#115)
   * [FIX]: Fix the FTS engine / Migrate to flask-msearch (#116)
   * [FIX]: Fix CKEditor display (#117)
+  * [FIX]: Fix Publish Mark on Slack button (#118)
 
-Version 2.2.1 (2018-03-01)
+Version 2.2.1 (2019-03-01)
 --------------------------
   * [FIX]: Disable fixed headers feature for datatable display (#105)
   * [FIX]: Fix mark comment display when adding a new comment (#104)
