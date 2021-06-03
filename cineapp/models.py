@@ -101,47 +101,92 @@ class Origin(db.Model):
 	origin = db.Column(db.String(50), unique=True)
 	movies = db.relationship('Movie', backref='origin_object', lazy='dynamic')
 
-class Movie(db.Model):
 
-	__tablename__ = "movies"
-	__table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
+class Show(db.Model):
 
-	# Settings for FTS (WooshAlchemy)
-	__searchable__ = [ 'name', 'director', 'original_name' ]
-	charmap = charset_table_to_dict(default_charset)
-	__msearch_analyzer__ = NgramWordAnalyzer(2) | CharsetFilter(charmap)
+    __tablename__ = "shows"
+    __table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
 
-	id = db.Column(db.Integer, primary_key=True)
-	name = db.Column(db.String(100),index=True)
-	original_name = db.Column(db.String(100),index=True)
-	release_date = db.Column(db.Date, index=True)
-	type = db.Column(db.String(5), db.ForeignKey('types.id'),index=True)
-	url = db.Column(db.String(100), index=True)
-	origin = db.Column(db.String(5), db.ForeignKey('origins.id'), index=True)
-	director = db.Column(db.String(500), index=True)
-	duration = db.Column(db.Integer())
-	overview = db.Column(db.String(2000))
-	tmvdb_id = db.Column(db.Integer, unique=True)
-	poster_path = db.Column(db.String(255))
-	added_when = db.Column(db.DateTime())
-	added_by_user = db.Column(db.Integer, db.ForeignKey('users.id'))
+    # Settings for FTS (WooshAlchemy)
+    __searchable__ = [ 'name', 'director', 'original_name' ]
+    charmap = charset_table_to_dict(default_charset)
+    __msearch_analyzer__ = NgramWordAnalyzer(2) | CharsetFilter(charmap)
 
-	def __repr__(self):
-		return '<Movie %r>' % (self.name)
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100),index=True)
+    original_name = db.Column(db.String(100),index=True)
+    release_date = db.Column(db.Date, index=True)
+    type = db.Column(db.String(5), db.ForeignKey('types.id'),index=True)
+    url = db.Column(db.String(100), index=True)
+    origin = db.Column(db.String(5), db.ForeignKey('origins.id'), index=True)
+    director = db.Column(db.String(500), index=True)
+    overview = db.Column(db.String(2000))
+    poster_path = db.Column(db.String(255))
+    added_when = db.Column(db.DateTime())
+    added_by_user = db.Column(db.Integer, db.ForeignKey('users.id'))
 
-	def __next__(self):
-		"""
-			Return the next item into the database
-			Let's consider alphabetical order
-		"""
-		return db.session.query(Movie).filter(tuple_(Movie.name,Movie.release_date) > tuple_(self.name,self.release_date)).order_by(Movie.name,Movie.release_date).first()
+    # Inheritance specificity
+    show_type=db.Column(db.String(50))
+    __mapper_args__ = {
+        'polymorphic_identity':'shows',
+        'polymorphic_on':show_type
+    }
 
-	def prev(self):
-		"""
-			Return the previous item into the database
-			Let's consider alphabetical order
-		"""
-		return db.session.query(Movie).filter(tuple_(Movie.name,Movie.release_date) < tuple_(self.name,self.release_date)).order_by(desc(Movie.name),desc(Movie.release_date)).first()
+    def __repr__(self):
+        return '<Show %r>' % (self.name)
+
+class Movie(Show):
+
+        __tablename__ = 'movies'
+
+        id = db.Column(db.Integer, db.ForeignKey('shows.id'), primary_key=True)
+        duration = db.Column(db.Integer())
+        tmvdb_id = db.Column(db.Integer, unique=True)
+
+        __mapper_args__ = {
+                'polymorphic_identity':'movies'
+        }
+
+        def __next__(self):
+            """
+                Return the next item into the database
+                Let's consider alphabetical order
+            """
+            return db.session.query(Movie).filter(tuple_(Movie.name,Movie.release_date) > tuple_(self.name,self.release_date)).order_by(Movie.name,Movie.release_date).first()
+
+        def prev(self):
+            """
+                Return the previous item into the database
+                Let's consider alphabetical order
+            """
+            return db.session.query(Movie).filter(tuple_(Movie.name,Movie.release_date) < tuple_(self.name,self.release_date)).order_by(desc(Movie.name),desc(Movie.release_date)).first()
+
+class TVShow(Show):
+
+        __tablename__ = 'tvshows'
+
+        id = db.Column(db.Integer, db.ForeignKey('shows.id'), primary_key=True)
+        nb_seasons = db.Column(db.Integer())
+        tmvdb_id = db.Column(db.Integer, unique=True)
+
+        __mapper_args__ = {
+                'polymorphic_identity':'tvshows'
+        }
+
+        def __next__(self):
+            """
+                Return the next item into the database
+                Let's consider alphabetical order
+            """
+            return db.session.query(TVShow).filter(tuple_(TVShow.name,TVShow.release_date) > tuple_(self.name,self.release_date)).order_by(TVShow.name,TVShow.release_date).first()
+
+        def prev(self):
+            """
+                Return the previous item into the database
+                Let's consider alphabetical order
+            """
+            return db.session.query(TVShow).filter(tuple_(TVShow.name,TVShow.release_date) < tuple_(self.name,self.release_date)).order_by(desc(TVShow.name),desc(TVShow.release_date)).first()
+
 
 class Mark(db.Model):
 	
