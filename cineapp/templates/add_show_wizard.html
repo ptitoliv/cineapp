@@ -2,13 +2,21 @@
 {% block content %}
 	<div class="container">
 		<div class="text-center">
-			<h1>{{ header_text }}</h1>
+                        {% if g.show_type == "movies" %}
+			<h1>Ajout d'un film</h1>
+                        {% elif g.show_type == "tvshows" %}
+			<h1>Ajout d'une série</h1>
+                        {% endif %}
 		</div>
 		{%from "_formhelpers.html" import render_field %}
-		<form action="{{ url_for( 'select_' + endpoint + '_movie') }}" method="post" name="searchmovie">
+		<form action="{{ url_for( 'show.select_' + endpoint + '_show',show_type=g.show_type) }}" method="post" name="searchmovie">
 			{{ search_form.hidden_tag() }}
 	        <div class="input-group">
-			{{ render_field(search_form.search,label_visible=false,message=False,placeholder="Fast and furious 7, Les Tuche") }} 
+                        {% if g.show_type == "movies" %}
+			        {{ render_field(search_form.search,label_visible=false,message=False,placeholder="Fast and furious 7, Les Tuche") }} 
+                        {% elif g.show_type == "tvshows" %}
+			        {{ render_field(search_form.search,label_visible=false,message=False,placeholder="The Shield, The Big Bang Theory") }} 
+                        {% endif %}
 		    <div class="input-group-btn">
 			{{ search_form.submit_search(class="btn btn-success center-block") }}	
 		    </div>

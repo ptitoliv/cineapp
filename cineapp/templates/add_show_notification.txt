@@ -1,0 +1,10 @@
+Yo {{ dest_user.nickname }},
+{% if you_user == True %}
+Tu viens d'ajouter {%if g.show_type=="movies" %}le film{%elif g.show_type=="tvshows" %}la série{% endif %}: {{ show.name }}.
+{% else %}
+{{ add_user.nickname }} vient d'ajouter {%if g.show_type=="movies" %} le film {%elif g.show_type=="tvshows" %} la série {% endif %} {{ show.name }}.
+{% endif %}
+Pour le noter : {{ url_for('show.display_show', show_id=show.id, _external=True,show_type=g.show_type) }}
+
+--
+CineApp
