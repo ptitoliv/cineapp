@@ -122,4 +122,4 @@ app.logger.info('Cineapp startup')
 from cineapp.shows import show_bp
 app.register_blueprint(show_bp)
 
-from cineapp import views, models, jinja_filters, chat, comments, favorites
+from cineapp import views, models, jinja_filters, chat, comments, favorites, jinja_testers
