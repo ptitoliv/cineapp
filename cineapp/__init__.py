@@ -12,6 +12,7 @@ from flask_babel import Babel
 import logging, sys, os
 from logging.handlers import RotatingFileHandler
 from flask_socketio import SocketIO
+from flask_migrate  import Migrate
 from flask_msearch import Search
 
 app = Flask(__name__)
@@ -65,6 +66,7 @@ for cur_item in [ "API_KEY", "SLACK_TOKEN" ]:
 
 # Database Initialization
 db = SQLAlchemy(app)
+migrate = Migrate(app,db)
 
 # Login manager init
 lm = LoginManager()
@@ -115,5 +117,9 @@ file_handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s: %(messag
 app.logger.setLevel(logging.INFO)
 app.logger.addHandler(file_handler)
 app.logger.info('Cineapp startup')
+
+# Blueprint Registration
+from cineapp.shows import show_bp
+app.register_blueprint(show_bp)
 
 from cineapp import views, models, jinja_filters, chat, comments, favorites
