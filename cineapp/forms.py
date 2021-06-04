@@ -29,7 +29,7 @@ class AddUserForm(Form):
     password = PasswordField('Mot de passe',[DataRequired(), EqualTo('confirm',message='Les mots de passe ne correspondent pas')])
     confirm = PasswordField('Confirmation mot de passe')
 
-class AddMovieForm(Form):
+class AddShowForm(Form):
     name = StringField('Nom du Film', [DataRequired()])
     director = StringField('Realisateur', [DataRequired()])
     year = StringField('Annee de sortie', [DataRequired()])
@@ -37,7 +37,7 @@ class AddMovieForm(Form):
     origin = QuerySelectField(query_factory=get_origins, get_label='origin')
     type = QuerySelectField(query_factory=get_types,get_label='type')
 
-class MarkMovieForm(Form):
+class MarkShowForm(Form):
     class Meta(object):
         locales = ('de_DE', 'de')
 
@@ -59,47 +59,79 @@ class MarkMovieForm(Form):
         if float(field.data) < 0 or float(field.data) > 20:
             raise ValidationError('Note Incorrecte')
 
-class SearchMovieForm(Form):
+class SearchShowForm(Form):
     search = StringField('Nom du film', [DataRequired()])
     submit_search = SearchButtonField(u"Chercher")
 
-class SelectMovieForm(Form):
-    movie = RadioField('Film',[Required(message="Veuillez sélectionner un film")],choices=[], coerce=int)
+class SelectShowForm(Form):
+
+    show = RadioField('Film',[Required(message="Veuillez sélectionner")],choices=[], coerce=int)
     submit_select = SubmitField(u'Sélectionner')
 
-    # Specific constructer in order to pass a movie list
-    def __init__(self,movies_list=[]):
-    
+    # Specific constructer in order to pass a show list
+    def __init__(self,show_type,shows_list=[]):
+
         # Call the parent constructor
-        super(SelectMovieForm, self).__init__()
-        
+        super(SelectShowForm, self).__init__()
+
+        # Populate form fields with correct wording
+        if show_type == "movies":
+            self.show.message="Veuillez sélectionner un film"
+        elif show_type == "tvshows":
+            self.show.message="Veuillez sélectionner une série"
+
         # Local variable
         choice_list=[]
-        for cur_movie in movies_list:
+        for cur_show in shows_list:
 
-            # Extract the year if we can
-            if cur_movie.release_date != None and cur_movie.release_date != "":
-                try:
-                    movie_year = datetime.strptime(cur_movie.release_date,"%Y-%m-%d").strftime("%Y")
-                except ValueError:
-                    # If we are here that means the datetime module can't handle the date
-                    # Do it manually
-                    movie_year = cur_movie.release_date.split("-")[0] 
+            if show_type == "movies":
+
+                # Extract the year if we can
+                if cur_show.release_date != None and cur_show.release_date != "":
+                    try:
+                        show_year = datetime.strptime(cur_show.release_date,"%Y-%m-%d").strftime("%Y")
+                    except ValueError:
+                        # If we are here that means the datetime module can't handle the date
+                        # Do it manually
+                        show_year = cur_show.release_date.split("-")[0] 
+                else:
+                    show_year = "Inconnu"
+
+                choice_list.append((cur_show.tmvdb_id, cur_show.name + " ( " + show_year + " - " + cur_show.director + " )"))
+
+            elif show_type == "tvshows":
+                choice_list.append((cur_show.tmvdb_id, cur_show.name))
+
             else:
-                movie_year = "Inconnu"
+                choice_list = None
 
-            choice_list.append((cur_movie.tmvdb_id, cur_movie.name + " ( " + movie_year + " - " + cur_movie.director + " )"))
+        # Populate form
+        self.show.choices = choice_list
 
-        self.movie.choices = choice_list
+class UpdateShowForm(Form):
+    show_id = HiddenField()
+    submit_update_show = SubmitField()
 
-class UpdateMovieForm(Form):
-    movie_id = HiddenField()
-    submit_update_movie = SubmitField(u'Mettre à jour le film')
+    # Specific constructer in order to custom the button text
+    def __init__(self,show_type=None,show_id=None):
 
-class ConfirmMovieForm(Form):
+        # Call the parent constructor
+        super(UpdateShowForm, self).__init__()
+
+        # Populate form fields with correct wording
+        if show_type == "movies":
+            self.submit_update_show.label.text=u"Mettre à jour le film"
+        elif show_type == "tvshows":
+            self.submit_update_show.label.text=u"Mettre à jour la série"
+
+        # Fill the hidden field
+        if show_id != None:
+            self.show_id.data=show_id
+
+class ConfirmShowForm(Form):
     origin = QuerySelectField('Origine',query_factory=get_origins, get_label='origin')
     type = QuerySelectField('Type',query_factory=get_types,get_label='type')
-    movie_id = HiddenField()
+    show_id = HiddenField()
     submit_confirm = SubmitField("Ajouter le film")
 
 class FilterForm(Form):
@@ -112,7 +144,7 @@ class FilterForm(Form):
 class UserForm(Form):
     email = StringField('Adresse Email', [DataRequired('Champ Requis'), Email(message="Adresse E-Mail Incorrecte")])
     notif_own_activity = BooleanField()
-    notif_movie_add = BooleanField()
+    notif_show_add = BooleanField()
     notif_mark_add = BooleanField()
     notif_homework_add = BooleanField()
     notif_comment_add = BooleanField()
@@ -134,8 +166,8 @@ class UserForm(Form):
             if "notif_own_activity" in user.notifications and user.notifications["notif_own_activity"] != None:
                 self.notif_own_activity.data=user.notifications["notif_own_activity"]
 
-            if "notif_movie_add" in user.notifications and user.notifications["notif_movie_add"] != None:
-                self.notif_movie_add.data=user.notifications["notif_movie_add"]
+            if "notif_show_add" in user.notifications and user.notifications["notif_show_add"] != None:
+                self.notif_show_add.data=user.notifications["notif_show_add"]
 
             if "notif_mark_add" in user.notifications and user.notifications["notif_mark_add"] != None:
                 self.notif_mark_add.data=user.notifications["notif_mark_add"]
