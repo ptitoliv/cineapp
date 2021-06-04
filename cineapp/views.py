@@ -8,16 +8,16 @@ from builtins import str
 from builtins import range
 import urllib.request, urllib.parse, urllib.error, hashlib, re, os, locale, json, copy, time,html2text
 from datetime import datetime
-from flask import render_template, flash, redirect, url_for, g, request, session
+from flask import render_template, flash, redirect, url_for, g, request, session, abort
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_wtf import Form
 from wtforms.ext.sqlalchemy.orm import model_form
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from cineapp import app, db, lm
-from cineapp.forms import LoginForm, AddUserForm, AddMovieForm, MarkMovieForm, SearchMovieForm, SelectMovieForm, ConfirmMovieForm, FilterForm, UserForm, PasswordForm, HomeworkForm, UpdateMovieForm, DashboardGraphForm
-from cineapp.models import User, Movie, Mark, Origin, Type, FavoriteMovie, FavoriteType, PushNotification
-from cineapp.tvmdb import search_movies,get_movie,download_poster, search_page_number
-from cineapp.emails import add_movie_notification, mark_movie_notification, add_homework_notification, update_movie_notification
+from cineapp.forms import LoginForm, AddUserForm, AddShowForm, MarkShowForm, SearchShowForm, SelectShowForm, ConfirmShowForm, FilterForm, UserForm, PasswordForm, HomeworkForm, UpdateShowForm, DashboardGraphForm
+from cineapp.models import User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification
+from cineapp.tvmdb import search_shows,get_show,download_poster, search_page_number
+from cineapp.emails import add_show_notification, mark_show_notification, add_homework_notification, update_show_notification
 from cineapp.utils import frange, get_activity_list, resize_avatar
 from cineapp.push import notification_unsubscribe
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
@@ -43,13 +43,27 @@ def before_request():
         g.user = current_user
 
         # Make the search form available in all templates (Including base.html)
-        g.search_form = SearchMovieForm(prefix="search")
+        g.search_form = SearchShowForm(prefix="search")
 
         # Make the graph list available in the whole app
         g.graph_list = app.config['GRAPH_LIST']
 
-        # Return the current datz
+        # Return the current date
         g.cur_date = datetime.now()
+
+        # Define the mode (Movie or TVShow)
+        g.app_mode = "tv"
+        g.tvmdb_api_mode = "tv"
+
+        # Set mode to movies by default
+        if session.get('show_type') == None:
+            app.logger.info("Le type de show n'est pas défini dans la session. Configuration à movies par défaut")
+            session["show_type"] = "movies"
+       
+        # Configure g with the value stored in the session
+        # TIP: g is only set for the current request and not globally to the session
+        # For that: there is ... session
+        g.show_type=session["show_type"]
 
 @app.route('/login', methods=['GET','POST'])
 def login():
@@ -101,113 +115,17 @@ def logout():
 
         return redirect(url_for('index'))
 
-@app.route('/movies/list')
-@app.route('/movies/reset', endpoint="reset_list")
-@app.route('/movies/filter', methods=[ 'GET', 'POST' ], endpoint="filter_form")
-@login_required
-def list_movies():
+@app.route('/switch/<show_type>')
+def switch_show_type(show_type):
 
-        # Display the search form
-        filter_form = FilterForm()
+    # Check if the URL is allowed or not
+    if show_type not in [ "movies", "tvshows" ]:
+        app.logger.error("Le mode %s n'est pas autorisé" % show_type)
+    else:
+        app.logger.info("Bascule vers le mode: %s" % show_type)
+        session["show_type"]=show_type
 
-        # Fetch the query string or dict => We'll need it later
-        session_query=session.get('query',None)
-        
-        # By default, don't clean the datatable state
-        clear_table=False
-
-        # If we catch the reset_list endpoint, well reset the list in initial state
-        if request.endpoint == "reset_list":
-
-                # Reset all the values in order to have the initial list
-                session.pop('query',None)
-
-                # Tell that we must reset the table on next load
-                session['clear_table_on_next_reload']=True
-
-                # And go back to the list
-                return redirect(url_for("list_movies"))
-
-        # We are in filter mode
-        if g.search_form.submit_search.data == True:
-                # We come from the form into the navbar
-                if g.search_form.validate_on_submit():
-                        filter_string=g.search_form.search.data
-                        session['query']=filter_string
-
-                        session['search_type']="filter"
-                        
-                        # Reset the datatable to a fresh state
-                        clear_table=True
-
-        elif filter_form.submit_filter.data == True:
-                # We come from the filter form above the datatable
-                # Build the filter request
-
-                if filter_form.origin.data == None and filter_form.type.data == None and filter_form.where.data == None and filter_form.favorite.data == None:
-                        # All filter are empty => Let's display the list
-                        session['search_type']="list"
-                else:
-
-                        # Put the forms parameter into a session object in order to be handled by the datatable
-                        session['search_type']="filter_origin_type"
-                        filter_dict = {'origin' : None, 'type': None, 'seen_where' : None, 'favorite': None}
-
-                        if filter_form.origin.data != None:
-                                filter_dict['origin'] = filter_form.origin.data.id
-
-                        if filter_form.type.data != None:
-                                filter_dict['type'] = filter_form.type.data.id
-
-                        if filter_form.where.data != None:
-                                filter_dict['seen_where'] = filter_form.where.data.id
-
-                        if filter_form.favorite.data != None:
-                                filter_dict['favorite'] = filter_form.favorite.data.id
-
-                        session['query']=filter_dict
-
-                # Reset the datatable to a fresh state
-                clear_table=True
-
-        elif isinstance(session_query,dict):
-
-                # We come from an homework link and we want to fill the form
-                session['search_type']="filter_origin_type"
-                
-                # Rebuild the form setting default values stores into the session object
-                # We need to check if the variable is not or none in order to avoid an exception
-                if session_query['origin'] == None:
-                        origin = None
-                else:
-                        origin=Origin.query.get(session_query['origin'])
-
-                if session_query['type'] == None:
-                        type = None
-                else:
-                        type=Type.query.get(session_query['type'])
-
-                if session_query['seen_where'] == None:
-                        seen_where=None
-                else:
-                        seen_where=User.query.get(session_query['seen_where'])
-
-                if session_query['favorite'] == None:
-                        favorite=None
-                else:
-                        favorite=User.query.get(session_query['favorite'])
-
-                # Recreate the form with the set default values
-                filter_form=FilterForm(origin=origin,type=type,where=seen_where)
-
-        else:
-                # We are in list mode, check if we must clear the table after a reset
-                session['search_type']="list"
-                clear_table=session.pop('clear_table_on_next_reload',None)
-
-        # Let's fetch all the users, I will need them
-        users = User.query.all()
-        return render_template('movies_list.html', users=users,filter_form=filter_form,clear_table=clear_table)
+    return redirect(url_for('index'))
 
 @app.route('/movies/json', methods=['GET','POST'])
 @login_required
@@ -268,18 +186,18 @@ def update_datatable():
                 if filter_field == FavoriteType.star_weight:
 
                         # We only want movies with favorite defined for the concerned user
-                        movies_query = Movie.query.outerjoin(Mark).outerjoin(FavoriteMovie).filter(FavoriteMovie.user_id==filter_user).outerjoin(FavoriteType)
+                        movies_query = Show.query.outerjoin(Mark).outerjoin(FavoriteShow).filter(FavoriteShow.user_id==filter_user).outerjoin(FavoriteType)
                 else:
                         # All the others sorts refer to the Mark.user_id column
-                        movies_query = Movie.query.outerjoin(Mark).outerjoin(FavoriteMovie).filter(Mark.user_id==filter_user).outerjoin(FavoriteType)
+                        movies_query = Show.query.outerjoin(Mark).outerjoin(FavoriteShow).filter(Mark.user_id==filter_user).outerjoin(FavoriteType)
 
                 # Check that we have a real list in order to avoid an exception 
                 if isinstance(filter_fields,dict):
                         if filter_fields['origin'] != None:
-                                movies_query = movies_query.filter(Movie.origin==filter_fields['origin'])
+                                movies_query = movies_query.filter(Show.origin==filter_fields['origin'])
 
                         if filter_fields['type'] != None:
-                                movies_query = movies_query.filter(Movie.type==filter_fields['type'])
+                                movies_query = movies_query.filter(Show.type==filter_fields['type'])
 
                         if filter_fields['seen_where'] != None:
 
@@ -294,21 +212,21 @@ def update_datatable():
 
                                 # Then build a list of these movies
                                 for cur_movie_seen_in_theater in movies_seen_in_theater:
-                                        array_movies_seen_in_theater.append(cur_movie_seen_in_theater.movie_id)
+                                        array_movies_seen_in_theater.append(cur_movie_seen_in_theater.show_id)
                                 
                                 # Finally let's build the filter that will be used later building the query
-                                movies_query = movies_query.filter(Mark.movie_id.in_(array_movies_seen_in_theater))
+                                movies_query = movies_query.filter(Mark.show_id.in_(array_movies_seen_in_theater))
 
                         if filter_fields['favorite'] !=None:
 
                                 # Same behaviour than the previous one
-                                favorite_movies = FavoriteMovie.query.filter(FavoriteMovie.user_id == filter_fields['favorite']).all()
+                                favorite_movies = FavoriteShow.query.filter(FavoriteShow.user_id == filter_fields['favorite']).all()
                                 favorite_movies_array = []
 
                                 for cur_favorite_movie in favorite_movies:
-                                        favorite_movies_array.append(cur_favorite_movie.movie_id)
+                                        favorite_movies_array.append(cur_favorite_movie.show_id)
 
-                                movies_query = movies_query.filter(FavoriteMovie.movie_id.in_(favorite_movies_array))
+                                movies_query = movies_query.filter(FavoriteShow.show_id.in_(favorite_movies_array))
 
                 # Sort my desc marks
                 if order_dir == "desc":
@@ -344,59 +262,59 @@ def update_datatable():
                         app.logger.info('Entering list search_type')
                         if order_column == "average":
                                 if order_dir == "desc":
-                                        movies=db.session.query(Movie).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length))
+                                        movies=db.session.query(Show).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length))
                                 else:
-                                        movies=db.session.query(Movie).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length))
+                                        movies=db.session.query(Show).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length))
                                 
-                                count_movies=db.session.query(Movie).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
+                                count_movies=db.session.query(Show).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
                         else:
-                                movies = Movie.query.order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
-                                count_movies=Movie.query.count()
+                                movies = Show.query.order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
+                                count_movies=Show.query.count()
 
                 # Let's use the filter form
                 elif session.get('search_type') == 'filter_origin_type':
                         app.logger.info('Entering list filter_origin_type')
                         # Let's build the filtered requested following what has been posted in the filter form
                         filter_fields=session.get('query')
-                        movies_query = Movie.query.outerjoin(Mark).outerjoin(FavoriteMovie)
+                        movies_query = Show.query.outerjoin(Mark).outerjoin(FavoriteShow)
 
                         if filter_fields['origin'] != None:
-                                movies_query = movies_query.filter(Movie.origin==filter_fields['origin'])
+                                movies_query = movies_query.filter(Show.origin==filter_fields['origin'])
 
                         if filter_fields['type'] != None:
-                                movies_query = movies_query.filter(Movie.type==filter_fields['type'])
+                                movies_query = movies_query.filter(Show.type==filter_fields['type'])
 
                         if filter_fields['seen_where'] !=None:
                                 movies_query = movies_query.filter(Mark.user_id==filter_fields['seen_where']).filter(Mark.seen_where=='C')
 
                         if filter_fields['favorite'] !=None:
-                                movies_query = movies_query.filter(FavoriteMovie.user_id==filter_fields['favorite'])
+                                movies_query = movies_query.filter(FavoriteShow.user_id==filter_fields['favorite'])
 
                         # Build the request
                         if order_column == "average":
                                 if order_dir == "desc":
                                         app.logger.info("Requete par moyenne desecendante")
-                                        movies=movies_query.group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length)).all()
+                                        movies=movies_query.group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length)).all()
                                 else:
                                         app.logger.info("Requete par moyenne ascendante")
-                                        movies=movies_query.group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
+                                        movies=movies_query.group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
                         else:
                                 movies = movies_query.order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
 
                         count_movies=movies_query.count()
 
-                # Here, this is for the string search (Movie or director)
+                # Here, this is for the string search (Show or director)
                 elif session.get('search_type') == 'filter':
                         app.logger.info('Entering list filter')
                         if order_column == "average":
                                 if order_dir == "desc":
-                                        movies=Movie.query.msearch(session.get('query'),fields=["name","original_name","director"]).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length)).all()
+                                        movies=Show.query.msearch(session.get('query'),fields=["name","original_name","director"]).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length)).all()
                                 else:
-                                        movies=Movie.query.msearch(session.get('query'),fields=["name","original_name","director"]).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
-                                count_movies=Movie.query.msearch(session.get('query'),fields=["name","original_name","director"]).join(Mark).group_by(Mark.movie_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
+                                        movies=Show.query.msearch(session.get('query'),fields=["name","original_name","director"]).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
+                                count_movies=Show.query.msearch(session.get('query'),fields=["name","original_name","director"]).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
                         else:
-                                movies = Movie.query.msearch(session.get('query'),fields=["name","original_name","director"]).order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
-                                count_movies=Movie.query.msearch(session.get('query'),fields=["name","original_name","director"]).count()
+                                movies = Show.query.msearch(session.get('query'),fields=["name","original_name","director"]).order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
+                                count_movies=Show.query.msearch(session.get('query'),fields=["name","original_name","director"]).count()
 
         # Let's fetch all the users, I will need them
         users = User.query.all()
@@ -412,7 +330,7 @@ def update_datatable():
                 my_fav=None
 
                 # Calculate the average mark for each movie
-                average_mark_query=db.session.query(db.func.avg(Mark.mark).label("average")).filter(Mark.movie_id==cur_movie.id).one()
+                average_mark_query=db.session.query(db.func.avg(Mark.mark).label("average")).filter(Mark.show_id==cur_movie.id).one()
                 
                 try:
                         # Round the average mark for a better display
@@ -456,7 +374,7 @@ def update_datatable():
                         dict_where[cur_user.id]="-"
                         dict_when[cur_user.id]="-"
                         dict_favs[cur_user.id]=None
-                        dict_homework[cur_user.id]={ "when" : None, "who:" : None, "link" : url_for("add_homework",movie_id=cur_movie.id,user_id=cur_user.id)}
+                        dict_homework[cur_user.id]={ "when" : None, "who:" : None, "link" : url_for("add_homework",show_id=cur_movie.id,user_id=cur_user.id)}
                         for cur_mark in cur_movie.marked_by_users:
                                 if cur_mark.user.id == cur_user.id:
                                         dict_mark[cur_user.id]=cur_mark.mark            
@@ -483,7 +401,7 @@ def update_datatable():
                                 dict_favs[cur_user.id]=tmp_fav[0].star_type
 
                 # Create the json object for the datatable
-                dict_movie["data"].append({"DT_RowData": { "link": url_for("show_movie",movie_id=cur_movie.id), "mark_link": url_for("mark_movie",movie_id_form=cur_movie.id),"homework_link": dict_homework},
+                dict_movie["data"].append({"DT_RowData": { "link": url_for("show_movie",show_id=cur_movie.id), "mark_link": url_for("mark_movie",show_id_form=cur_movie.id),"homework_link": dict_homework},
                 "id": cur_movie.id,"name": cur_movie.name, 
                 "director": cur_movie.director,
                 "average" : average_mark,
@@ -509,168 +427,26 @@ def show_movie_random():
                 Function that redirects to a random movie sheet
         """
         # Get the movie number stored in the databaese
-        count = Movie.query.count()
+        count = Show.query.count()
 
         # Get the random id
         random_id = randint(1,count)
 
         # Check if the movie exists
-        while Movie.query.get(random_id) is None:
+        while Show.query.get(random_id) is None:
                 random_id = randint(1,count)
 
         # Redirect to the movie sheet selected randomly
-        return redirect(url_for('show_movie',movie_id=random_id))
+        return redirect(url_for('show_movie',show_id=random_id))
 
-@app.route('/movies/show/<int:movie_id>')
-@login_required
-def show_movie(movie_id):
-        # Select movie
-        movie = Movie.query.get_or_404(movie_id)
-
-        # Initialize the dict which will contain the data to be displayed
-        mark_users=[]
-
-        # Get user list
-        users=User.query.all()
-
-        # Init the form that will be used if we want to update the movie data
-        update_movie_form=UpdateMovieForm(movie_id=movie.id)
-
-        # Browse all users
-        for cur_user in users:
-                
-                # Let's check if the movie has already been marked by the user
-                marked_movie=Mark.query.get((cur_user.id,movie_id))
-
-                if marked_movie != None:
-
-                        # Replace the seen_where letter by a nicer text
-                        if marked_movie.seen_where=="C":
-                                seen_where_text="Cinema"
-                        elif marked_movie.seen_where=="M":
-                                seen_where_text="Maison"
-
-                        # We are in homework mode if a user gave an homework AND the mark is still none
-                        # If not we are in mark mode
-                        if marked_movie.homework_who != None and marked_movie.mark == None:
-                                mark_users.append({ "user": cur_user, "mark": "homework_in_progress", "seen_where": None, "seen_when": None, "comment": None, "homework_who": marked_movie.homework_who_user, "mark_comments": marked_movie.active_comments })
-                        else:
-                                mark_users.append({ "user": cur_user, "mark": marked_movie.mark, "seen_where": seen_where_text, "seen_when": marked_movie.seen_when.strftime("%d/%m/%Y") ,"comment": marked_movie.comment, "homework_who": marked_movie.homework_who_user, "mark_comments": marked_movie.active_comments })
-                else:
-                        mark_users.append({ "user" : cur_user, "mark": None, "seen_where": None, "seen_when": None, "comment": None })
-
-        # Let's check if the movie has already been marked by the user
-        marked_movie=Mark.query.get((g.user.id,movie_id))
-
-        # Get the favorite types list
-        favorite_type_list = FavoriteType.query.all()
-
-        if marked_movie is None or marked_movie.mark == None:
-                return render_template('movie_show.html', movie=movie, mark_users=mark_users, movie_next=next(movie),movie_prev=movie.prev(),marked_flag=False,update_movie_form=update_movie_form,favorite_type_list=favorite_type_list)
-        else:
-                return render_template('movie_show.html', movie=movie, mark_users=mark_users, movie_next=next(movie),movie_prev=movie.prev(),marked_flag=True, update_movie_form=update_movie_form,favorite_type_list=favorite_type_list)
-
-@app.route('/movies/mark/<int:movie_id_form>', methods=['GET','POST'])
+@app.route('/movies/mark/publish/<int:show_id>', methods=['GET'])
 @login_required
 @guest_control
-def mark_movie(movie_id_form):
-        # Select movie
-        form=MarkMovieForm()
-        movie = Movie.query.get_or_404(movie_id_form)
-
-        # Let's check if the movie has already been marked
-        marked_movie=Mark.query.get((g.user.id,movie_id_form))
-
-        # Test if the form has been submitted
-        if form.submit_mark.data or form.submit_mark_slack.data or form.submit_mark_only.data:
-
-                # Mark the movie and display the correct page
-                if form.validate_on_submit():
-
-                        if marked_movie == None:
-                                # The movie has never been marked => Create the object
-                                marked_movie=Mark(user_id=g.user.id,
-                                        movie_id=movie.id,
-                                        seen_when=form.seen_when.data,
-                                        seen_where=form.seen_where.data,
-                                        mark=form.mark.data,
-                                        comment=form.comment.data,
-                                        updated_when=datetime.now()
-                                )       
-                
-                                flash_message_success="Note ajoutée"
-                                notif_type="add"
-                        else:
-                                # Update Movie
-                                marked_movie.mark=form.mark.data
-                                marked_movie.comment=form.comment.data
-                                marked_movie.seen_when=form.seen_when.data
-                                marked_movie.seen_where=form.seen_where.data
-
-                                # If we mark an homework, let's set the date in order to be on the activity flow
-                                # Rating an homework mean there is an homework date but not a mark date
-                                if marked_movie.updated_when == None and marked_movie.homework_when != None:
-                                        marked_movie.updated_when=datetime.now()
-                                        flash_message_success="Devoir rempli"
-                                        notif_type="homework"
-                                else:
-                                        flash_message_success="Note mise à jour"
-                                        notif_type="update"
-                        try:
-                                db.session.add(marked_movie)
-                                db.session.commit()
-                                flash(flash_message_success,'success')
-
-                                # Let's display some debug for notifications
-                                app.logger.debug("Notifications de l'utilisateur : %s", g.user.notifications)
-                                app.logger.debug("Envoi des notifications SLACK %s", form.submit_mark_slack.data)
-
-                                # Send notification
-                                if mark_movie_notification(marked_movie,notif_type) == 0:
-                                        flash('Note envoyée par mail','success')
-                                else:
-                                        flash('Impossible d\'envoyer la note par mail','danger')
-
-                                # Send Slack Notification if needed
-                                if g.user.notifications["notif_slack"] and form.submit_mark_slack.data:
-                                        slack_result = slack_mark_notification(marked_movie,app)
-                                        if slack_result == 0:
-                                                flash('Note envoyée sur Slack','success')
-                                        elif slack_result == -1:
-                                                flash('Notifications Slack désactivées','warning')
-                                        else:
-                                                flash('Impossible d\'envoyer la note sur Slack','danger')
-
-                                return redirect(url_for('show_movie',movie_id=movie_id_form))
-                                
-                        except IntegrityError:
-                                db.session.rollback()
-                                flash('Impossible de noter le film','danger')
-                                return render_template('movie_show.html', movie=movie, mark=True, marked_flag=False, form=form)
-
-                        except FlushError:
-                                db.session.rollback()
-                                flash('Impossible de noter le film','danger')
-                                return render_template('movie_show.html', movie=movie, mark=True, marked_flag=False, form=form)
-                
-                else:
-                        return render_template('movie_show.html', movie=movie, mark=True, marked_flag=False, form=form)
-
-        if marked_movie is None or marked_movie.mark == None:
-                return render_template('movie_show.html', movie=movie, mark=True, marked_flag=False, form=form)
-        else:
-                # Movie has already been marked => Fill the form with data
-                form=MarkMovieForm(mark=marked_movie.mark,comment=marked_movie.comment,seen_when=marked_movie.seen_when,seen_where=marked_movie.seen_where)
-                return render_template('movie_show.html', movie=movie, mark=True, marked_flag=True,form=form)
-
-@app.route('/movies/mark/publish/<int:movie_id>', methods=['GET'])
-@login_required
-@guest_control
-def publish_mark(movie_id):
+def publish_mark(show_id):
 
         # Fetch the current comment for the logged user and send it on flask
         # Let's do that only if there is a mark to send
-        mark = Mark.query.get_or_404((g.user.id,movie_id))
+        mark = Mark.query.get_or_404((g.user.id,show_id))
 
         # Convert the HTML content to text in order to have a nice display in the mail
         html_converter = html2text.HTML2Text()
@@ -686,366 +462,9 @@ def publish_mark(movie_id):
                                 flash('Notifications Slack désactivées','warning')
                         else:
                                 flash('Impossible d\'envoyer la note sur Slack','danger')
-                return redirect(url_for('show_movie',movie_id=movie_id))
+                return redirect(url_for('show_movie',show_id=show_id))
 
-@app.route('/movies/add', methods=['GET','POST'])
-@login_required
-@guest_control
-def add_movie():
-        # First, generate all the forms that we going to use in the view
-        search_form=SearchMovieForm() 
 
-        # Render the template
-        return render_template('add_movie_wizard.html', search_form=search_form, header_text=u"Ajout d'un film", endpoint="add")
-
-@app.route('/movies/add/select/<int:page>', methods=['GET','POST'], endpoint="select_add_movie")
-@app.route('/movies/add/select', methods=['POST'], endpoint="select_add_movie")
-@app.route('/movies/update/select/<int:page>', methods=['GET','POST'], endpoint="select_update_movie")
-@app.route('/movies/update/select', methods=['POST'], endpoint="select_update_movie")
-@login_required
-@guest_control
-def select_movie(page=1):
-
-        """
-                This functions fetch movies from the API using pagination system in order to avoid a timeout with the API
-                and also a too long time execution due to an high movies number to fetch and display
-        """
-
-        # Calculate endpoint
-        endpoint=request.endpoint.split("_")[1]
-
-        # Create a search form in order to get the search query from the search wizard step
-        search_form=SearchMovieForm()
-
-        # If we come from the search_movie for, put the query string into a session
-        if search_form.search.data != None and search_form.search.data != "":
-                query_movie=search_form.search.data
-                session['query_movie'] = search_form.search.data
-        else:
-                query_movie=session.get('query_movie',None)
-
-        # Check if we correctly do a search, if not => Let's go back to the add movie form
-        if search_form.submit_search.data and not search_form.validate_on_submit():
-                flash('Veuillez saisir une recherche !', 'warning')
-                
-                if endpoint == "add":
-                        header_text=u"Ajout d'un film"
-                elif endpoint == "update":
-                        movie = session.get("movie")
-                        header_text=u"Mise à jour du film " + movie.name
-
-                return render_template('add_movie_wizard.html', search_form=search_form, header_text=header_text,endpoint=endpoint)
-
-        # If we are here and that there is nothing into query_string => There is an issue
-        # Let's go back to the main form
-        if query_movie == None:
-                flash("Absence de chaine de recherche", 'danger')
-                return redirect(url_for('add_movie'))
-
-        # Fetch how many pages we have to handle
-        total_pages = search_page_number(query_movie)
-
-        # Check if the page number is correct
-        if page < 1 or page > total_pages:
-                flash("Page de resultat inexistante", 'danger')
-                return redirect(url_for('add_movie'))
-
-        # Pagination management
-        if page - 1 >= 1:
-                has_prev = True
-        else:
-                has_prev = False
-
-        if page + 1 <= total_pages:
-                has_next = True
-        else:
-                has_next = False
-
-        # Fetch the query from the previous form in order to fill correctly the radio choices
-        movies_list=search_movies(query_movie,page)
-        select_form=SelectMovieForm(movies_list)
-        session["page"] = page
-
-        # Put the current movies_list into the session
-        # We'll need it to fill the form in the next wizard step
-        session["movies_list"] = movies_list
-
-        # Check if we have some results, if not tell the user that there is no matching results
-        # and propose it to make a new search
-        if total_pages == 1 and len(select_form.movie.choices) == 0:
-                flash("Aucun résultat pour cette recherche", "warning")
-                return redirect(url_for("add_movie"))
-
-        return render_template('select_movie_wizard.html', select_form=select_form, cur_page=page, total_pages=total_pages, has_prev=has_prev, has_next=has_next,endpoint=endpoint)
-
-@app.route('/movies/add/confirm', methods=['POST'], endpoint="confirm_add_movie")
-@app.route('/movies/update/confirm', methods=['POST'], endpoint="confirm_update_movie")
-@login_required
-@guest_control
-def confirm_movie():
-
-        # Calculate endpoint
-        endpoint=request.endpoint.split("_")[1]
-
-        # Create the select form for validation
-        select_form=SelectMovieForm()
-
-        # Validate selection form
-        if select_form.submit_select.data:
-
-                # Fetch the query from the previous form in order to fill correctly the radio choices
-                select_form=SelectMovieForm(session.get("movies_list",None))
-
-                # If we are here, we displayed the form once and we want to go to the wizard next step doing a form validation
-                if select_form.validate_on_submit():
-                
-                        # Last step : Set type and origin and add the movie
-                        # Note : Movie_id is the TMVDB id
-                        movie_form_tmvdb=get_movie(select_form.movie.data, True)
-
-                        if endpoint == "add":
-
-                                # Generate the confirmation form with the correct value
-                                confirm_form=ConfirmMovieForm()
-                                confirm_form.submit_confirm.label.text="Ajouter le film"
-                                confirm_form.movie_id.data=select_form.movie.data
-
-                        elif endpoint == "update":
-                                
-                                # Get the movie object in order to get origin and type
-                                movie_id=session.get('movie_id',None)
-
-                                if movie_id == None:
-                                        flash("Erreur générale","danger")
-                                        return redirect(url_for("list_movies"))
-
-                                # If we are here, we have a usable movie_id value => Let's fetch the movie object
-                                # and use the type and origin value for filling confirm_form.
-                                movie_to_update=Movie.query.get(movie_id)
-                                confirm_form=ConfirmMovieForm(origin=movie_to_update.origin_object,type=movie_to_update.type_object)
-
-                                # And then update the others fields
-                                confirm_form.movie_id.data=select_form.movie.data
-                                confirm_form.submit_confirm.label.text=u"Mettre à jour le film"
-
-                        # Go to the final confirmation form
-                        return render_template('confirm_movie_wizard.html', movie=movie_form_tmvdb, form=confirm_form, endpoint=endpoint)
-                else:
-                        # Warn the user that the form is incomplete
-                        flash("Veuillez sélectionner un film","danger")
-                        if endpoint == "add":
-                                return redirect(url_for('select_add_movie',page=page))
-                        elif endpoint == "update":
-                                return redirect(url_for('select_update_movie',page=page))
-
-        # Create the form we're going to use    
-        confirm_form=ConfirmMovieForm()
-
-        # Confirmation form => add into the database
-        if confirm_form.submit_confirm.data and confirm_form.validate_on_submit():
-
-                if endpoint == "add":
-
-                        # Form is okay => We can add the movie
-                        movie_to_create=get_movie(confirm_form.movie_id.data)
-                        movie_to_create.added_by_user=g.user.id
-                        movie_to_create.type=confirm_form.type.data.id
-                        movie_to_create.origin=confirm_form.origin.data.id
-                        movie_to_create.added_when=datetime.now()
-
-                        # Add the movie in the database
-                        try:
-
-                                # Check if the poster has been correctly downloaded
-                                if movie_to_create.poster_path:
-                                        flash('Affiche téléchargée','success')
-                                else:
-                                        flash('Impossible de télécharger le poster','warning')
-
-                                db.session.add(movie_to_create)
-                                db.session.flush()
-                                new_movie_id=movie_to_create.id
-                                db.session.commit()
-                                flash('Film ajouté','success')
-
-                                # Movie has been added => Send notifications
-                                add_movie_notification(movie_to_create)
-                                
-                                # Movie added ==> Go to the mark form !
-                                return redirect(url_for('mark_movie',movie_id_form=new_movie_id))
-
-                        except IntegrityError as e:
-                                flash('Film déjà existant','danger')
-                                db.session.rollback()
-                                return redirect(url_for('add_movie'))
-
-                elif endpoint == "update":
-        
-                        # Form is okay => Fetch the movie and update it
-                        movie_id=session.get('movie_id',None)
-
-                        if movie_id == None:
-                                flash("Erreur générale","danger")
-                                return redirect(url_for("list_movies"))
-                        
-                        # If we are here, we have a usable movie_id value
-                        movie=Movie.query.get(movie_id)
-
-                        # If the movie_id is an incorrect value => Go back to the movie list
-                        # Don't go back to the movie file page since the movie_id is an incorrect value
-                        if movie == None:
-                                flash("Erreur générale","danger")
-                                return redirect(url_for("movies_list"))
-
-                        # All checks are okay => Update the movie !
-                        temp_movie=get_movie(confirm_form.movie_id.data)
-
-                        # Put the notifications into a dictionnary since I can't get 
-                        notification_data={}
-                        notification_data["old"]={ "name": movie.name,
-                                        "original_name": movie.original_name,
-                                        "release_date" : movie.release_date,
-                                        "director" : movie.director,
-                                        "type" : movie.type_object.type,
-                                        "origin" : movie.origin_object.origin,
-                                        "duration": movie.duration,
-                                        "overview": movie.overview
-                                        }
-
-                        # Update the object that will be stored in the database
-                        movie.name=temp_movie.name
-                        movie.original_name=temp_movie.original_name
-                        movie.release_date=temp_movie.release_date
-                        movie.url=temp_movie.url
-                        movie.tmvdb_id=temp_movie.tmvdb_id
-                        movie.director=temp_movie.director
-                        movie.overview=temp_movie.overview
-                        movie.duration=temp_movie.duration
-                        movie.poster_path=temp_movie.poster_path
-                        movie.type=confirm_form.type.data.id
-                        movie.origin=confirm_form.origin.data.id
-
-                        # Add the movie in the database
-                        try:
-                                db.session.add(movie)
-                                db.session.flush()
-                                db.session.commit()
-                                flash('Film mis à jour','success')
-
-                                # Check if the poster has been correctly downloaded
-                                if movie.poster_path:
-                                        flash('Affiche téléchargée','success')
-                                else:
-                                        flash('Impossible de télécharger le poster','warning')
-                                
-                                # Update the dictionnary with the update movie data
-                                notification_data["new"]={ "name": movie.name,
-                                        "original_name": movie.original_name,
-                                        "release_date" : movie.release_date,
-                                        "director" : movie.director,
-                                        "type" : movie.type_object.type,
-                                        "origin" : movie.origin_object.origin,
-                                        "id" : movie.id,
-                                        "duration": movie.duration,
-                                        "overview": movie.overview
-                                        }
-
-                                # Movie has been updated => Send notifications
-                                update_movie_notification(notification_data)
-
-                                # Clear the session variables
-                                session.pop('movie')
-                                session.pop('movie_id')
-                                session.pop('query_movie')
-                                
-                                # Movie updated ==> Go to the movie page !
-                                return redirect(url_for('show_movie',movie_id=movie.id))
-
-                        except IntegrityError as e:
-                                flash('Film déjà existant','danger')
-                                db.session.rollback()
-                                return redirect(url_for('show_movie',movie_id=movie.id))
-
-        # If no validation form is filled, go back to the wizard first step
-        return redirect(url_for('add_movie')) 
-
-@app.route('/movies/update',methods=['POST'])
-@login_required
-@guest_control
-def update_movie():
-
-        # Generate the list with the choices returned via the API
-        update_movie_form=UpdateMovieForm()
-        search_form=SearchMovieForm() 
-        select_form=SelectMovieForm()
-        confirm_form=ConfirmMovieForm()
-
-        # We come from the movie file page 
-        if update_movie_form.submit_update_movie.data and update_movie_form.validate_on_submit():
-
-                # In stead of getting the query string, directly use the movie title from the database          
-                movie=Movie.query.get_or_404(update_movie_form.movie_id.data)
-                search_form.search.data=movie.name
-
-                # Put into a session variable the movie id we want to update in order to do the final update on the last wizard step
-                session['movie_id'] = movie.id
-
-                # Put the object into the session array => We'll need it later
-                session['movie']=movie
-
-                return render_template('add_movie_wizard.html', search_form=search_form,header_text=u"Mise à jour de la fiche du film " + movie.name, endpoint="update")
-
-        # Search form is validated => Let's fetch the movirs from tvdb.org
-        if search_form.submit_search.data:
-
-                # Get the movie object in order to get the movie name
-                movie=session.get('movie',None)
-
-                # Put it in a session in order to do the validation
-                session['query_movie'] = search_form.search.data
-
-                if search_form.validate_on_submit():
-                        select_form=SelectMovieForm(search_movies(search_form.search.data))
-
-                        # Display the selection form
-                        if len(select_form.movie.choices) == 0:
-                                flash("Aucun film correspondant","danger")
-                                return render_template('add_movie_wizard.html', search_form=search_form)
-                        else:
-                                return render_template('select_movie_wizard.html', select_form=select_form,url_wizard_next=url_for("update_movie"))
-                else:
-                        return render_template('add_movie_wizard.html', search_form=search_form,header_text=u"Mise à jour de la fiche du film " + movie.name)
-
-        # Validate selection form
-        if select_form.submit_select.data:
-
-                # Rebuild the RadioField list in order to be able to validate the form
-                select_form=SelectMovieForm(search_movies(session.get('query_movie',None)))
-
-                if select_form.validate_on_submit():
-                        # Update the origin using data stored in database and fetch from TMVDB
-                        movie=Movie.query.get(session.get('movie_id',None))
-        
-                        # Populate a temp movie object which will be used for display the movie data got from tmvdb
-                        tmvdb_movie=get_movie(select_form.movie.data)
-                        
-                        # Fill the confirm_form with the correct values gotten from the mobie object    
-                        confirm_form=ConfirmMovieForm(origin=movie.origin_object,type=movie.type_object)
-                        confirm_form.movie_id.data=select_form.movie.data
-                
-                        # Update the text button
-                        confirm_form.submit_confirm.label.text=u'Mettre à jour le film'
-
-                        # Go to the final confirmation form
-                        return render_template('confirm_movie_wizard.html', movie=tmvdb_movie,form=confirm_form,url_wizard_next=url_for("update_movie"))
-
-                else:
-                        # Select Form Error => Display it again in order the user to correct the error
-                        flash("Veuillez sélectionenr un film","danger")
-                        return render_template('select_movie_wizard.html', select_form=select_form,url_wizard_next=url_for("update_movie"))
-
-
-@app.route('/my/marks')
 @app.route('/my/marks/<int:page>')
 @login_required
 @guest_control
@@ -1192,13 +611,13 @@ def change_user_password():
         # Fetch the object for the current logged_in user
         return render_template('edit_profile.html',form=form,state="password")
 
-@app.route('/homework/add/<int:movie_id>/<int:user_id>')
+@app.route('/homework/add/<int:show_id>/<int:user_id>')
 @login_required
 @guest_control
-def add_homework(movie_id,user_id):
+def add_homework(show_id,user_id):
         
         # Create the mark object
-        mark=Mark(user_id=user_id,movie_id=movie_id,homework_who=g.user.id,homework_when=datetime.now())
+        mark=Mark(user_id=user_id,show_id=show_id,homework_who=g.user.id,homework_when=datetime.now())
 
         # We want to add an homework => Set a session variable in order to tell to the list_movies table not cleaning the table
         session['clear_table']=False
@@ -1222,16 +641,16 @@ def add_homework(movie_id,user_id):
         elif mail_status == 2:
                 flash('Aucune notification à envoyer','warning')
 
-        return redirect(url_for('show_movie',movie_id=movie_id))
+        return redirect(url_for('show_movie',show_id=show_id))
 
-@app.route('/homework/delete/<int:movie_id>/<int:user_id>')
+@app.route('/homework/delete/<int:show_id>/<int:user_id>')
 @login_required
 @guest_control
-def delete_homework(movie_id,user_id):
+def delete_homework(show_id,user_id):
 
         # Check if the homework exists and if the user has the right to delete it
         # We can't delete the homework we didn't propose
-        homework=Mark.query.get((user_id,movie_id))
+        homework=Mark.query.get((user_id,show_id))
         
         # Homework doesn't exists => Stop processing
         if homework == None:
@@ -1280,7 +699,7 @@ def list_homeworks():
         # movies we have to rate and them movies which have been rated
         # For this query, we use a case statement
         # http://stackoverflow.com/questions/1347894/order-by-null-first-then-order-by-other-variable
-        homework_query = Mark.query.join(Mark.movie).order_by(case([(Mark.mark == None, 0)],else_=1),Movie.name).filter(Mark.homework_who != None)
+        homework_query = Mark.query.join(Mark.movie).order_by(case([(Mark.mark == None, 0)],else_=1),Show.name).filter(Mark.homework_who != None)
 
         # Fetch the homeworks
         if homework_filter_form.validate_on_submit():
@@ -1420,7 +839,7 @@ def show_graphs():
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
                         for cur_type in types:
-                                data[cur_user.nickname]["data"].append(Mark.query.join(Mark.movie).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Movie.type==cur_type.id).count())
+                                data[cur_user.nickname]["data"].append(Mark.query.join(Mark.movie).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.type==cur_type.id).count())
         
         elif graph_to_generate == "origin":
 
@@ -1436,7 +855,7 @@ def show_graphs():
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
                         for cur_origin in origins:
-                                data[cur_user.nickname]["data"].append(Mark.query.join(Mark.movie).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Movie.origin==cur_origin.id).count())
+                                data[cur_user.nickname]["data"].append(Mark.query.join(Mark.movie).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.origin==cur_origin.id).count())
 
 
         elif graph_to_generate == "average_type":
@@ -1453,7 +872,7 @@ def show_graphs():
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
                         for cur_type in types:
-                                avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).join(Mark.movie).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Movie.type==cur_type.id).one()
+                                avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).join(Mark.movie).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.type==cur_type.id).one()
                                 
                                 # If no mark => Put null
                                 if avg_query.average == None:
@@ -1475,7 +894,7 @@ def show_graphs():
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
                         for cur_origin in origins:
-                                avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).join(Mark.movie).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Movie.origin==cur_origin.id).one()
+                                avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).join(Mark.movie).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.origin==cur_origin.id).one()
                                 
                                 # If no mark => Put null
                                 if avg_query.average == None:
@@ -1550,6 +969,9 @@ def show_graphs():
 @guest_control
 def show_dashboard():
 
+        print("KIKOOOOO")
+        print(g.show_type)
+
         # Variables declaration which will contains all the stats needed for the dashboard
         general_stats={}
         activity_list=[]
@@ -1583,7 +1005,7 @@ def show_dashboard():
                 stats_dict[cur_user.id]["movies_home"] = Mark.query.filter(Mark.mark!=None,Mark.user_id==cur_user.id,Mark.seen_where=="M").count() 
 
         # Fetch general databases statistics
-        general_stats["movies"] = Movie.query.count()
+        general_stats["movies"] = Show.query.count()
 
         # Generate datas for the bar graph
         cur_year=datetime.now().strftime("%Y")
@@ -1640,7 +1062,7 @@ def update_activity_flow():
                                 user=cur_activity["object"].added_by.nickname
 
                         # Define the text that will be shown on the datatable
-                        entry_text="Le film <a href=\"" +  url_for('show_movie', movie_id=cur_activity["object"].id) + "\">" + cur_activity["object"].name + u"</a> vient d'être ajouté par " + user
+                        entry_text="Le film <a href=\"" +  url_for('show_movie', show_id=cur_activity["object"].id) + "\">" + cur_activity["object"].name + u"</a> vient d'être ajouté par " + user
 
                 elif cur_activity["entry_type"] == "marks":
                         entry_type="<a class=\"disabled btn btn-primary btn-xs\">Note</a>"      
@@ -1658,17 +1080,17 @@ def update_activity_flow():
                                 entry_type+=" <a class=\"disabled btn btn-warning btn-xs\">Devoir</a>"  
 
                                 # Define the text that will be shown on the datatable
-                                entry_text=cur_activity["object"].user.nickname + u" vient de remplir son devoir sur le film <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].movie_id) +"\">" +  cur_activity["object"].movie.name + "</a> .La note est de <span title=\"Commentaire\" data-html=\"true\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
+                                entry_text=cur_activity["object"].user.nickname + u" vient de remplir son devoir sur le film <a href=\"" + url_for('show_movie', show_id=cur_activity["object"].show_id) +"\">" +  cur_activity["object"].movie.name + "</a> .La note est de <span title=\"Commentaire\" data-html=\"true\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
 
                         else:
                                 # Define the text that will be shown on the datatable
-                                entry_text=cur_activity["object"].user.nickname + u" a noté le film <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].movie_id) +"\">" +  cur_activity["object"].movie.name + "</a> avec la note <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
+                                entry_text=cur_activity["object"].user.nickname + u" a noté le film <a href=\"" + url_for('show_movie', show_id=cur_activity["object"].show_id) +"\">" +  cur_activity["object"].movie.name + "</a> avec la note <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
 
                 elif cur_activity["entry_type"] == "homeworks":
                         entry_type="<a class=\"disabled btn btn-warning btn-xs\">Devoir</a>"
 
                         # Define the text that will be shown on the datatable
-                        entry_text=cur_activity["object"].homework_who_user.nickname + " vient de donner <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].movie_id) + "\">" +  cur_activity["object"].movie.name + "</a> en devoir a " + cur_activity["object"].user.nickname
+                        entry_text=cur_activity["object"].homework_who_user.nickname + " vient de donner <a href=\"" + url_for('show_movie', show_id=cur_activity["object"].show_id) + "\">" +  cur_activity["object"].movie.name + "</a> en devoir a " + cur_activity["object"].user.nickname
 
                 elif cur_activity["entry_type"] == "comments":
                         entry_type="<a class=\"disabled btn btn-comment btn-xs\">Commentaire</a>"
@@ -1679,13 +1101,13 @@ def update_activity_flow():
                                 cur_activity["object"].mark.comment = "N/A"
 
                         # Define the text that will be shown on the datatable
-                        entry_text=cur_activity["object"].user.nickname + " vient de poster un <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + cur_activity["object"].message + "\"><strong>commentaire</strong></span> sur le film <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].mark.movie.id) + "\">" +  cur_activity["object"].mark.movie.name + "</a> en réponse à <strong><span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-html=\"true\" data-content=\"" + cur_activity["object"].mark.comment + "\">" + cur_activity["object"].mark.user.nickname + "</strong></span>"
+                        entry_text=cur_activity["object"].user.nickname + " vient de poster un <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + cur_activity["object"].message + "\"><strong>commentaire</strong></span> sur le film <a href=\"" + url_for('show_movie', show_id=cur_activity["object"].mark.movie.id) + "\">" +  cur_activity["object"].mark.movie.name + "</a> en réponse à <strong><span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-html=\"true\" data-content=\"" + cur_activity["object"].mark.comment + "\">" + cur_activity["object"].mark.user.nickname + "</strong></span>"
 
                 elif cur_activity["entry_type"] == "favorites":
                         entry_type="<a class=\"disabled btn btn-favorite btn-xs\">Favori</a>"
 
                         # Define the text that will be shown on the datatable
-                        entry_text=cur_activity["object"].user.nickname + " vient d'ajouter en favori <a href=\"" + url_for('show_movie', movie_id=cur_activity["object"].movie_id) + "\">" +  cur_activity["object"].movie.name + "</a> - Niveau <i class=\"fa fa-star " + cur_activity["object"].star_type + "\"</i>"
+                        entry_text=cur_activity["object"].user.nickname + " vient d'ajouter en favori <a href=\"" + url_for('show_movie', show_id=cur_activity["object"].show_id) + "\">" +  cur_activity["object"].movie.name + "</a> - Niveau <i class=\"fa fa-star " + cur_activity["object"].star_type + "\"</i>"
 
                 # Append the processed entry to the dictionnary that will be used by the datatable
                 activity_dict["data"].append({"entry_type" : entry_type, "entry_text" : entry_text })
