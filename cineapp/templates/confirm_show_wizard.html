@@ -2,48 +2,53 @@
 {% block content %}
 	<div class="container">
 		<div class="centered text-center">
-			<h1 class="title_position">{{ movie.name }}</h1>
-			{% if movie.original_name != None %}
-			<h3 class="title_position"><em>({{ movie.original_name }})</em></h3>
+			<h1 class="title_position">{{ show.name }}</h1>
+			{% if show.original_name != None %}
+			<h3 class="title_position"><em>({{ show.original_name }})</em></h3>
 			{% endif %}
 		</div>
 		<div class="row">
 			<div class="col-md-2">
-				{% if movie.poster_path != None %}
-				<img src="{{ config['POSTERS_URL'] }}/{{ movie.poster_path }}"/>
+				{% if show.poster_path != None %}
+				<img src="{{ config['POSTERS_URL'] }}/{{ show.poster_path }}"/>
 				{% else %}
 				<div class="jumbotron text-center">Pas d'affiche</div>
 				{% endif %}
 			</div>
 			{%from "_formhelpers.html" import render_field %}
-			<form action="{{ url_for('confirm_' + endpoint + '_movie') }}" method="post" name="confirmform">
+			<form action="{{ url_for('show.confirm_' + endpoint + '_show',show_type=g.show_type) }}" method="post" name="confirmform">
 			{{ form.hidden_tag() }}
 			<div class="col-md-10">
 				<table class="table table-striped">
 					<tr class="text-left">
 					 <td class="col-md-2">Réalisateur:</td>
-					 <td>{{ movie.director }}</td>
+					 <td>{{ show.director }}</td>
 					</tr>
 					<tr class="text-left">
 					 <td class="col-md-2">Sortie:</td>
-					 <td>{{ movie.release_date|date_format("%d/%m/%Y") }}</td>
+					 <td>{{ show.release_date|date_format("%d/%m/%Y") }}</td>
 					</tr>
 					<tr class="text-left">
 					 <td class="col-md-2">Fiche:</td>
-					 <td><a href="{{ movie.url }}">{{ movie.url }}</a></td>
+					 <td><a href="{{ show.url }}">{{ show.url }}</a></td>
 					</tr>
 					<tr class="text-left">
-					 <td class="col-md-2">Durée:</td>
-					 {% if movie.duration %}
-					 <td>{{ movie.duration|minutes_to_human_duration }}</td>
+                                         {% if show is movie %}
+                                                 <td class="col-md-2">Durée:</td>
+                                                 {% if show.duration %}
+                                                 <td>{{ show.duration|minutes_to_human_duration }}</td>
+                                                 {% endif %}
+                                         {% elif show is tvshow %}
+                                                 <td class="col-md-2">Nombre de saisons:</td>
+                                                 <td>{{ show.nb_seasons }}</td>
 					 {% else %}
 					 <td>Inconnue</td>
 					 {% endif %}
 					</tr>
 					<tr class="text-left">
 					 <td class="col-md-2">Résumé:</td>
-					 {% if movie.overview %}
-					 <td>{{ movie.overview }}</td>
+					 {% if show.overview %}
+					 <td>{{ show.overview }}</td>
 					 {% else %}
 					 <td>Néant</td>
 					 {% endif %}
