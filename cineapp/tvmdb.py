@@ -153,7 +153,8 @@ def get_show(id,fetch_poster=True,show_type=None):
         # Remove the last slash if it exists
         showrunner=showrunner.rstrip(' / ')
 
-        print(show['status'])
+        if showrunner == "":
+            showrunner="Inconnu"
 
         # Create the object
         show_obj=TVShow(name=show['name'],
