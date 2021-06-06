@@ -29,6 +29,7 @@ from werkzeug.utils import secure_filename
 from random import randint
 from cineapp.slack import slack_mark_notification
 from cineapp.auth import guest_control
+from cineapp.messages import tvshows_messages, movies_messages
 
 @app.route('/')
 @app.route('/index')
@@ -64,6 +65,11 @@ def before_request():
         # TIP: g is only set for the current request and not globally to the session
         # For that: there is ... session
         g.show_type=session["show_type"]
+
+        if g.show_type == "movies":
+            g.messages=movies_messages
+        elif g.show_type == "tvshows":
+            g.messages=tvshows_messages
 
 @app.route('/login', methods=['GET','POST'])
 def login():
