@@ -69,10 +69,10 @@
 					<li><a href="{{ url_for('list_homeworks') }}">Devoirs</a></li>
 					<li><a href="{{ url_for('show_activity_flow') }}">Activité</a></li>
 					<li><a href="{{ url_for('show.add_show',show_type=g.show_type) }}">
-                                          {% if g.show_type=="movies" %}Ajouter un film {% elif g.show_type=="tvshows"%}Ajouter une série{% endif %}
+                                                        {{ g.messages["label_add"] }}
                                         </a></li>
 					<li><a href="{{ url_for('show.list_shows',show_type=g.show_type) }}">
-                                          {% if g.show_type=="movies" %}Liste des Films {% elif g.show_type=="tvshows"%}Liste des Séries{% endif %}
+                                                        {{ g.messages["label_list"] }}
                                         </a></li>
 					<li class="dropdown">
 					  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Stats/Graphiques<span class="caret"></span></a>
@@ -95,6 +95,7 @@
 						</div>
 					</div>
 				</form>
+
 				<ul class="nav navbar-nav navbar-right">
 					<li class="dropdown">
 						<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">

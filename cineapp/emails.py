@@ -21,11 +21,11 @@ def send_email(subject, sender, recipients, text_body):
     thr = Thread(target=send_async_email, args=[app, msg])
     thr.start()
 
-# Function which sends notifications to users when a movie is added
-def add_movie_notification(movie):
+# Function which sends notifications to users when a show is added
+def add_show_notification(show):
 	users = User.query.all()
 	for cur_user in users:
-		# Check if the cur_user is the logged user who added the movie
+		# Check if the cur_user is the logged user who added the show
 		# in order to change the mail text
 
 		send_own_activity_mail=True
@@ -41,11 +41,11 @@ def add_movie_notification(movie):
 	
 		# Send the mail if we have too	
 		if cur_user.notifications != None and cur_user.notifications["notif_movie_add"] == True and send_own_activity_mail==True:
-			send_email('[Cineapp] - Ajout d\'un film' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
-			render_template('add_movie_notification.txt', dest_user=cur_user, add_user=g.user,movie=movie,you_user=you_user))
+			send_email('[Cineapp] - %s' % g.messages["email_title_add"] , app.config['MAIL_SENDER'],[ cur_user.email ] ,
+			render_template('add_show_notification.txt', dest_user=cur_user, add_user=g.user,show=show,you_user=you_user))
 
-# Function which sends notifications to users when a movie is added
-def mark_movie_notification(mark,notif_type):
+# Function which sends notifications to users when a show is added
+def mark_show_notification(mark,notif_type):
 	users = User.query.filter_by().all()
 
 	# Convert the HTML content to text in order to have a nice display in the mail
@@ -53,7 +53,7 @@ def mark_movie_notification(mark,notif_type):
 	mark.comment=html_converter.handle(mark.comment).strip()
 
 	for cur_user in users:
-		# Check if the cur_user is the logged user who added the movie
+		# Check if the cur_user is the logged user who added the show
 		# in order to change the mail text
 
 		send_own_activity_mail=True
@@ -71,18 +71,17 @@ def mark_movie_notification(mark,notif_type):
 		if cur_user.notifications != None and cur_user.notifications["notif_movie_add"] == True and send_own_activity_mail==True:
 			try:
 				if notif_type == "add":	
-					send_email('[Cineapp] - Note d\'un film' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
-					render_template('mark_movie_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
+					send_email('[Cineapp] - %s' % g.messages["email_title_mark"] , app.config['MAIL_SENDER'],[ cur_user.email ] ,
+					render_template('mark_show_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
 				elif notif_type == "update":
 					send_email('[Cineapp] - Note mise à jour' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
-					render_template('mark_movie_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
+					render_template('mark_show_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
 				elif notif_type == "homework":
 					send_email('[Cineapp] - Devoir rempli' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
-					render_template('mark_movie_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
-
+					render_template('mark_show_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
 				return 0
-			except:
-				app.logger.error("Impossible d'envoyer le mail: %s",str(e))
+			except Exception as e:
+				app.logger.error("Impossible d'envoyer le mail: %s",e)
 				return 1
 
 	# Everything has been done correctly ==> return 0
@@ -96,7 +95,7 @@ def add_homework_notification(mark):
 	if mark.user.notifications != None and mark.user.notifications["notif_homework_add"] == True:
 		try:
 			send_email('[Cineapp] - Attribution d\'un devoir', app.config['MAIL_SENDER'],[ mark.user.email ],
-			render_template('add_homework_notification.txt', dest_user=mark.user, homework_who=mark.homework_who_user, movie=mark.movie))
+			render_template('add_homework_notification.txt', dest_user=mark.user, homework_who=mark.homework_who_user, show=mark.show))
 			return 0
 		except:
 			# We couldn't send the mail
@@ -114,7 +113,7 @@ def delete_homework_notification(mark):
 	if mark.user.notifications != None and mark.user.notifications["notif_homework_add"] == True:
 		try:
 			send_email('[Cineapp] - Annulation d\'un devoir', app.config['MAIL_SENDER'],[ mark.user.email ],
-			render_template('_homework_notification.txt', dest_user=mark.user, homework_who=mark.homework_who_user, movie=mark.movie))
+			render_template('_homework_notification.txt', dest_user=mark.user, homework_who=mark.homework_who_user, show=mark.show))
 			return 0
 		except:
 			# We couldn't send the mail
@@ -123,11 +122,11 @@ def delete_homework_notification(mark):
 		# Display a message that the user don't want to be notified
 		return 2
 
-# Function which sends notification to user when a movie has been updated into the database
-def update_movie_notification(notif):
+# Function which sends notification to user when a show has been updated into the database
+def update_show_notification(notif):
 	users = User.query.filter_by().all()
 	for cur_user in users:
-		# Check if the cur_user is the logged user who added the movie
+		# Check if the cur_user is the logged user who added the show
 		# in order to change the mail text
 
 		send_own_activity_mail=True
@@ -143,8 +142,8 @@ def update_movie_notification(notif):
 	
 		# Send the mail if we have too	
 		if cur_user.notifications != None and cur_user.notifications["notif_movie_add"] == True and send_own_activity_mail==True:
-			send_email('[Cineapp] - Modification d\'un film' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
-			render_template('update_movie_notification.txt', dest_user=cur_user, add_user=g.user,notif=notif,you_user=you_user))
+			send_email('[Cineapp] - %s' % g.messages["email_title_update"] , app.config['MAIL_SENDER'],[ cur_user.email ] ,
+			render_template('update_show_notification.txt', dest_user=cur_user, add_user=g.user,notif=notif,you_user=you_user))
 
 # Function which sends notification to user when a comment has been posted on a mark
 def mark_comment_notification(mark_comment,notif_type):
@@ -197,8 +196,8 @@ def mark_comment_notification(mark_comment,notif_type):
 			send_email('[Cineapp] - ' + mail_title , app.config['MAIL_SENDER'],[ cur_user.email ] ,
 			render_template(notif_template, dest_user=cur_user, mark_comment=mark_comment, you_user=you_user,you_dest_user=you_dest_user,own_mark_user=own_mark_user))
 
-# Function which sends notification to user when the favorite/star status has been updated for a movie
-def favorite_update_notification(favorite_movie,notif_type):
+# Function which sends notification to user when the favorite/star status has been updated for a show
+def favorite_update_notification(favorite_show,notif_type):
 	users = User.query.filter_by().all()
 
 	for cur_user in users:
@@ -228,7 +227,7 @@ def favorite_update_notification(favorite_movie,notif_type):
 				notif_template = "favorite_update_notification.txt"
 
 			send_email('[Cineapp] - ' + mail_title , app.config['MAIL_SENDER'],[ cur_user.email ] ,
-			render_template(notif_template, dest_user=cur_user, favorite_movie=favorite_movie, you_user=you_user, notif_type=notif_type))
+			render_template(notif_template, dest_user=cur_user, favorite_show=favorite_show, you_user=you_user, notif_type=notif_type))
 
 # Function that sends a notification when a user is named on the chat
 def chat_message_notification(message,user):

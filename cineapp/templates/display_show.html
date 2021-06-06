@@ -57,10 +57,10 @@ aria-hidden="true">&rarr;</span></a>
 		<div class="col-md-10">
 			<table class="table table-striped">
 				<tr class="text-left">
-				 <td class="col-md-1">Réalisateur:</td>
+                                        <td class="col-md-1">{{ g.messages["label_director"] }}</td>
 				 <td>{{ show.director }}</td>
 				</tr>
-				 <td class="col-md-2">Sortie:</td>
+                                <td class="col-md-2">{{ g.messages["label_release_date"] }}</td>
 				 <td>{{ show.release_date|date_format("%d/%m/%Y") }}</td>
 				</tr>
 				<tr class="text-left">
@@ -80,12 +80,17 @@ aria-hidden="true">&rarr;</span></a>
 				 <td>{{ show.origin_object.origin }}</td>
 				</tr>
 				<tr class="text-left">
-				 <td class="col-md-2">Durée:</td>
-				 {% if show.duration %}
-				 <td>{{ show.duration|minutes_to_human_duration }}</td>
-				 {% else %}
-				 <td>Inconnue</td>
-				 {% endif %}
+                                 {% if show is movie %}
+                                         <td class="col-md-2">Durée:</td>
+                                         {% if show.duration %}
+                                         <td>{{ show.duration|minutes_to_human_duration }}</td>
+                                         {% else %}
+                                         <td>Inconnue</td>
+                                         {% endif %}
+                                  {% elif show is tvshow %}
+                                         <td class="col-md-2">Nombre de saisons:</td>
+                                         <td>{{ show.nb_seasons }}</td>
+                                   {% endif %}
 				</tr>
 				<tr class="text-left">
 				 <td class="col-md-2">Résumé:</td>
@@ -546,7 +551,7 @@ aria-hidden="true">&rarr;</span></a>
 
 			// We want to set a favorite level
 			$.post(
-				"{{ url_for('set_favorite_movie',show=show.id,user=g.user.id) }}",
+				"{{ url_for('set_favorite_show',show=show.id,user=g.user.id) }}",
 				{ "star_type": $(this).attr("id") },
 				function(data) { favorite_update(data,"set") }
 			);
@@ -555,7 +560,7 @@ aria-hidden="true">&rarr;</span></a>
 
 			// We want to remove the favorite level
 			$.get(
-				"{{ url_for('delete_favorite_movie',show=show.id,user=g.user.id) }}",
+				"{{ url_for('delete_favorite_show',show=show.id,user=g.user.id) }}",
 				function(data) { favorite_update(data,"delete") }
 			);
 		}

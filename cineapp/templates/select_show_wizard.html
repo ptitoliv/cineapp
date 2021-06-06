@@ -2,11 +2,7 @@
 {% block content %}
 	<div class="container">
 		<div class="row text-center col-md-offset-1 col-md-10">	
-                        {% if g.show_type == "movies" %}
-			<h1>Selection du film (Page {{ cur_page }} / {{ total_pages }})</h1>
-                        {% elif g.show_type == "tvshows" %}
-			<h1>Selection de la série (Page {{ cur_page }} / {{ total_pages }})</h1>
-                        {% endif %}
+                        <h1>{{g.messages["label_select"] }} (Page {{ cur_page }} / {{ total_pages }})</h1>
 			<ul class="pager">
 				{% if has_prev %}
 				<li class="previous">
@@ -27,11 +23,7 @@
 				<thead>
 					<tr>
 						<th class="text-center">Sélection</th>
-                                                {% if g.show_type == "movies" %}
-						<th>Film</th>
-                                                {% elif g.show_type == "tvshows" %}
-						<th>Série</th>
-                                                {% endif %}
+                                                <th>{{ g.messages["label_show_type"] }}</th>
 					</tr>
 				</thead>
 				<tbody>

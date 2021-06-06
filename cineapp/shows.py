@@ -43,6 +43,7 @@ def check_show_type(endpoint,values):
         session["show_type"]=show_type
         g.show_type=show_type
 
+
 @show_bp.route('/add/', methods=['GET','POST'])
 @login_required
 @guest_control
@@ -52,7 +53,7 @@ def add_show():
         search_form=SearchShowForm() 
 
         # Render the template
-        return render_template('add_show_wizard.html', search_form=search_form, endpoint="add")
+        return render_template('add_show_wizard.html', search_form=search_form, header_text=g.messages["label_add"], endpoint="add")
 
 @show_bp.route('/add/select/<int:page>', methods=['GET','POST'], endpoint="select_add_show")
 @show_bp.route('/add/select', methods=['POST'], endpoint="select_add_show")
@@ -85,10 +86,10 @@ def select_show(page=1):
                 flash('Veuillez saisir une recherche !', 'warning')
                 
                 if endpoint == "add":
-                        header_text=u"Ajout d'un film"
+                        header_text=u"%s" % g.messages["label_add"]
                 elif endpoint == "update":
                         show = session.get("show")
-                        header_text=u"Mise à jour du film " + show.name
+                        header_text=u"%s %s" % (g.messages["label_update"], show.name)
 
                 return render_template('add_show_wizard.html', search_form=search_form, header_text=header_text,endpoint=endpoint)
 
@@ -163,13 +164,7 @@ def confirm_show():
                         if endpoint == "add":
 
                                 # Generate the confirmation form with the correct value
-                                confirm_form=ConfirmShowForm()
-
-                                if g.show_type=="movies":
-                                    confirm_form.submit_confirm.label.text="Ajouter le film"
-                                elif g.show_type=="tvshows":
-                                    confirm_form.submit_confirm.label.text="Ajouter la série"
-
+                                confirm_form=ConfirmShowForm(button_label=g.messages["label_generic"])
                                 confirm_form.show_id.data=select_form.show.data
 
                         elif endpoint == "update":
@@ -184,7 +179,7 @@ def confirm_show():
                                 # If we are here, we have a usable show_id value => Let's fetch the show object
                                 # and use the type and origin value for filling confirm_form.
                                 show_to_update=Show.query.get(show_id)
-                                confirm_form=ConfirmShowForm(origin=show_to_update.origin_object,type=show_to_update.type_object)
+                                confirm_form=ConfirmShowForm(button_label=g.messages["label_generic"],origin=show_to_update.origin_object,type=show_to_update.type_object)
 
                                 # And then update the others fields
                                 confirm_form.show_id.data=select_form.show.data
@@ -210,7 +205,7 @@ def confirm_show():
                                 return redirect(url_for('select_update_show',page=session["page"]))
 
         # Create the form we're going to use    
-        confirm_form=ConfirmShowForm()
+        confirm_form=ConfirmShowForm(button_label=g.messages["label_generic"])
 
         # Confirmation form => add into the database
         if confirm_form.submit_confirm.data and confirm_form.validate_on_submit():
@@ -238,10 +233,7 @@ def confirm_show():
                                 new_show_id=show_to_create.id
                                 db.session.commit()
 
-                                if g.show_type=="movies":
-                                    flash('Film ajouté','success')
-                                elif g.show_type=="tvshows":
-                                    flash('Série ajoutée','success')
+                                flash(g.messages["flash_add_success"],'success')
 
                                 # Show has been added => Send notifications
                                 add_show_notification(show_to_create)
@@ -251,12 +243,7 @@ def confirm_show():
 
                         except IntegrityError as e:
                                 app.logger.error('Impossible d\'ajouter le show: %s' % e)
-
-                                if g.show_type=="movies":
-                                    flash('Film déjà existant','danger')
-                                elif g.show_type=="tvshows":
-                                    flash('Série déjà existante','danger')
-
+                                flash(g.messages["flash_already_exists"],'danger')
                                 db.session.rollback()
                                 return redirect(url_for('show.add_show',show_type=g.show_type))
 
@@ -318,10 +305,7 @@ def confirm_show():
                                 db.session.flush()
                                 db.session.commit()
 
-                                if g.show_type=="movies":
-                                    flash('Film correctement mis à jour','success')
-                                elif g.show_type=="tvshows":
-                                    flash('Série correctement mise à jour','success')
+                                flash(g.messages["flash_update_success"],'success')
 
                                 # Check if the poster has been correctly downloaded
                                 if show.poster_path:
@@ -375,7 +359,7 @@ def confirm_show():
 def update_show():
 
         # Generate the list with the choices returned via the API
-        update_show_form=UpdateShowForm(g.show_type)
+        update_show_form=UpdateShowForm(g.messages["label_generic"])
         search_form=SearchShowForm() 
         select_form=SelectShowForm(g.show_type)
         confirm_form=ConfirmShowForm()
@@ -393,7 +377,7 @@ def update_show():
                 # Put the object into the session array => We'll need it later
                 session['show']=show
 
-                return render_template('add_show_wizard.html', search_form=search_form,header_text=u"Mise à jour de la fiche du film " + show.name, endpoint="update")
+                return render_template('add_show_wizard.html', search_form=search_form,header_text=u"%s %s" % (g.messages["label_update"],show.name), endpoint="update")
 
         else:
 
@@ -420,7 +404,7 @@ def update_show():
                         else:
                                 return render_template('select_show_wizard.html', select_form=select_form,url_wizard_next=url_for("update_show"))
                 else:
-                        return render_template('add_show_wizard.html', search_form=search_form,header_text=u"Mise à jour de la fiche du film " + show.name)
+                        return render_template('add_show_wizard.html', search_form=search_form,header_text=u"%s %s" % (g.messages["label_update"],show.name))
 
         # Validate selection form
         if select_form.submit_select.data:
@@ -469,7 +453,7 @@ def display_show(show_id):
         users=User.query.all()
 
         # Init the form that will be used if we want to update the show data
-        update_show_form=UpdateShowForm(g.show_type,show_id)
+        update_show_form=UpdateShowForm(g.messages["label_generic"],show_id)
 
         # Browse all users
         for cur_user in users:
@@ -619,7 +603,7 @@ def list_shows():
 @guest_control
 def mark_show(show_id_form):
         # Select show
-        form=MarkShowForm()
+        form=MarkShowForm(g.messages["label_comment"])
 
         # Select show
         if g.show_type == "movies":
