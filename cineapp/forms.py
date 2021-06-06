@@ -49,6 +49,15 @@ class MarkShowForm(Form):
     submit_mark_only = SubmitField('Noter uniquement')
     submit_mark_slack = SubmitField('Noter et publier')
 
+    # Specific constructer in order to pass a show list
+    def __init__(self,button_label=None, *args, **kwargs):
+
+        # Call the parent constructor
+        super(MarkShowForm, self).__init__(*args,**kwargs)
+
+        # Populate form fields with correct wording
+        self.comment.label.text=(u"%s" % button_label)
+
     # The method name is important
     # A validate_XXX method will validate a field named XXX
     def validate_mark(form,field):
@@ -74,36 +83,23 @@ class SelectShowForm(Form):
         # Call the parent constructor
         super(SelectShowForm, self).__init__()
 
-        # Populate form fields with correct wording
-        if show_type == "movies":
-            self.show.message="Veuillez sélectionner un film"
-        elif show_type == "tvshows":
-            self.show.message="Veuillez sélectionner une série"
-
         # Local variable
         choice_list=[]
         for cur_show in shows_list:
 
-            if show_type == "movies":
-
-                # Extract the year if we can
-                if cur_show.release_date != None and cur_show.release_date != "":
-                    try:
-                        show_year = datetime.strptime(cur_show.release_date,"%Y-%m-%d").strftime("%Y")
-                    except ValueError:
-                        # If we are here that means the datetime module can't handle the date
-                        # Do it manually
-                        show_year = cur_show.release_date.split("-")[0] 
-                else:
-                    show_year = "Inconnu"
-
-                choice_list.append((cur_show.tmvdb_id, cur_show.name + " ( " + show_year + " - " + cur_show.director + " )"))
-
-            elif show_type == "tvshows":
-                choice_list.append((cur_show.tmvdb_id, cur_show.name))
-
+            # Extract the year if we can
+            if cur_show.release_date != None and cur_show.release_date != "":
+                try:
+                    show_year = datetime.strptime(cur_show.release_date,"%Y-%m-%d").strftime("%Y")
+                except ValueError:
+                    # If we are here that means the datetime module can't handle the date
+                    # Do it manually
+                    show_year = cur_show.release_date.split("-")[0] 
             else:
-                choice_list = None
+                show_year = "Inconnu"
+
+            # Let's build the choice list
+            choice_list.append((cur_show.tmvdb_id, cur_show.name + " ( " + show_year + " - " + cur_show.director + " )"))
 
         # Populate form
         self.show.choices = choice_list
@@ -113,16 +109,13 @@ class UpdateShowForm(Form):
     submit_update_show = SubmitField()
 
     # Specific constructer in order to custom the button text
-    def __init__(self,show_type=None,show_id=None):
+    def __init__(self,button_label,show_id=None):
 
         # Call the parent constructor
         super(UpdateShowForm, self).__init__()
 
         # Populate form fields with correct wording
-        if show_type == "movies":
-            self.submit_update_show.label.text=u"Mettre à jour le film"
-        elif show_type == "tvshows":
-            self.submit_update_show.label.text=u"Mettre à jour la série"
+        self.submit_update_show.label.text=(u"Mettre à jour %s" % button_label)
 
         # Fill the hidden field
         if show_id != None:
@@ -133,6 +126,15 @@ class ConfirmShowForm(Form):
     type = QuerySelectField('Type',query_factory=get_types,get_label='type')
     show_id = HiddenField()
     submit_confirm = SubmitField("Ajouter le film")
+
+    # Specific constructer in order to custom the button text
+    def __init__(self,button_label=None,*args,**kwargs):
+
+        # Call the parent constructor
+        super(ConfirmShowForm, self).__init__(*args,**kwargs)
+
+        # Populate field with correct label
+        self.submit_confirm.label.text=(u"Ajouter %s" % button_label)
 
 class FilterForm(Form):
     origin = QuerySelectField('Origine',query_factory=get_origins, get_label='origin',allow_blank=True,blank_text=u'--Pas de filtre--')
