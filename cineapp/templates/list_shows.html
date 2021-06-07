@@ -135,7 +135,7 @@
 		{% elif session['search_type'] == 'filter_origin_type' %}
 		<h1 class="text-center">Recherche par filtre</h1>
 		{% else %}
-		<h1 class="text-center">Liste des films</h1>
+                <h1 class="text-center">{{ g.messages["label_list"] }}</h1>
 		{% endif %}
 	</div>
 	<div class="container">
