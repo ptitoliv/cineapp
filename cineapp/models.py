@@ -22,7 +22,7 @@ class User(db.Model):
 	avatar = db.Column(db.String(255), unique=True)
 	notifications = db.Column(JSONEncodedDict(255), nullable=False)
 	graph_color = db.Column(db.String(6))
-	added_movies = db.relationship('Movie', backref='added_by', lazy='dynamic')
+	added_shows = db.relationship('Show', backref='added_by', lazy='dynamic')
 	posted_messages = db.relationship('ChatMessage', backref='posted_by', lazy='dynamic')
 	subscriptions = db.relationship('PushNotification',backref='user',lazy="dynamic")
 
@@ -53,7 +53,7 @@ class User(db.Model):
 
 	def __init__(self,guest=False):
 		self.notifications={ "notif_own_activity" : None,
-			"notif_movie_add" : None,
+			"notif_show_add" : None,
 			"notif_mark_add": None,
 			"notif_homework_add": None,
 			"notif_comment_add": None,
@@ -90,7 +90,7 @@ class Type(db.Model):
 	
 	id = db.Column(db.String(5),primary_key=True)
 	type = db.Column(db.String(20), unique=True)
-	movies = db.relationship('Movie', backref='type_object', lazy='dynamic')
+	shows = db.relationship('Show', backref='type_object', lazy='dynamic')
 
 class Origin(db.Model):
 	
@@ -99,7 +99,7 @@ class Origin(db.Model):
 	
 	id = db.Column(db.String(5),primary_key=True)
 	origin = db.Column(db.String(50), unique=True)
-	movies = db.relationship('Movie', backref='origin_object', lazy='dynamic')
+	shows = db.relationship('Show', backref='origin_object', lazy='dynamic')
 
 
 class Show(db.Model):
@@ -194,7 +194,7 @@ class Mark(db.Model):
 	__table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
 
 	user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-	movie_id = db.Column(db.Integer, db.ForeignKey('movies.id'), primary_key=True)
+	show_id = db.Column(db.Integer, db.ForeignKey('shows.id'), primary_key=True)
 	seen_when = db.Column(db.Date)
 	seen_where = db.Column(db.String(4))
 	mark = db.Column(db.Float)
@@ -204,11 +204,11 @@ class Mark(db.Model):
 	# Server_default allow to put the column with DEFAULT VALUE to NULL which is mandatory if we want the foreign key to be added
 	# If the value is not NULL, the default value is O so the foreign constraint is violated
 	homework_who = db.Column(db.Integer,db.ForeignKey('users.id'),nullable=True,server_default=text('NULL'))
-	movie = db.relationship('Movie', backref='marked_by_users')
-	user = db.relationship('User', backref='marked_movies',foreign_keys='Mark.user_id')
+	show = db.relationship('Show', backref='marked_by_users')
+	user = db.relationship('User', backref='marked_shows',foreign_keys='Mark.user_id')
 	homework_who_user = db.relationship('User', backref='given_homework',foreign_keys='Mark.homework_who')
 	comments = db.relationship('MarkComment', backref='mark', order_by=desc("posted_when"))
-	active_comments = db.relationship('MarkComment', order_by=desc("posted_when"), primaryjoin=("and_(MarkComment.mark_user_id==Mark.user_id, MarkComment.mark_movie_id==Mark.movie_id,MarkComment.deleted_when==None)"))
+	active_comments = db.relationship('MarkComment', order_by=desc("posted_when"), primaryjoin=("and_(MarkComment.mark_user_id==Mark.user_id, MarkComment.mark_show_id==Mark.show_id,MarkComment.deleted_when==None)"))
 
 class ChatMessage(db.Model):
 	__tablename__ = "chat_messages"
@@ -221,12 +221,12 @@ class ChatMessage(db.Model):
 
 class MarkComment(db.Model):
 	__tablename__ = "mark_comment"
-	__table_args__ = (db.ForeignKeyConstraint([ "mark_user_id", "mark_movie_id" ], [ "marks.user_id", "marks.movie_id" ]), {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'} )
+	__table_args__ = (db.ForeignKeyConstraint([ "mark_user_id", "mark_show_id" ], [ "marks.user_id", "marks.show_id" ]), {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'} )
 	
 	markcomment_id = db.Column(db.Integer, primary_key=True)
 	user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 	mark_user_id = db.Column(db.Integer)
-	mark_movie_id = db.Column(db.Integer)
+	mark_show_id = db.Column(db.Integer)
 	posted_when = db.Column(db.DateTime())
 	deleted_when = db.Column(db.DateTime())
 	message = db.Column(db.String(1000))
@@ -238,26 +238,26 @@ class MarkComment(db.Model):
 			"markcomment_id": self.markcomment_id,
 			"user_id": self.user_id,
 			"mark_user_id": self.mark_user_id,
-			"mark_movie_id": self.mark_movie_id,
+			"mark_show_id": self.mark_show_id,
 			"posted_when": self.posted_when,
 			"message": self.message
 		}
 
-class FavoriteMovie(db.Model):
-	__tablename__ = "favorite_movies"
+class FavoriteShow(db.Model):
+	__tablename__ = "favorite_shows"
 	__table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
 	
-	movie_id = db.Column(db.Integer, db.ForeignKey('movies.id'), primary_key=True)
+	show_id = db.Column(db.Integer, db.ForeignKey('shows.id'), primary_key=True)
 	user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-	movie = db.relationship('Movie', backref='favorite_users',lazy="joined")
-	user = db.relationship('User', backref='favorite_movies',foreign_keys='FavoriteMovie.user_id',lazy="joined")
+	show = db.relationship('Show', backref='favorite_users',lazy="joined")
+	user = db.relationship('User', backref='favorite_shows',foreign_keys='FavoriteShow.user_id',lazy="joined")
 	star_type = db.Column(db.String(100),db.ForeignKey('favorite_types.star_type'))
 	added_when = db.Column(db.DateTime())
 	deleted_when = db.Column(db.DateTime())
 
 	def serialize(self):
 		return {
-			"movie_id": self.movie_id,
+			"show_id": self.show_id,
 			"user_id": self.user_id,
 			"star_type": self.star_type,
 			"added_when": self.added_when,
@@ -271,7 +271,7 @@ class FavoriteType(db.Model):
 	star_type = db.Column(db.String(20), primary_key=True)
 	star_weight = db.Column(db.Integer)
 	star_message = db.Column(db.String(100))
-	movies = db.relationship('FavoriteMovie',backref='star_type_obj',lazy="dynamic")
+	shows = db.relationship('FavoriteShow',backref='star_type_obj',lazy="dynamic")
 
 	def serialize(self):
 		return {
