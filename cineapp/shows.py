@@ -603,7 +603,7 @@ def list_shows():
 @guest_control
 def mark_show(show_id_form):
         # Select show
-        form=MarkShowForm(g.messages["label_comment"])
+        form=MarkShowForm(button_label=g.messages["label_generic_possessive"])
 
         # Select show
         if g.show_type == "movies":
