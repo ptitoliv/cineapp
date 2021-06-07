@@ -50,13 +50,14 @@ class MarkShowForm(Form):
     submit_mark_slack = SubmitField('Noter et publier')
 
     # Specific constructer in order to pass a show list
-    def __init__(self,button_label=None, *args, **kwargs):
+    def __init__(self,button_label, *args, **kwargs):
 
         # Call the parent constructor
         super(MarkShowForm, self).__init__(*args,**kwargs)
 
         # Populate form fields with correct wording
-        self.comment.label.text=(u"%s" % button_label)
+        self.mark.label.text=(u"Note %s" % button_label)
+        self.comment.label.text=(u"Commentaire %s" % button_label)
 
     # The method name is important
     # A validate_XXX method will validate a field named XXX
