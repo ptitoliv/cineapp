@@ -219,11 +219,11 @@ def favorite_update_notification(favorite_show,notif_type):
 
 			# Check the kind of mail we must send considering the notification type
 			if notif_type == "add":
-				mail_title = "Ajout d\'un film en favori"
+				mail_title = g.messages["email_title_favorite_add"]
 				notif_template = "favorite_update_notification.txt"
 
 			elif notif_type == "delete":
-				mail_title = "Suppression d\'un film favori"
+				mail_title = g.messages["email_title_favorite_delete"]
 				notif_template = "favorite_update_notification.txt"
 
 			send_email('[Cineapp] - ' + mail_title , app.config['MAIL_SENDER'],[ cur_user.email ] ,
