@@ -548,7 +548,11 @@ def list_shows():
                                 filter_dict['type'] = filter_form.type.data.id
 
                         if filter_form.where.data != None:
-                                filter_dict['seen_where'] = filter_form.where.data.id
+
+                                # Use that field only if we are in movies mode
+                                # In other mode, we are necessarily at home
+                                if g.show_type=="movies":
+                                    filter_dict['seen_where'] = filter_form.where.data.id
 
                         if filter_form.favorite.data != None:
                                 filter_dict['favorite'] = filter_form.favorite.data.id
