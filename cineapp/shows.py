@@ -514,7 +514,7 @@ def list_shows():
                 session['clear_table_on_next_reload']=True
 
                 # And go back to the list
-                return redirect(url_for("list_movies"))
+                return redirect(url_for("show.list_shows",show_type=g.show_type))
 
         # We are in filter mode
         if g.search_form.submit_search.data == True:
@@ -595,7 +595,7 @@ def list_shows():
 
         # Let's fetch all the users, I will need them
         users = User.query.all()
-        return render_template('movies_list.html', users=users,filter_form=filter_form,clear_table=clear_table)
+        return render_template('list_shows.html', users=users,filter_form=filter_form,clear_table=clear_table)
 
 
 @show_bp.route('/mark/<int:show_id_form>', methods=['GET','POST'])

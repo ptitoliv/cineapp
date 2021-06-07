@@ -20,7 +20,7 @@
 			  "serverSide": true,
 			  "displayLength": 100,
 			  "ajax": {
-				"url": "{{ url_for('update_datatable') }}",
+				"url": "{{ url_for('show.update_datatable',show_type=g.show_type) }}",
 				"type" : "POST",
 				"data": function(args) {
 				      return { "args": JSON.stringify( args ) };
