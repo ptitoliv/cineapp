@@ -695,6 +695,315 @@ def mark_show(show_id_form):
                 return render_template('display_show.html', show=show, mark=True, marked_flag=False, form=form)
         else:
                 # Show has already been marked => Fill the form with data
-                form=MarkShowForm(mark=marked_show.mark,comment=marked_show.comment,seen_when=marked_show.seen_when,seen_where=marked_show.seen_where)
+                form=MarkShowForm(button_label=g.messages["label_generic_possessive"],mark=marked_show.mark,comment=marked_show.comment,seen_when=marked_show.seen_when,seen_where=marked_show.seen_where)
                 return render_template('display_show.html', show=show, mark=True, marked_flag=True,form=form)
+
+
+@show_bp.route('/json', methods=['GET','POST'])
+@login_required
+def update_datatable():
+
+        app.logger.info('Entering update_datatables function')
+
+        # Local variables for handling the datatable
+        args = json.loads(request.values.get("args"))
+        columns = args.get("columns")
+        start = args.get('start')
+        length = args.get('length')
+        draw = args.get('draw')
+        order_by=args.get('order')
+        order_column=columns[order_by[0]['column']]['data']
+        order_dir=order_by[0]['dir']
+
+        # Guess which is the sort column
+        m=re.match('other_(.*)\.(.*)',order_column)
+
+        # That first if is for the others column
+        # Regex is matched
+        if m != None:
+                filter_user=m.group(2)
+                if m.group(1) == "marks":
+                        filter_field = Mark.mark
+                elif m.group(1) == "when":
+                        filter_field = Mark.seen_when
+                elif m.group(1) == "favs":
+                        filter_field = FavoriteType.star_weight
+                        
+        # Filtering by logged user mark
+        elif order_column == "my_mark":
+                filter_user = g.user.id
+                filter_field = Mark.mark
+
+        # Filtering by logged user seen date
+        elif order_column == "my_when":
+                filter_user = g.user.id
+                filter_field = Mark.seen_when
+
+        # Filtering by favorite
+        elif order_column == "my_fav":
+                filter_user = g.user.id
+                filter_field = FavoriteType.star_weight
+        else:
+                filter_user = None
+
+        # If we enter here, we are going to filter by user (my_* column or others_* column)     
+        if filter_user != None:
+
+                app.logger.info('Entering filter_user is not Null')
+
+                # Let's build msearch base query
+                if g.show_type=="movies":
+                    basequery = Movie.query
+                elif g.show_type=="tvshows":
+                    basequery = TVShow.query
+
+                # Let's build the filtered requested following what has been posted in the filter form
+                filter_fields=session.get('query')
+
+                # If we must sort by favorite, the query is not the same. Let's generate here   
+                if filter_field == FavoriteType.star_weight:
+
+                        # We only want shows with favorite defined for the concerned user
+                        shows_query = basequery.outerjoin(Mark).outerjoin(FavoriteShow).filter(FavoriteShow.user_id==filter_user).outerjoin(FavoriteType)
+                else:
+                        # All the others sorts refer to the Mark.user_id column
+                        shows_query = basequery.outerjoin(Mark).outerjoin(FavoriteShow).filter(Mark.user_id==filter_user).outerjoin(FavoriteType)
+
+                # Check that we have a real list in order to avoid an exception 
+                if isinstance(filter_fields,dict):
+                        if filter_fields['origin'] != None:
+                                shows_query = shows_query.filter(Show.origin==filter_fields['origin'])
+
+                        if filter_fields['type'] != None:
+                                shows_query = shows_query.filter(Show.type==filter_fields['type'])
+
+                        if filter_fields['seen_where'] != None:
+
+                                # We want to sort shows for a specific user keeping the seen_where filter enabled
+                                # So we want to see shows seen in theater (or not) by a user sorting these shows by marks of another user
+                                # Since we sort by marks, we don't want to see shows without a mark for that user
+                                # So we need that to build that specific subquery.
+
+                                # First let's fetch the shows seen by a user in theaters
+                                shows_seen_in_theater = Mark.query.filter(Mark.user_id==filter_fields['seen_where']).filter(Mark.seen_where=='C').all()
+                                array_shows_seen_in_theater = []
+
+                                # Then build a list of these shows
+                                for cur_show_seen_in_theater in shows_seen_in_theater:
+                                        array_shows_seen_in_theater.append(cur_show_seen_in_theater.show_id)
+                                
+                                # Finally let's build the filter that will be used later building the query
+                                shows_query = shows_query.filter(Mark.show_id.in_(array_shows_seen_in_theater))
+
+                        if filter_fields['favorite'] !=None:
+
+                                # Same behaviour than the previous one
+                                favorite_shows = FavoriteShow.query.filter(FavoriteShow.user_id == filter_fields['favorite']).all()
+                                favorite_shows_array = []
+
+                                for cur_favorite_show in favorite_shows:
+                                        favorite_shows_array.append(cur_favorite_show.show_id)
+
+                                shows_query = shows_query.filter(FavoriteShow.show_id.in_(favorite_shows_array))
+
+                # Sort my desc marks
+                if order_dir == "desc":
+                        if session.get('search_type') == 'list': 
+                                shows = shows_query.filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
+                                count_shows=shows_query.count()
+
+                        elif session.get('search_type') == 'filter_origin_type':
+                                shows = shows_query.filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
+                                count_shows=shows_query.filter(Mark.mark != None).count()
+                                        
+                        elif session.get('search_type') == 'filter':
+                                shows = shows_query.msearch(session.get('query'),fields=["name","original_name","director"]).filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
+                                count_shows=shows_query.msearch(session.get('query'),fields=["name","original_name","director"]).filter(filter_field != None).count()
+
+                # Sort by asc marks
+                else:
+                        if session.get('search_type') == 'list': 
+                                shows = shows_query.filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
+                                count_shows=shows_query.count()
+                        elif session.get('search_type') == 'filter_origin_type':
+                                shows = shows_query.filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
+                                count_shows=shows_query.filter(filter_field != None).count()
+                        elif session.get('search_type') == 'filter':
+                                shows = shows_query.msearch(session.get('query'),fields=["name","original_name","director"]).filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
+                                count_shows=shows_query.msearch(session.get('query'),fields=["name","original_name","director"]).count()
+        else:
+
+                app.logger.info('Entering filter_user is Null')
+
+                # If we are here => No sort by user but only global sort or no sort
+                if session.get('search_type') == 'list': 
+                        app.logger.info('Entering list search_type')
+                        if order_column == "average":
+                                if order_dir == "desc":
+                                        shows=db.session.query(Show).filter(Show.show_type==g.show_type).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length))
+                                else:
+                                        shows=db.session.query(Show).filter(Show.show_type==g.show_type).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length))
+                                
+                                count_shows=db.session.query(Show).filter(Show.show_type==g.show_type).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
+                        else:
+
+                                shows = Show.query.filter(Show.show_type==g.show_type).order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
+                                count_shows=Show.query.filter(Show.show_type==g.show_type).count()
+
+                # Let's use the filter form
+                elif session.get('search_type') == 'filter_origin_type':
+                        app.logger.info('Entering list filter_origin_type')
+                        # Let's build the filtered requested following what has been posted in the filter form
+                        filter_fields=session.get('query')
+                        shows_query = Show.query.filter(Show.show_type==g.show_type).outerjoin(Mark).outerjoin(FavoriteShow)
+
+                        if filter_fields['origin'] != None:
+                                shows_query = shows_query.filter(Show.origin==filter_fields['origin'])
+
+                        if filter_fields['type'] != None:
+                                shows_query = shows_query.filter(Show.type==filter_fields['type'])
+
+                        if filter_fields['seen_where'] !=None:
+                                shows_query = shows_query.filter(Mark.user_id==filter_fields['seen_where']).filter(Mark.seen_where=='C')
+
+                        if filter_fields['favorite'] !=None:
+                                shows_query = shows_query.filter(FavoriteShow.user_id==filter_fields['favorite'])
+
+                        # Build the request
+                        if order_column == "average":
+                                if order_dir == "desc":
+                                        app.logger.info("Requete par moyenne desecendante")
+                                        shows=shows_query.group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length)).all()
+                                else:
+                                        app.logger.info("Requete par moyenne ascendante")
+                                        shows=shows_query.group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
+                        else:
+                                shows = shows_query.order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
+
+                        count_shows=shows_query.count()
+
+                # Here, this is for the string search (Show or director)
+                elif session.get('search_type') == 'filter':
+                        app.logger.info('Entering list filter')
+
+                        # Let's build msearch base query
+                        if g.show_type=="movies":
+                            basequery = Movie.query.msearch(session.get('query'),fields=["name","original_name","director"])
+                        elif g.show_type=="tvshows":
+                            basequery = TVShow.query.msearch(session.get('query'),fields=["name","original_name","director"])
+
+                        if order_column == "average":
+                                if order_dir == "desc":
+                                        shows=basequery.join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length)).all()
+                                else:
+                                        shows=basequery.join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
+
+                                count_shows=basequery.join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
+                        else:
+                                shows = basequery.order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
+                                count_shows=basequery.count()
+
+        # Let's fetch all the users, I will need them
+        users = User.query.all()
+
+        # Init the dictionnary
+        dict_show = { "draw": draw , "recordsTotal": count_shows, "recordsFiltered" : count_shows, "data": []}
+        for cur_show in shows:
+                # Fetch the note for the logged user
+                my_mark=None
+                my_when="-"
+                my_where=""
+                my_comment=""
+                my_fav=None
+
+                # Calculate the average mark for each show
+                average_mark_query=db.session.query(db.func.avg(Mark.mark).label("average")).filter(Mark.show_id==cur_show.id).one()
+                
+                try:
+                        # Round the average mark for a better display
+                        average_mark=round(float(average_mark_query.average),2)
+                except:
+                        # There is no average because no mark recorded
+                        average_mark="-"
+
+                # Get the cur_mark for the user
+                for cur_mark in cur_show.marked_by_users:
+                        if cur_mark.user_id == g.user.id:
+                                my_mark=cur_mark.mark
+
+                                # Escape characters correctly for correct display in hover event
+                                if cur_mark.comment != None:
+                                        my_comment=cur_mark.comment.replace('"','\'')
+                                else:
+                                        my_comment=cur_mark.comment
+
+                                # Convert the date object only if seen_when field is not null (Homework UC)
+                                if cur_mark.seen_when != None:
+                                        my_when=str(cur_mark.seen_when.strftime("%Y"))
+
+                                my_where=cur_mark.seen_where
+
+                # Check if the user has set the show as favorite
+                tmp_fav = [x for x in cur_show.favorite_users if x.user_id == g.user.id]
+                if len(tmp_fav) != 0:
+                        my_fav = tmp_fav[0].star_type
+
+                # Fill a dictionnary with marks for all the others users
+                dict_mark = {}
+                dict_where = {}
+                dict_when = {}
+                dict_homework = {}
+                dict_comments = {}
+                dict_favs = {}
+                for cur_user in users:
+                        dict_mark[cur_user.id]=None
+                        dict_comments[cur_user.id]=None
+                        dict_where[cur_user.id]="-"
+                        dict_when[cur_user.id]="-"
+                        dict_favs[cur_user.id]=None
+                        dict_homework[cur_user.id]={ "when" : None, "who:" : None, "link" : url_for("add_homework",show_id=cur_show.id,user_id=cur_user.id)}
+                        for cur_mark in cur_show.marked_by_users:
+                                if cur_mark.user.id == cur_user.id:
+                                        dict_mark[cur_user.id]=cur_mark.mark            
+                                        dict_where[cur_user.id]=cur_mark.seen_where
+
+                                        # Escape characters correctly for correct display in hover event
+                                        if cur_mark.comment != None:
+                                                dict_comments[cur_user.id]=cur_mark.comment.replace('"','\'')
+                                        else:
+                                                dict_comments[cur_user.id]=cur_mark.comment
+
+                                        dict_homework[cur_user.id]["when"]=str(cur_mark.homework_when)
+
+                                        if cur_mark.homework_who_user != None:
+                                                dict_homework[cur_user.id]["who"]=cur_mark.homework_who_user.nickname
+
+                                        # Convert the date object only if seen_when field is not null (Homework UC)
+                                        if cur_mark.seen_when != None:
+                                                dict_when[cur_user.id]=str(cur_mark.seen_when.strftime("%Y"))
+
+                        # Check if the user has set the show as favorite
+                        tmp_fav = [x for x in cur_show.favorite_users if x.user_id == cur_user.id]
+                        if len(tmp_fav) != 0:
+                                dict_favs[cur_user.id]=tmp_fav[0].star_type
+
+                # Create the json object for the datatable
+                dict_show["data"].append({"DT_RowData": { "link": url_for('show.display_show',show_type=g.show_type,show_id=cur_show.id), "mark_link": url_for("show.mark_show",show_type=g.show_type,show_id_form=cur_show.id),"homework_link": dict_homework},
+                "id": cur_show.id,"name": cur_show.name, 
+                "director": cur_show.director,
+                "average" : average_mark,
+                "my_mark": my_mark, 
+                "my_when": my_when,
+                "my_where": my_where, 
+                "my_comment": my_comment,
+                "my_fav": my_fav,
+                "other_marks": dict_mark, 
+                "other_where": dict_where,
+                "other_when": dict_when,
+                "other_comments": dict_comments,
+                "other_favs": dict_favs,
+                "other_homework_when" : dict_homework })
+
+        # Send the json object to the browser
+        return json.dumps(dict_show) 
 
