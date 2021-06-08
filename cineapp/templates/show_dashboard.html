@@ -2,7 +2,7 @@
 {% block content %}
 	<div class="container" id="dashboard">
 		<div class="row">
-			<h1 class="text-center">Tableau de bord</h1>
+            <h1 class="text-center">{{ g.messages["label_dashboard"] }}</h1>
 			<div class="col-md-4">
 				<div class="panel panel-default">
 					  <div class="panel-heading text-center">Moyenne</div>
@@ -27,7 +27,7 @@
 			</div>
 			<div class="col-md-4">
 				<div class="panel panel-default">
-					  <div class="panel-heading text-center">Nombre de films total</div>
+                        <div class="panel-heading text-center">{{ g.messages["label_show_type_number"] }}</div>
 					  <div class="panel-body text-center" id="movies">
 							<div class="split">{{ general_stats["movies"] }}</div>
 					  </div>
@@ -35,7 +35,7 @@
 			</div>
 			<div class="col-md-4">
 				<div class="panel panel-default">
-					  <div class="panel-heading text-center">Nombre de films vus</div>
+                        <div class="panel-heading text-center">{{ g.messages["label_show_type_seen_number"] }}</div>
 					  <div class="panel-body text-center">
 							<div>
 					  			<div id="seenmovies"> {{ stats_dict[g.user.id]["movies_total"] }}</div>
@@ -67,7 +67,7 @@
 				<div class="panel panel-default" id="graph_1">
 					  <div class="panel-heading text-center">
 						  <button value="{{ g.cur_date.year - 1 }}"  class="glyphicon glyphicon-menu-left year_nav_left" aria-hidden="true"></button>
-						  <span>Films vus par </span><span>{{ dashboard_graph_form.user_list(class="user_list",id="user_list_canvas_1") }}</span><span> en </span><span class="graph_cur_year" id="graph_cur_year_canvas_1">{{cur_year}}</span>
+                          <span>{{ g.messages["label_show_type_seenby"] }} </span><span>{{ dashboard_graph_form.user_list(class="user_list",id="user_list_canvas_1") }}</span><span> en </span><span class="graph_cur_year" id="graph_cur_year_canvas_1">{{cur_year}}</span>
 						  <button value="{{ g.cur_date.year +1 }}" class="glyphicon glyphicon-menu-right year_nav_right" aria-hidden="true"></button>
 							<a href="#" id="new_graph">
 								<span class="fa-stack pull-right" id="span_new_graph">
@@ -83,7 +83,7 @@
 			</div>
 			<div class="col-md-6">
 				<div class="panel panel-default">
-					  <div class="panel-heading text-center">Flux d'activité</div>
+                        <div class="panel-heading text-center">{{ g.messages["label_activity"] }}</div>
 						<table width="100%" id="activitylist" class="table display">
 							<thead style="display:none;">
 								<tr>
