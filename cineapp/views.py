@@ -122,6 +122,7 @@ def logout():
         return redirect(url_for('index'))
 
 @app.route('/switch/<show_type>')
+@login_required
 def switch_show_type(show_type):
 
     # Check if the URL is allowed or not
@@ -130,6 +131,12 @@ def switch_show_type(show_type):
     else:
         app.logger.info("Bascule vers le mode: %s" % show_type)
         session["show_type"]=show_type
+
+    # Reset all the values in order to have the initial list
+    session.pop('query',None)
+
+    # Tell that we must reset the table on next load
+    session['clear_table_on_next_reload']=True
 
     return redirect(url_for('index'))
 
