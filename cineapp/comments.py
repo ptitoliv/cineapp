@@ -17,13 +17,13 @@ def add_mark_comment():
 	# Fetch the important informations we need to fill the chat message object
 	comment = request.form["comment"]
 	dest_user = request.form["dest_user"]
-	movie_id = request.form["movie_id"]
+	show_id = request.form["show_id"]
 
 	# Create the chat_message object
 	mark_comment=MarkComment()
 	mark_comment.user_id = g.user.id
 	mark_comment.mark_user_id = dest_user
-	mark_comment.mark_movie_id = movie_id
+	mark_comment.mark_show_id = show_id
 	mark_comment.posted_when = datetime.now()
 	mark_comment.message = comment
 
@@ -44,7 +44,7 @@ def add_mark_comment():
 	mark_comment_notification(mark_comment,"add_mark_comment")
 
 	# Build the dict we're going to send to the frontend
-	data_dict = { "user": g.user.serialize(), "mark_comment": mark_comment.serialize(), "mark_comment_number": MarkComment.query.filter(MarkComment.mark_user_id==dest_user,MarkComment.mark_movie_id==movie_id,MarkComment.deleted_when==None).count()}
+	data_dict = { "user": g.user.serialize(), "mark_comment": mark_comment.serialize(), "mark_comment_number": MarkComment.query.filter(MarkComment.mark_user_id==dest_user,MarkComment.mark_show_id==show_id,MarkComment.deleted_when==None).count()}
 
 	# Format the date for correct JS display
 	data_dict["mark_comment"]["posted_when"] = data_dict["mark_comment"]["posted_when"].strftime("%d/%m/%Y - %H:%M:%S");
@@ -99,4 +99,4 @@ def update_mark_comment():
 		return jsonify( { "error":u"Commentaire inexistant ou déjà supprimé", "markcomment_id": comment_id } )
 
 	# Let's send the MarkComment as a JSON object to the frontend
-	return jsonify( { "operation": request.endpoint , "mark_comment": mark_comment.serialize(), "mark_comment_number": MarkComment.query.filter(MarkComment.mark_user_id==mark_comment.mark_user_id,MarkComment.mark_movie_id==mark_comment.mark_movie_id,MarkComment.deleted_when==None).count() })
+	return jsonify( { "operation": request.endpoint , "mark_comment": mark_comment.serialize(), "mark_comment_number": MarkComment.query.filter(MarkComment.mark_user_id==mark_comment.mark_user_id,MarkComment.mark_show_id==mark_comment.mark_show_id,MarkComment.deleted_when==None).count() })
