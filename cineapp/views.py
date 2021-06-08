@@ -689,9 +689,6 @@ def show_graphs():
 @guest_control
 def show_dashboard():
 
-        print("KIKOOOOO")
-        print(g.show_type)
-
         # Variables declaration which will contains all the stats needed for the dashboard
         general_stats={}
         activity_list=[]
@@ -702,7 +699,7 @@ def show_dashboard():
         dashboard_graph_form = DashboardGraphForm(user_list=g.user)
         
         # Fetch the last 20 last activity records
-        activity_dict=get_activity_list(0,20)
+        activity_dict=get_activity_list(0,20,show_type=g.show_type)
 
         # Build a dictionnary with the average and movies count (global / only in theaters and only at home) for all users
         # We do a dictionnary instead of a global GROUP BY in order to have all users including the one without any mark
@@ -764,14 +761,14 @@ def update_activity_flow():
                 length = 20
 
         # Fetch the activity items
-        temp_activity_dict=get_activity_list(start,length)
+        temp_activity_dict=get_activity_list(start,length, g.show_type)
 
         # Initialize dict which will contains that presented to the datatable
         activity_dict = { "draw": draw , "recordsTotal": temp_activity_dict["count"], "recordsFiltered" : temp_activity_dict["count"], "data": []}
 
         # Let's fill the activity_dict with data good format for the datatable
         for cur_activity in temp_activity_dict["list"]:
-                if cur_activity["entry_type"] == "movies":
+                if cur_activity["entry_type"] == "shows":
                         entry_type="<a class=\"disabled btn btn-danger btn-xs\">Entrée</a>"
 
                         # Sometimes, the user can be Null (Especially after an import
@@ -782,7 +779,7 @@ def update_activity_flow():
                                 user=cur_activity["object"].added_by.nickname
 
                         # Define the text that will be shown on the datatable
-                        entry_text="Le film <a href=\"" +  url_for('show_movie', show_id=cur_activity["object"].id) + "\">" + cur_activity["object"].name + u"</a> vient d'être ajouté par " + user
+                        entry_text=g.messages["label_generic_uppercase"] + " <a href=\"" +  url_for('show.display_show',show_type=g.show_type, show_id=cur_activity["object"].id) + "\">" + cur_activity["object"].name + u"</a> vient d'être " + g.messages["label_text_added"] + " par " + user
 
                 elif cur_activity["entry_type"] == "marks":
                         entry_type="<a class=\"disabled btn btn-primary btn-xs\">Note</a>"      
@@ -800,17 +797,17 @@ def update_activity_flow():
                                 entry_type+=" <a class=\"disabled btn btn-warning btn-xs\">Devoir</a>"  
 
                                 # Define the text that will be shown on the datatable
-                                entry_text=cur_activity["object"].user.nickname + u" vient de remplir son devoir sur le film <a href=\"" + url_for('show_movie', show_id=cur_activity["object"].show_id) +"\">" +  cur_activity["object"].movie.name + "</a> .La note est de <span title=\"Commentaire\" data-html=\"true\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
+                                entry_text=cur_activity["object"].user.nickname + u" vient de remplir son devoir sur " + g.messages["label_generic"] + " <a href=\"" + url_for('show.display_show', show_type=g.show_type, show_id=cur_activity["object"].show_id) +"\">" +  cur_activity["object"].show.name + "</a> .La note est de <span title=\"Commentaire\" data-html=\"true\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
 
                         else:
                                 # Define the text that will be shown on the datatable
-                                entry_text=cur_activity["object"].user.nickname + u" a noté le film <a href=\"" + url_for('show_movie', show_id=cur_activity["object"].show_id) +"\">" +  cur_activity["object"].movie.name + "</a> avec la note <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
+                                entry_text=cur_activity["object"].user.nickname + u" a noté " + g.messages["label_generic"] + " <a href=\"" + url_for('show.display_show', show_type=g.show_type, show_id=cur_activity["object"].show_id) +"\">" +  cur_activity["object"].show.name + "</a> avec la note <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
 
                 elif cur_activity["entry_type"] == "homeworks":
                         entry_type="<a class=\"disabled btn btn-warning btn-xs\">Devoir</a>"
 
                         # Define the text that will be shown on the datatable
-                        entry_text=cur_activity["object"].homework_who_user.nickname + " vient de donner <a href=\"" + url_for('show_movie', show_id=cur_activity["object"].show_id) + "\">" +  cur_activity["object"].movie.name + "</a> en devoir a " + cur_activity["object"].user.nickname
+                        entry_text=cur_activity["object"].homework_who_user.nickname + " vient de donner <a href=\"" + url_for('show.display_show', show_type=g.show_type, show_id=cur_activity["object"].show_id) + "\">" +  cur_activity["object"].show.name + "</a> en devoir a " + cur_activity["object"].user.nickname
 
                 elif cur_activity["entry_type"] == "comments":
                         entry_type="<a class=\"disabled btn btn-comment btn-xs\">Commentaire</a>"
@@ -821,13 +818,13 @@ def update_activity_flow():
                                 cur_activity["object"].mark.comment = "N/A"
 
                         # Define the text that will be shown on the datatable
-                        entry_text=cur_activity["object"].user.nickname + " vient de poster un <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + cur_activity["object"].message + "\"><strong>commentaire</strong></span> sur le film <a href=\"" + url_for('show_movie', show_id=cur_activity["object"].mark.movie.id) + "\">" +  cur_activity["object"].mark.movie.name + "</a> en réponse à <strong><span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-html=\"true\" data-content=\"" + cur_activity["object"].mark.comment + "\">" + cur_activity["object"].mark.user.nickname + "</strong></span>"
+                        entry_text=cur_activity["object"].user.nickname + " vient de poster un <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + cur_activity["object"].message + "\"><strong>commentaire</strong></span> sur " + g.messages["label_generic"] + " <a href=\"" + url_for('show.display_show',show_type=g.show_type, show_id=cur_activity["object"].mark.show.id) + "\">" +  cur_activity["object"].mark.show.name + "</a> en réponse à <strong><span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-html=\"true\" data-content=\"" + cur_activity["object"].mark.comment + "\">" + cur_activity["object"].mark.user.nickname + "</strong></span>"
 
                 elif cur_activity["entry_type"] == "favorites":
                         entry_type="<a class=\"disabled btn btn-favorite btn-xs\">Favori</a>"
 
                         # Define the text that will be shown on the datatable
-                        entry_text=cur_activity["object"].user.nickname + " vient d'ajouter en favori <a href=\"" + url_for('show_movie', show_id=cur_activity["object"].show_id) + "\">" +  cur_activity["object"].movie.name + "</a> - Niveau <i class=\"fa fa-star " + cur_activity["object"].star_type + "\"</i>"
+                        entry_text=cur_activity["object"].user.nickname + " vient d'ajouter en favori <a href=\"" + url_for('show.display_show', show_type=g.show_type,show_id=cur_activity["object"].show_id) + "\">" +  cur_activity["object"].show.name + "</a> - Niveau <i class=\"fa fa-star " + cur_activity["object"].star_type + "\"</i>"
 
                 # Append the processed entry to the dictionnary that will be used by the datatable
                 activity_dict["data"].append({"entry_type" : entry_type, "entry_text" : entry_text })
