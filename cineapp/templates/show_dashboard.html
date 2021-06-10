@@ -28,8 +28,8 @@
 			<div class="col-md-4">
 				<div class="panel panel-default">
                         <div class="panel-heading text-center">{{ g.messages["label_show_type_number"] }}</div>
-					  <div class="panel-body text-center" id="movies">
-							<div class="split">{{ general_stats["movies"] }}</div>
+					  <div class="panel-body text-center" id="shows">
+							<div class="split">{{ general_stats["shows"] }}</div>
 					  </div>
 				</div>
 			</div>
@@ -38,8 +38,12 @@
                         <div class="panel-heading text-center">{{ g.messages["label_show_type_seen_number"] }}</div>
 					  <div class="panel-body text-center">
 							<div>
-					  			<div id="seenmovies"> {{ stats_dict[g.user.id]["movies_total"] }}</div>
-								<div><span id="theaters">Ciné :{{ stats_dict[g.user.id]["movies_theaters"] }} </span> / <span id="home">Maison : {{ stats_dict[g.user.id]["movies_home"] }}</span></div>
+                                {% if g.show_type == "movies" %}
+					  			<div id="seenmovies"> {{ stats_dict[g.user.id]["shows_total"] }}</div>
+							     <div><span id="theaters">Ciné :{{ stats_dict[g.user.id]["shows_theaters"] }} </span> / <span id="home">Maison : {{ stats_dict[g.user.id]["shows_home"] }}</span></div>
+                                {% elif g.show_type == "tvshows" %}
+					  			<div id="seentvshows"> {{ stats_dict[g.user.id]["shows_total"] }}</div>
+                                {% endif %}
 							</div>
 							<br/>
 							<div>
@@ -49,7 +53,12 @@
 									<tr>
 										<td class="text-right"><img src="{{ config.AVATARS_URL}}{{ stats_dict[cur_avg]["user"].avatar }}" width="30" height="30" class="avatar img-circle" alt="avatar"></td>
 										<td class="text-left">{{ stats_dict[cur_avg]["user"].nickname }}</td>
-										<td class="text-right"><span id="seenmovies_small">{{ stats_dict[cur_avg]["movies_total"] }}</span> ( <span id="theaters_small">{{ stats_dict[cur_avg]["movies_theaters"] }}</span> / <span id="home_small">{{ stats_dict[cur_avg]["movies_home"] }}</span> ) </td>
+                                        {% if g.show_type == "movies" %}
+										<td class="text-right"><span id="seenshows_small">{{ stats_dict[cur_avg]["shows_total"] }}</span> ( <span id="theaters_small">{{ stats_dict[cur_avg]["shows_theaters"] }}</span> / <span id="home_small">{{ stats_dict[cur_avg]["shows_home"] }}</span> ) </td>
+                                        {% elif g.show_type == "tvshows" %}
+										<td class="text-left"><span id="seenmovies_small">{{ stats_dict[cur_avg]["shows_total"] }}</span></td>
+                                        {% endif %}
+
 									</tr>
 									{% endif %}
 									{% endfor %}
@@ -153,7 +162,7 @@ function draw_graph(canvas) {
 
     // Le code a exécuter !
     $.post(
-		"{{ url_for('graph_movies_by_year') }}",
+		"{{ url_for('graph_shows_by_year') }}",
 		{
 			year: $('#graph_cur_year_' + canvas).text(),
 			user: $('#user_list_' + canvas).val()
