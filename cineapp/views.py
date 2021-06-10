@@ -701,7 +701,7 @@ def show_dashboard():
         # Fetch the last 20 last activity records
         activity_dict=get_activity_list(0,20,show_type=g.show_type)
 
-        # Build a dictionnary with the average and movies count (global / only in theaters and only at home) for all users
+        # Build a dictionnary with the average and shows count (global / only in theaters and only at home) for all users
         # We do a dictionnary instead of a global GROUP BY in order to have all users including the one without any mark
         # and also allow an easy access to a specific user which is nice for the dashboard display
         users=User.query.all()
@@ -709,20 +709,20 @@ def show_dashboard():
         for cur_user in users:
                 try:
                         # Fetch the user object and the current average
-                        avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).filter(Mark.mark!=None,Mark.user_id==cur_user.id).one()
-                        stats_dict[cur_user.id]={ "user": cur_user, "avg": round(float(avg_query.average),2), "movies_total" : 0, "movies_theaters" : 0, "movies_home": 0 }
+                        avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==cur_user.id).one()
+                        stats_dict[cur_user.id]={ "user": cur_user, "avg": round(float(avg_query.average),2), "shows_total" : 0, "shows_theaters" : 0, "shows_home": 0 }
 
                 except TypeError:
                         # If we are here, that means the user doesn't have an average (Maybe because no mark recorded)
-                        stats_dict[cur_user.id]={ "user": cur_user, "avg": "N/A",  "movies_total" : 0, "movies_theaters" : 0, "movies_home": 0 }
+                        stats_dict[cur_user.id]={ "user": cur_user, "avg": "N/A",  "shows_total" : 0, "shows_theaters" : 0, "shows_home": 0 }
 
-                # Let's count the movies for each user
-                stats_dict[cur_user.id]["movies_total"] = Mark.query.filter(Mark.mark!=None,Mark.user_id==cur_user.id).count()
-                stats_dict[cur_user.id]["movies_theaters"] = Mark.query.filter(Mark.mark!=None,Mark.user_id==cur_user.id,Mark.seen_where=="C").count() 
-                stats_dict[cur_user.id]["movies_home"] = Mark.query.filter(Mark.mark!=None,Mark.user_id==cur_user.id,Mark.seen_where=="M").count() 
+                # Let's count the shows for each user
+                stats_dict[cur_user.id]["shows_total"] = Mark.query.join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==cur_user.id).count()
+                stats_dict[cur_user.id]["shows_theaters"] = Mark.query.join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Mark.seen_where=="C").count() 
+                stats_dict[cur_user.id]["shows_home"] = Mark.query.join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Mark.seen_where=="M").count() 
 
         # Fetch general databases statistics
-        general_stats["movies"] = Show.query.count()
+        general_stats["shows"] = Show.query.filter(Show.show_type==g.show_type).count()
 
         # Generate datas for the bar graph
         cur_year=datetime.now().strftime("%Y")
@@ -835,7 +835,7 @@ def update_activity_flow():
 @app.route('/json/graph_by_year', methods=['POST'])
 @login_required
 @guest_control
-def graph_movies_by_year():
+def graph_shows_by_year():
         
         # Fetch the year in the post data
         year=request.form.get("year")
