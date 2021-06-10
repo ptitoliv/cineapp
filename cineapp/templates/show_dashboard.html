@@ -189,6 +189,7 @@ function update_graph_display(json_data,canvas_id) {
 	data= { 
 		labels : [ {% for cur_label in labels %} "{{ cur_label }}", {% endfor %} ],
 		datasets : [
+            {% if g.show_type=="movies" %}
 			{
 				fill: true,
 				borderColor : "#C3D9FF",
@@ -202,7 +203,16 @@ function update_graph_display(json_data,canvas_id) {
 				backgroundColor : "#FF0084",
 				label: "Maison",
 				data: json_data["others"]
-			},
+			}
+            {% elif g.show_type=="tvshows" %}
+			{
+				fill: true,
+				borderColor : "#FF0084",
+				backgroundColor : "#FF0084",
+				label: "Séries",
+				data: json_data["others"]
+			}
+            {% endif %}
 			]
 		}
 
