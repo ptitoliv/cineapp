@@ -50,7 +50,7 @@ class MarkShowForm(Form):
     submit_mark_slack = SubmitField('Noter et publier')
 
     # Specific constructer in order to pass a show list
-    def __init__(self,button_label, *args, **kwargs):
+    def __init__(self,button_label=None, *args, **kwargs):
 
         # Call the parent constructor
         super(MarkShowForm, self).__init__(*args,**kwargs)
