@@ -78,7 +78,9 @@
 					  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Stats/Graphiques<span class="caret"></span></a>
 					  <ul class="dropdown-menu">
 					    {% for cur_graph in g.graph_list %}
+                                                {% if cur_graph[g.show_type]==True%}
 						<li><a href="{{ url_for(cur_graph["graph_endpoint"]) }}">{{ cur_graph["graph_label"] }}</a></li>
+                                                {% endif %}
 					    {% endfor %}
 					  </ul>
 					  </li>
