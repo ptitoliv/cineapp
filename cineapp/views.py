@@ -15,7 +15,7 @@ from wtforms.ext.sqlalchemy.orm import model_form
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from cineapp import app, db, lm
 from cineapp.forms import LoginForm, AddUserForm, AddShowForm, MarkShowForm, SearchShowForm, SelectShowForm, ConfirmShowForm, FilterForm, UserForm, PasswordForm, HomeworkForm, UpdateShowForm, DashboardGraphForm
-from cineapp.models import User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification
+from cineapp.models import User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow
 from cineapp.tvmdb import search_shows,get_show,download_poster, search_page_number
 from cineapp.emails import add_show_notification, mark_show_notification, add_homework_notification, update_show_notification
 from cineapp.utils import frange, get_activity_list, resize_avatar
@@ -456,21 +456,53 @@ def show_graphs():
 
         # Identify prev and next graph
         for index_graph in range(len(graph_list)):
-                if request.endpoint == graph_list[index_graph]["graph_endpoint"]:
+            if request.endpoint == graph_list[index_graph]["graph_endpoint"]: 
+                    
+                        # Check if the graph must be displayed
+                        if graph_list[index_graph][g.show_type]==False:
+                            app.logger.info("Le graphe %s n'est pas autorisé dans le mode %s" % (request.endpoint,g.show_type))
+                            abort(404)
 
                         # Set the graph_title
                         graph_title=graph_list[index_graph]["graph_label"]
         
                         # Set the graph pagination
                         if index_graph - 1 >= 0:
-                                prev_graph=graph_list[index_graph-1]
+
+                                # We display only link for graph we want to display
+                                # We check if the previous graph has to be displayed considering the mode
+                                # If yes we display it, if not we use the previous one until the begenning on the list
+                                temp_index_graph=index_graph
+                                while graph_list[temp_index_graph-1][g.show_type]==False:
+                                    temp_index_graph=temp_index_graph-1
+
+                                # If we reach the begenning of the list then set the prev_graph to none
+                                if temp_index_graph-1 >= 0:
+                                    prev_graph=graph_list[temp_index_graph-1]
+                                else:
+                                    prev_graph=None
                         else:
                                 prev_graph=None
 
                         if index_graph + 1 < len(graph_list):
-                                next_graph=graph_list[index_graph+1]
+
+                                # We display only link for graph we want to display
+                                # We check if then next graph has to be displayed considering the mode
+                                # If yes we display it, if not we use the next one until the end of the list
+
+                                temp_index_graph=index_graph
+                                while graph_list[temp_index_graph+1][g.show_type]==False:
+                                    temp_index_graph=temp_index_graph+1
+
+                                # If we reach the begenning of the list then set the prev_graph to none
+                                if temp_index_graph+1 <= len(graph_list):
+                                    next_graph=graph_list[temp_index_graph+1]
+                                else:
+                                    next_graph=None
                         else:
                                 next_graph=None
+
+                        # We found a graph ==> Stop the main loop
                         break;
 
         # Generate the correct data considering the route
@@ -479,6 +511,13 @@ def show_graphs():
         # Variable initialization
         labels=[]
         data={}
+
+        # Define the base query for queries where we can use it
+        # For some we will use the show_type filter
+        if g.show_type == "movies": 
+            basequery = Mark.query.join(Movie)
+        elif g.show_type == "tvshows": 
+            basequery = Mark.query.join(TVShow)
 
         # Fetch all users
         users = User.query.all();
@@ -495,7 +534,7 @@ def show_graphs():
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
                         for cur_mark in frange(0,20,0.5):
-                                data[cur_user.nickname]["data"].append(Mark.query.filter(Mark.mark==cur_mark,Mark.user_id==cur_user.id).count())
+                                data[cur_user.nickname]["data"].append(basequery.filter(Mark.mark==cur_mark,Mark.user_id==cur_user.id).count())
 
         if graph_to_generate == "mark_interval":
 
@@ -514,16 +553,14 @@ def show_graphs():
                         else:
                                 labels.append(str(range_mark_array[cur_index]))
 
-                print(labels)
-
                 # Fill the dictionnary with distributed_marks by user
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
                         for cur_index in range(0,len(range_mark_array)):
                                 if cur_index < len(range_mark_array)-1:
-                                        data[cur_user.nickname]["data"].append(Mark.query.filter(Mark.mark>=range_mark_array[cur_index],Mark.mark<range_mark_array[cur_index+1],Mark.user_id==cur_user.id).count())
+                                        data[cur_user.nickname]["data"].append(basequery.filter(Mark.mark>=range_mark_array[cur_index],Mark.mark<range_mark_array[cur_index+1],Mark.user_id==cur_user.id).count())
                                 else:
-                                        data[cur_user.nickname]["data"].append(Mark.query.filter(Mark.mark>=range_mark_array[cur_index],Mark.user_id==cur_user.id).count())
+                                        data[cur_user.nickname]["data"].append(basequery.filter(Mark.mark>=range_mark_array[cur_index],Mark.user_id==cur_user.id).count())
 
         if graph_to_generate == "mark_percent":
                 
@@ -539,11 +576,12 @@ def show_graphs():
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
 
                         # Set the percentage considering the total movies number seen for each user and not globally
-                        user_movies_count = Mark.query.filter(Mark.user_id==cur_user.id).count()
+                        user_movies_count = basequery.filter(Mark.user_id==cur_user.id).count()
 
-                        for cur_mark in frange(0,20,0.5):
-                                percent = float((Mark.query.filter(Mark.mark==cur_mark,Mark.user_id==cur_user.id).count() * 100)) / float(user_movies_count)
-                                data[cur_user.nickname]["data"].append(round(percent,2))
+                        if user_movies_count != 0:
+                            for cur_mark in frange(0,20,0.5):
+                                    percent = float((basequery.filter(Mark.mark==cur_mark,Mark.user_id==cur_user.id).count() * 100)) / float(user_movies_count)
+                                    data[cur_user.nickname]["data"].append(round(percent,2))
 
         elif graph_to_generate == "type":
 
@@ -559,7 +597,7 @@ def show_graphs():
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
                         for cur_type in types:
-                                data[cur_user.nickname]["data"].append(Mark.query.join(Mark.movie).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.type==cur_type.id).count())
+                                data[cur_user.nickname]["data"].append(basequery.filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.type==cur_type.id).count())
         
         elif graph_to_generate == "origin":
 
@@ -575,7 +613,7 @@ def show_graphs():
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
                         for cur_origin in origins:
-                                data[cur_user.nickname]["data"].append(Mark.query.join(Mark.movie).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.origin==cur_origin.id).count())
+                                data[cur_user.nickname]["data"].append(basequery.filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.origin==cur_origin.id).count())
 
 
         elif graph_to_generate == "average_type":
@@ -592,7 +630,7 @@ def show_graphs():
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
                         for cur_type in types:
-                                avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).join(Mark.movie).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.type==cur_type.id).one()
+                                avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.type==cur_type.id).one()
                                 
                                 # If no mark => Put null
                                 if avg_query.average == None:
@@ -614,7 +652,7 @@ def show_graphs():
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
                         for cur_origin in origins:
-                                avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).join(Mark.movie).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.origin==cur_origin.id).one()
+                                avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.origin==cur_origin.id).one()
                                 
                                 # If no mark => Put null
                                 if avg_query.average == None:
@@ -628,8 +666,8 @@ def show_graphs():
                 graph_type="line"
 
                 # Search the min and max year in order to generate a optimized graph
-                min_year=int(db.session.query(db.func.min(Mark.seen_when).label("min_year")).one().min_year.strftime("%Y"))
-                max_year=int(db.session.query(db.func.max(Mark.seen_when).label("max_year")).one().max_year.strftime("%Y"))
+                min_year=int(db.session.query(db.func.min(Mark.seen_when).label("min_year")).join(Show).filter(Show.show_type==g.show_type).one().min_year.strftime("%Y"))
+                max_year=int(db.session.query(db.func.max(Mark.seen_when).label("max_year")).join(Show).filter(Show.show_type==g.show_type).one().max_year.strftime("%Y"))
 
                 for cur_year in range(min_year,max_year+1,1):
                         labels.append(cur_year)
@@ -638,7 +676,7 @@ def show_graphs():
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : []}
                         for cur_year in range(min_year,max_year+1,1):
-                                data[cur_user.nickname]["data"].append(Mark.query.filter(Mark.mark!=None,Mark.user_id==cur_user.id,db.func.year(Mark.seen_when)==cur_year).count())
+                                data[cur_user.nickname]["data"].append(basequery.filter(Mark.mark!=None,Mark.user_id==cur_user.id,db.func.year(Mark.seen_when)==cur_year).count())
 
         elif graph_to_generate == "year_theater":
 
@@ -646,8 +684,8 @@ def show_graphs():
                 graph_type="line"
 
                 # Search the min and max year in order to generate a optimized graph
-                min_year=int(db.session.query(db.func.min(Mark.seen_when).label("min_year")).one().min_year.strftime("%Y"))
-                max_year=int(db.session.query(db.func.max(Mark.seen_when).label("max_year")).one().max_year.strftime("%Y"))
+                min_year=int(db.session.query(db.func.min(Mark.seen_when).label("min_year")).join(Show).filter(Show.show_type==g.show_type).one().min_year.strftime("%Y"))
+                max_year=int(db.session.query(db.func.max(Mark.seen_when).label("max_year")).join(Show).filter(Show.show_type==g.show_type).one().max_year.strftime("%Y"))
 
                 for cur_year in range(min_year,max_year+1,1):
                         labels.append(cur_year)
@@ -656,7 +694,7 @@ def show_graphs():
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : []}
                         for cur_year in range(min_year,max_year+1,1):
-                                data[cur_user.nickname]["data"].append(Mark.query.filter(Mark.mark!=None,Mark.user_id==cur_user.id,Mark.seen_where=="C",db.func.year(Mark.seen_when)==cur_year).count())
+                                data[cur_user.nickname]["data"].append(basequery.filter(Mark.mark!=None,Mark.user_id==cur_user.id,Mark.seen_where=="C",db.func.year(Mark.seen_when)==cur_year).count())
 
         elif graph_to_generate == "average_by_year":
 
@@ -664,8 +702,8 @@ def show_graphs():
                 graph_type="line"
 
                 # Search the min and max year in order to generate a optimized graph
-                min_year=int(db.session.query(db.func.min(Mark.seen_when).label("min_year")).one().min_year.strftime("%Y"))
-                max_year=int(db.session.query(db.func.max(Mark.seen_when).label("max_year")).one().max_year.strftime("%Y"))
+                min_year=int(db.session.query(db.func.min(Mark.seen_when).label("min_year")).join(Show).filter(Show.show_type==g.show_type).one().min_year.strftime("%Y"))
+                max_year=int(db.session.query(db.func.max(Mark.seen_when).label("max_year")).join(Show).filter(Show.show_type==g.show_type).one().max_year.strftime("%Y"))
 
                 for cur_year in range(min_year,max_year+1,1):
                         labels.append(cur_year)
@@ -674,7 +712,7 @@ def show_graphs():
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : []}
                         for cur_year in range(min_year,max_year+1,1):
-                                avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).filter(Mark.mark!=None,Mark.user_id==cur_user.id,db.func.year(Mark.seen_when)==cur_year).one()
+                                avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==cur_user.id,db.func.year(Mark.seen_when)==cur_year).one()
 
                                 # If no mark => Put null
                                 if avg_query.average == None:
