@@ -8,7 +8,7 @@ Note : {{ mark.mark }}
 
 Commentaire : {{ mark.comment }}
 
-Pour voir la fiche {{ g.messages["label_generic_possessive] : {{ url_for('show.display_show', show_type=g.display_show,show_id=mark.show.id, _external=True) }}
+Pour voir la fiche {{ g.messages["label_generic_possessive"] }}: {{ url_for('show.display_show', show_type=g.show_type,show_id=mark.show.id, _external=True) }}
 
 --
 CineApp

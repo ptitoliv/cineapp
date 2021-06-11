@@ -234,6 +234,6 @@ def chat_message_notification(message,user):
 
 	if user.notifications != None and "notif_chat_message" in user.notifications and user.notifications["notif_chat_message"] == True:
 
-		app.logger.info("Sending mail for chat quote to %s "% user.email)
+		app.logger.info("Sending mail for chat quote to %s " % user.email)
 		send_email('[Cineapp] - Message depuis le chat' , app.config['MAIL_SENDER'],[ user.email ] ,
 		render_template('chat_message_notification.txt', dest_user=user, message=message))
