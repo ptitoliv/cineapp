@@ -140,14 +140,6 @@ def switch_show_type(show_type):
 
     return redirect(url_for('index'))
 
-
-@app.route('/my/marks/<int:page>')
-@login_required
-@guest_control
-def list_my_movies(page=1):
-        marked_movies=Mark.query.filter_by(user_id=g.user.id).paginate(page,15,False)
-        return render_template('marks.html', marked_movies=marked_movies)
-
 @lm.user_loader
 def load_user(id):
         if id == "-1":
