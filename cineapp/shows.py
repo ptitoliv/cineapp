@@ -672,7 +672,7 @@ def mark_show(show_id_form):
 
                                 # Send Slack Notification if needed
                                 if g.user.notifications["notif_slack"] and form.submit_mark_slack.data:
-                                        slack_result = slack_mark_notification(marked_show,app)
+                                        slack_result = slack_mark_notification(marked_show,app,g.show_type)
                                         if slack_result == 0:
                                                 flash('Note envoyée sur Slack','success')
                                         elif slack_result == -1:
@@ -1011,3 +1011,27 @@ def update_datatable():
         # Send the json object to the browser
         return json.dumps(dict_show) 
 
+@show_bp.route('/mark/publish/<int:show_id>', methods=['GET'])
+@login_required
+@guest_control
+def publish_mark(show_id):
+
+        # Fetch the current comment for the logged user and send it on flask
+        # Let's do that only if there is a mark to send
+        mark = Mark.query.get_or_404((g.user.id,show_id))
+
+        # Convert the HTML content to text in order to have a nice display in the mail
+        html_converter = html2text.HTML2Text()
+        mark.comment=html_converter.handle(mark.comment).strip()
+
+        # Send notification
+        if mark != None:
+                if g.user.notifications["notif_slack"]:
+                        slack_result = slack_mark_notification(mark,app,g.show_type)
+                        if slack_result == 0:
+                                flash('Note envoyée sur Slack','success')
+                        elif slack_result == -1:
+                                flash('Notifications Slack désactivées','warning')
+                        else:
+                                flash('Impossible d\'envoyer la note sur Slack','danger')
+                return redirect(url_for('show.display_show',show_type=g.show_type,show_id=show_id))
