@@ -49,13 +49,35 @@ if 'POSTERS_URL' not in app.config:
 	app.config['POSTERS_URL'] = "/static/posters/"
 
 # TMVDB parameters
-app.config['TMVDB_BASE_URL'] = "https://themoviedb.org/movie"
+app.config['TMVDB_BASE_URL'] = "https://themoviedb.org/"
 
 # Configuration file reading
 if os.environ.get('TEST') == "yes":
 	app.config.from_pyfile('../configs/settings_test.cfg')
 else:
 	app.config.from_pyfile(os.path.join(app.root_path,'../configs/settings.cfg'))
+
+# Intialize Slack configuration
+if "SLACK_NOTIFICATION_ENABLE" in app.config:
+    if app.config['SLACK_NOTIFICATION_ENABLE'] == True:
+        
+        # We want to use Slack notifications ==> Let's define channels
+        app.config['SLACK_NOTIFICATION_CHANNEL']={}
+
+        # For movies
+        if "SLACK_NOTIFICATION_CHANNEL_MOVIES" in app.config and app.config['SLACK_NOTIFICATION_CHANNEL_MOVIES'] != None:
+            app.config['SLACK_NOTIFICATION_CHANNEL']['movies']=app.config['SLACK_NOTIFICATION_CHANNEL_MOVIES']
+        else:
+            app.config['SLACK_NOTIFICATION_CHANNEL']['movies']=None
+
+        # For tvshows
+        if "SLACK_NOTIFICATION_CHANNEL_TVSHOWS" in app.config and app.config['SLACK_NOTIFICATION_CHANNEL_TVSHOWS'] != None:
+            app.config['SLACK_NOTIFICATION_CHANNEL']['tvshows']=app.config['SLACK_NOTIFICATION_CHANNEL_TVSHOWS']
+        else:
+            app.config['SLACK_NOTIFICATION_CHANNEL']['tvshows']=None
+else:
+    print("SLACK_NOTIFICATION_ENABLE not defined in configuration file")
+    sys.exit(2)
 
 # Check if API_KEY is defined
 for cur_item in [ "API_KEY", "SLACK_TOKEN" ]:
