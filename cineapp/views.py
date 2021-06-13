@@ -325,7 +325,7 @@ def add_homework(show_id,user_id):
         
         except Exception as e: 
                 flash('Impossible de creer le devoir','danger')
-                return redirect(url_for('list_movies'))
+                return redirect(url_for('show.list_shows',show_type=g.show_type))
 
         # Send email notification
         mail_status = add_homework_notification(mark)
@@ -336,7 +336,7 @@ def add_homework(show_id,user_id):
         elif mail_status == 2:
                 flash('Aucune notification à envoyer','warning')
 
-        return redirect(url_for('show_movie',show_id=show_id))
+        return redirect(url_for('show.display_show',show_id=show_id,show_type=g.show_type))
 
 @app.route('/homework/delete/<int:show_id>/<int:user_id>')
 @login_required
@@ -391,10 +391,10 @@ def list_homeworks():
 
         # Intialize the SQL query
         # We sort the results first by null results in order to show
-        # movies we have to rate and them movies which have been rated
+        # shows we have to rate and them shows which have been rated
         # For this query, we use a case statement
         # http://stackoverflow.com/questions/1347894/order-by-null-first-then-order-by-other-variable
-        homework_query = Mark.query.join(Mark.movie).order_by(case([(Mark.mark == None, 0)],else_=1),Show.name).filter(Mark.homework_who != None)
+        homework_query = Mark.query.join(Mark.show).filter(Show.show_type==g.show_type).order_by(case([(Mark.mark == None, 0)],else_=1),Show.name).filter(Mark.homework_who != None)
 
         # Fetch the homeworks
         if homework_filter_form.validate_on_submit():
@@ -406,9 +406,9 @@ def list_homeworks():
                 if homework_filter_form.to_user_filter.data != None:
                         homework_query = homework_query.filter(Mark.user_id == homework_filter_form.to_user_filter.data.id)
                         
-                homeworks=homework_query
+                homeworks=homework_query.all()
         else:
-                homeworks=homework_query.filter(and_(Mark.user_id == g.user.id))
+                homeworks=homework_query.filter(and_(Mark.user_id == g.user.id)).all()
 
         return render_template('list_homeworks.html',homework_filter_form=homework_filter_form,homeworks=homeworks)
 

@@ -12,9 +12,10 @@
 			</form>
 		</div>
 		<div>
+                        {%if homeworks|length > 0 %}
 			<table class="table table-striped" id="homeworks_list">
 			<tr class="text-center">
-				<th class="text-center" style="width:25%;">Titre du film</th>
+                                <th class="text-center" style="width:25%;">Titre {{ g.messages["label_generic_possessive"] }}</th>
 				<th class="text-center">Réalisateur</th>
 				<th class="text-center">De:</th>
 				<th class="text-center">A:</th>
@@ -24,13 +25,13 @@
 			</tr>
 			{% for cur_homework in homeworks %}
 			<tr class="text-center">
-				<td><a href="{{ url_for('show_movie',movie_id=cur_homework.movie_id) }}">{{ cur_homework.movie.name }}</a></td>
-				<td>{{ cur_homework.movie.director }}</td>
+				<td><a href="{{ url_for('show.display_show',show_id=cur_homework.show_id,show_type=g.show_type) }}">{{ cur_homework.show.name }}</a></td>
+				<td>{{ cur_homework.show.director }}</td>
 				<td>{{ cur_homework.homework_who_user.nickname }}</td>
 				<td>{{ cur_homework.user.nickname }}</td>
 				{% if cur_homework.mark == None %}
 					{% if cur_homework.user.id == g.user.id %}
-						<td><a class="btn btn-primary btn-xs" href="{{ url_for('mark_movie',movie_id_form=cur_homework.movie.id) }}">Noter</a>
+						<td><a class="btn btn-primary btn-xs" href="{{ url_for('show.mark_show',show_id_form=cur_homework.show.id,show_type=g.show_type) }}">Noter</a>
 					{% else %}
 						 <td><a class="disabled btn btn-warning btn-xs">En cours</a>
 					{% endif %}
@@ -39,12 +40,15 @@
 				{% endif %}
 				<td>
 					{% if cur_homework.homework_who == g.user.id and cur_homework.mark == None %}
-						<a href="{{ url_for("delete_homework", user_id=cur_homework.user.id,movie_id=cur_homework.movie.id) }}"<i class="fa fa-times fa-1x" id="redcross"/></a>
+						<a href="{{ url_for("delete_homework", user_id=cur_homework.user.id,show_id=cur_homework.show.id) }}"<i class="fa fa-times fa-1x" id="redcross"/></a>
 					{% endif %}
 				</td>
 			</tr>
 			{% endfor %}
 			</table>
+                        {% else %}
+		                <h2 class="text-center">Aucun devoir disponible</h2>
+                        {% endif %}
 		</div>
 	</div>
 {% endblock %}
