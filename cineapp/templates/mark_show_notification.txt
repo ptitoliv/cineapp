@@ -1,6 +1,6 @@
 Yo {{ dest_user.nickname }},
 
-{% if notif_type == "add" %} {{ g.messages["label_generic_uppercase"] }} {{ mark.show.name }} vient d'être noté.{% elif notif_type == "update" %}La note {{g.messages["label_generic_possessive"] }} {{ mark.show.name }} vient d'être mise à jour.{% elif notif_type == "homework" %}Le devoir sur {{ g.messages["label_generic"] }} {{ mark.show.name }} vient d'être rempli.{% endif %}
+{% if notif_type == "add" %}{{ g.messages["label_generic_uppercase"] }} {{ mark.show.name }} vient d'être {{ g.messages["label_text_marked"] }}.{% elif notif_type == "update" %}La note {{g.messages["label_generic_possessive"] }} {{ mark.show.name }} vient d'être mise à jour.{% elif notif_type == "homework" %}Le devoir sur {{ g.messages["label_generic"] }} {{ mark.show.name }} vient d'être rempli.{% endif %}
 
 Par qui : {% if you_user == True %}Toi{% else %}{{ add_user.nickname }}{% endif %}
 
