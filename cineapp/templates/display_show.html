@@ -69,11 +69,7 @@ aria-hidden="true">&rarr;</span></a>
 				</tr>
 				<tr class="text-left">
 				 <td class="col-md-2">Fiche:</td>
-                 {% if show is movie %}
-                 <td><a href="https://themoviedb.org/movie/{{show.tmvdb_id}}">https://themoviedb.org/movie/{{show.tmvdb_id}}</a></td>
-                 {% elif show is tvshow %}
-                 <td><a href="https://themoviedb.org/tv/{{show.tmvdb_id}}">https://themoviedb.org/tv/{{show.tmvdb_id}}</a></td>
-                 {% endif %}
+                                 <td><a href="{{show.url}}">{{show.url}}</a></td>
 				</tr>
 				<tr class="text-left">
 				 <td class="col-md-2">Origine:</td>
@@ -115,8 +111,8 @@ aria-hidden="true">&rarr;</span></a>
 			{% else %}
             <a href="{{ url_for('show.mark_show',show_type=g.show_type,show_id_form=show.id) }}" class="btn btn-primary">{%if show is movie%}Noter ce film{%elif show is tvshow %}Noter cette série{%endif%}</a>
 			{% endif %}
-			{% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_CHANNEL and g.user.notifications["notif_slack"] == True%}
-			<a href="{{ url_for('publish_mark',show_id=show.id) }}" class="btn btn-primary">Publier sur Slack</a>
+			{% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE==True and g.user.notifications["notif_slack"] == True%}
+			<a href="{{ url_for('show.publish_mark',show_type=g.show_type,show_id=show.id) }}" class="btn btn-primary">Publier sur Slack</a>
 			{% endif %}
 		</div>
 		{% endif %}
@@ -139,7 +135,7 @@ aria-hidden="true">&rarr;</span></a>
 			        {% endfor %}
             {% endif %}
 
-		{% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_CHANNEL and g.user.notifications["notif_slack"] == True%}
+		{% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE==True and g.user.notifications["notif_slack"] == True%}
 			<!-- Button trigger modal -->
 			<div class="text-center">
 				<button type="button" class="btn btn-success" data-toggle="modal" data-target="#slack_confirm">Noter</button>
