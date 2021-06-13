@@ -8,11 +8,11 @@
 	<script>
 	$(document).ready(function() {
 	    {% if clear_table == True %}
-	    var table = $('#movielist').DataTable();
+	    var table = $('#showslist').DataTable();
             table.state.clear();
 	    table.destroy();
 	    {% endif %}
-	    var table = $('#movielist').DataTable(
+	    var table = $('#showslist').DataTable(
 			{ "searching":false,
 			  "ordering":true,
 			  "stateSave": true,
@@ -161,7 +161,7 @@
 	</div>
 	<div class="container" style="width:70%;">
 		<div class="table-responsive">
-			<table class="table table-striped" width="100%" id="movielist">
+			<table class="table table-striped" width="100%" id="showslist">
 			<!-- Display the users name -->
 			<thead>
 				<tr>

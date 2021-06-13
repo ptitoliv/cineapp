@@ -16,7 +16,7 @@
 				{% endif %}
 			</div>
 			{%from "_formhelpers.html" import render_field %}
-			<form action="{{ url_for('show.confirm_' + endpoint + '_show',show_type=g.show_type) }}" method="post" name="confirmform">
+			<form action="{{ url_for('show.confirm_' + endpoint + '_show',show_type=g.show_type) }}" method="post" name="confirmshow">
 			{{ form.hidden_tag() }}
 			<div class="col-md-10">
 				<table class="table table-striped">

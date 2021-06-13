@@ -16,7 +16,7 @@
 				{% endif %}
 			</ul>
 		</div>
-		<form action="{{ url_for('show.confirm_' + endpoint + '_show',show_type=g.show_type) }}" method="post" name="selectmovie">
+		<form action="{{ url_for('show.confirm_' + endpoint + '_show',show_type=g.show_type) }}" method="post" name="selectshow">
 		{{ select_form.hidden_tag() }}
 		<div class="row col-md-offset-1 col-md-10">
 			<table class="table table-hover">
