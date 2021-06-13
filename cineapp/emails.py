@@ -40,7 +40,7 @@ def add_show_notification(show):
             you_user=False
     
         # Send the mail if we have too  
-        if cur_user.notifications != None and cur_user.notifications["notif_movie_add"] == True and send_own_activity_mail==True:
+        if cur_user.notifications != None and cur_user.notifications["notif_show_add"] == True and send_own_activity_mail==True:
             send_email('[Cineapp] - %s' % g.messages["email_title_add"] , app.config['MAIL_SENDER'],[ cur_user.email ] ,
             render_template('add_show_notification.txt', dest_user=cur_user, add_user=g.user,show=show,you_user=you_user))
 
@@ -68,7 +68,7 @@ def mark_show_notification(mark,notif_type):
             you_user=False
 
         # Send the mail if we have too  
-        if cur_user.notifications != None and cur_user.notifications["notif_movie_add"] == True and send_own_activity_mail==True:
+        if cur_user.notifications != None and cur_user.notifications["notif_show_add"] == True and send_own_activity_mail==True:
             try:
                 if notif_type == "add": 
                     send_email('[Cineapp] - %s' % g.messages["email_title_mark"] , app.config['MAIL_SENDER'],[ cur_user.email ] ,
@@ -143,7 +143,7 @@ def update_show_notification(notif):
             you_user=False
     
         # Send the mail if we have too  
-        if cur_user.notifications != None and cur_user.notifications["notif_movie_add"] == True and send_own_activity_mail==True:
+        if cur_user.notifications != None and cur_user.notifications["notif_show_add"] == True and send_own_activity_mail==True:
             send_email('[Cineapp] - %s' % g.messages["email_title_update"] , app.config['MAIL_SENDER'],[ cur_user.email ] ,
             render_template('update_show_notification.txt', dest_user=cur_user, add_user=g.user,notif=notif,you_user=you_user))
 
