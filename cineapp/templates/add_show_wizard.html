@@ -8,11 +8,7 @@
 		<form action="{{ url_for( 'show.select_' + endpoint + '_show',show_type=g.show_type) }}" method="post" name="searchmovie">
 			{{ search_form.hidden_tag() }}
 	        <div class="input-group">
-                        {% if g.show_type == "movies" %}
-			        {{ render_field(search_form.search,label_visible=false,message=False,placeholder="Fast and furious 7, Les Tuche") }} 
-                        {% elif g.show_type == "tvshows" %}
-			        {{ render_field(search_form.search,label_visible=false,message=False,placeholder="The Shield, The Big Bang Theory") }} 
-                        {% endif %}
+                        {{ render_field(search_form.search,label_visible=false,message=False,placeholder=g.messages["field_search"]) }} 
 		    <div class="input-group-btn">
 			{{ search_form.submit_search(class="btn btn-success center-block") }}	
 		    </div>
