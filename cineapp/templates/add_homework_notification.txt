@@ -2,9 +2,9 @@ Yo {{ dest_user.nickname }},
 
 {{ homework_who.nickname }} vient de te donner un devoir.
 
-Le film que tu dois regarder est : {{ movie.name }}
+{{ g.messages["label_generic_uppercase"] }} que tu dois regarder est: {{ show.name }}
 
-Pour le noter : {{ url_for('show_movie', movie_id=movie.id, _external=True) }}
+Pour le noter : {{ url_for('show.display_show', show_id=show.id, show_type=g.show_type, _external=True) }}
 
 --
 CineApp
