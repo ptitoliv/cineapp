@@ -213,7 +213,7 @@ def edit_user_profile():
                 
                 # Update the notification dictionnary
                 g.user.notifications["notif_own_activity"] = form.notif_own_activity.data
-                g.user.notifications["notif_movie_add"] = form.notif_movie_add.data
+                g.user.notifications["notif_show_add"] = form.notif_show_add.data
                 g.user.notifications["notif_homework_add"] = form.notif_homework_add.data
                 g.user.notifications["notif_mark_add"] = form.notif_mark_add.data
                 g.user.notifications["notif_comment_add"] = form.notif_comment_add.data
