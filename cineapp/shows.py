@@ -1011,6 +1011,25 @@ def update_datatable():
         # Send the json object to the browser
         return json.dumps(dict_show) 
 
+@show_bp.route('/show/random')
+@login_required
+def display_show_random():
+        """
+                Function that redirects to a random movie sheet
+        """
+        # Fetch all the id matching the active show type
+        ids_list=db.session.query(Show.id).filter(Show.show_type==g.show_type).all()
+
+        # Get the random index id
+        random_id = randint(0,len(ids_list))
+
+        # Check if the movie exists
+        while Show.query.get(ids_list[random_id].id) is None:
+                random_id = randint(0,len(ids_list))
+
+        # Redirect to the movie sheet selected randomly
+        return redirect(url_for('show.display_show',show_type=g.show_type,show_id=ids_list[random_id].id))
+
 @show_bp.route('/mark/publish/<int:show_id>', methods=['GET'])
 @login_required
 @guest_control

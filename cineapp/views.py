@@ -140,25 +140,6 @@ def switch_show_type(show_type):
 
     return redirect(url_for('index'))
 
-@app.route('/movies/show/random')
-@login_required
-def show_movie_random():
-        """
-                Function that redirects to a random movie sheet
-        """
-        # Get the movie number stored in the databaese
-        count = Show.query.count()
-
-        # Get the random id
-        random_id = randint(1,count)
-
-        # Check if the movie exists
-        while Show.query.get(random_id) is None:
-                random_id = randint(1,count)
-
-        # Redirect to the movie sheet selected randomly
-        return redirect(url_for('show_movie',show_id=random_id))
-
 
 @app.route('/my/marks/<int:page>')
 @login_required
