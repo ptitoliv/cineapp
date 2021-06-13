@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 tvshows_messages = { 'label_add': "Ajouter une série",
                     'label_update': "Mise à jour de la série",
-                    'label_select': "Sélection du film",
+                    'label_select': "Sélection de la série",
                     'label_list': "Liste des séries",
                     'label_dashboard': "Tableau de bord des séries",
                     'label_activity': "Flux d'activité des séries",
@@ -38,7 +38,7 @@ tvshows_messages = { 'label_add': "Ajouter une série",
 
 movies_messages = { 'label_add': "Ajouter un film",
                     'label_update': "Mise à jour du film",
-                    'label_select': "Sélection de la série",
+                    'label_select': "Sélection du film",
                     'label_list': "Liste des films",
                     'label_dashboard': "Tableau de bord des films",
                     'label_activity': "Flux d'activité des films",
