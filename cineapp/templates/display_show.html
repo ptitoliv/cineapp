@@ -11,7 +11,7 @@ aria-hidden="true">&larr;</span> {{ show_prev.name }}</a>
 			</li>
 	{% endif %}
 			<li>
-				<a href="{{ url_for('show_movie_random') }}">Sélection aléatoire</a>
+				<a href="{{ url_for('show.display_show_random',show_type=g.show_type) }}">Sélection aléatoire</a>
 			</li>
         {% if show_next %}
 			<li class="next">
