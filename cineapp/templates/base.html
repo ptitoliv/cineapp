@@ -91,7 +91,7 @@
 				<form class="navbar-form navbar-left" method="post" action="{{ url_for('filter_form') }}">
 					{{ g.search_form.hidden_tag() }}
 					<div class="input-group">
-					{{ g.search_form.search(class="form-control",placeholder="Les Tuche, Spielberg") }}	
+                                                {{ g.search_form.search(class="form-control",placeholder=g.messages["field_search"]) }}	
 						<div class="input-group-btn">
 							{{ g.search_form.submit_search(class="btn btn-default") }}
 						</div>
