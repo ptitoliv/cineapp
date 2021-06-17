@@ -87,7 +87,7 @@ def login():
                         user = User(guest=True)
                         # User authenticated => Let's login it
                         login_user(user)
-                        return redirect(request.args.get('next') or url_for('list_movies'))
+                        return redirect(request.args.get('next') or url_for('show.list_shows',show_type=g.show_type))
 
                 user=User.query.filter_by(nickname=form.username.data).first()
                 if user is None:
@@ -138,7 +138,12 @@ def switch_show_type(show_type):
     # Tell that we must reset the table on next load
     session['clear_table_on_next_reload']=True
 
-    return redirect(url_for('index'))
+    # Redirect to the correct authorized page
+    if g.user.is_guest == True:
+        return redirect(url_for('show.list_shows',show_type=show_type))
+    else:
+        return redirect(url_for('index'))
+
 
 @lm.user_loader
 def load_user(id):
