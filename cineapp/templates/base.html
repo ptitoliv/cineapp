@@ -59,7 +59,7 @@
 				{% if not g.user.is_guest %}
 			      		<a class="navbar-brand" href="{{ url_for('index') }}">CineApp</a>
 				{% else %}
-			      		<a class="navbar-brand" href="{{ url_for('list_movies') }}">CineApp</a>
+			      		<a class="navbar-brand" href="{{ url_for('show.list_shows',show_type=g.show_type) }}">CineApp</a>
 				{% endif %}
 			 </div>	
 			{% if g.user.is_authenticated %}
@@ -107,10 +107,10 @@
 						        Welcome <strong>{{ g.user.nickname }}</strong>
 						</a>
 						<ul class="dropdown-menu">
-							{% if not g.user.is_guest %}
 							<li><a href="{{ url_for('switch_show_type',show_type="movies") }}"><i class="fa fa-video-camera"></i> CineApp</a></li>
                                                         <li><a href="{{ url_for('switch_show_type',show_type="tvshows") }}"><i class="fa fa-television"></i> SériesApp</a></li>
 							<li role="separator" class="divider"></li>
+							{% if not g.user.is_guest %}
 							<li><a href="{{ url_for('edit_user_profile') }}"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> Profil</a></li>
 							<li><a href="{{ url_for('change_user_password') }}"><span class="glyphicon glyphicon-lock" aria-hidden="true"></span> Mot de passe</a></li>
 							<li role="separator" class="divider"></li>
