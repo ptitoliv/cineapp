@@ -50,7 +50,7 @@ class FlaskrTestCase(unittest.TestCase):
         u.email="ptitoliv@ptitoliv.net"
         u.notifications={
             "notif_own_activity" : True,
-            "notif_movie_add" : True,
+            "notif_show_add" : True,
             "notif_mark_add": True,
             "notif_homework_add": True,
             "notif_comment_add": True,
@@ -70,6 +70,7 @@ class FlaskrTestCase(unittest.TestCase):
         
         db.session.commit()
         db.drop_all()
+        print("KIKOO")
 
     def test_01_populateUsers(self):
         hashed_password=hashpw("toto1234".encode('utf-8'),gensalt())
@@ -142,11 +143,11 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Les Tuche" in str(rv.data)
         
         # Select the movie
-        rv=self.app.post('/movies/add/confirm',data=dict(movie="66129",submit_select=True))
+        rv=self.app.post('/movies/add/confirm',data=dict(show="66129",submit_select=True))
         assert "Ajouter le film" in str(rv.data)
         
         # Store the movie into database
-        rv=self.app.post('/movies/add/confirm',data=dict(movie_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+        rv=self.app.post('/movies/add/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
         assert "Film ajout" in str(rv.data)
         assert "Affiche" in str(rv.data)
         
@@ -169,7 +170,7 @@ class FlaskrTestCase(unittest.TestCase):
                              content_type='multipart/form-data',
                              data=dict(email="ptitoliv+test@ptitoliv.net",upload_avatar=(img1BytesIO, 'test_avatar.png'),
                              notif_own_activity=u.notifications["notif_own_activity"],
-                             notif_movie_add=u.notifications["notif_movie_add"],
+                             notif_show_add=u.notifications["notif_show_add"],
                              notif_homework_add=u.notifications["notif_homework_add"],
                              notif_mark_add=u.notifications["notif_mark_add"],
                              notif_comment_add=u.notifications["notif_comment_add"],
@@ -205,7 +206,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
         
         # We are logged => mark the movie
-        rv=self.app.post('/json/add_mark_comment',data=dict(movie_id=1,dest_user=1,comment="plop"),follow_redirects=True)
+        rv=self.app.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment="plop"),follow_redirects=True)
         rv=self.app.get('/movies/show/1', follow_redirects=True)
         assert "plop" in str(rv.data) 
         
@@ -219,7 +220,7 @@ class FlaskrTestCase(unittest.TestCase):
         
         # We are logged => mark the movie
         rv=self.app.get('/movies/show/random', follow_redirects=True)
-        assert "Sortie" in str(rv.data) 
+        assert "Fiche" in str(rv.data) 
         
         rv=self.app.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
@@ -268,7 +269,7 @@ class FlaskrTestCase(unittest.TestCase):
         # First : a notification without configured token
         temp_slack_token=app.config["SLACK_TOKEN"]
         app.config["SLACK_TOKEN"]=None
-        assert slack.slack_mark_notification(None,app) == -1
+        assert slack.slack_mark_notification(None,app,"movies") == -1
         app.config["SLACK_TOKEN"]=temp_slack_token
 
         # Then, A notification with a bad channel configured
@@ -278,7 +279,7 @@ class FlaskrTestCase(unittest.TestCase):
         with self.assertRaises(SystemError):slack_channel.send_message("ZBRAH")
 
         # Let's do the same but with the slack_mark_notification method (In order to catch the exception)
-        assert slack.slack_mark_notification(None,app) == 1
+        assert slack.slack_mark_notification(None,app,"movies") == 1
 
 if __name__ == '__main__':
     unittest.main()
