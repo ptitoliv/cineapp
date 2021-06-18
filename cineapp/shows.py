@@ -370,7 +370,6 @@ def update_show():
 
                 # Put the object into the session array => We'll need it later
                 session['show']=show
-
                 return render_template('add_show_wizard.html', search_form=search_form,header_text=u"%s %s" % (g.messages["label_update"],show.name), endpoint="update")
 
         else:
@@ -378,55 +377,6 @@ def update_show():
             # If the form is not validated, we shouldn't be there ==> Let's go to the index
             flash("Erreur Générale", "danger")
             return(url_for('index'))
-
-        # Search form is validated => Let's fetch the movirs from tvdb.org
-        if search_form.submit_search.data:
-
-                # Get the show object in order to get the show name
-                show=session.get('show',None)
-
-                # Put it in a session in order to do the validation
-                session['query_show'] = search_form.search.data
-
-                if search_form.validate_on_submit():
-                        select_form=SelectShowForm(search_shows(search_form.search.data))
-
-                        # Display the selection form
-                        if len(select_form.show.choices) == 0:
-                                flash("Aucun film correspondant","danger")
-                                return render_template('add_show_wizard.html', search_form=search_form)
-                        else:
-                                return render_template('select_show_wizard.html', select_form=select_form,url_wizard_next=url_for("update_show"))
-                else:
-                        return render_template('add_show_wizard.html', search_form=search_form,header_text=u"%s %s" % (g.messages["label_update"],show.name))
-
-        # Validate selection form
-        if select_form.submit_select.data:
-
-                # Rebuild the RadioField list in order to be able to validate the form
-                select_form=SelectShowForm(search_shows(session.get('query_show',None)))
-
-                if select_form.validate_on_submit():
-                        # Update the origin using data stored in database and fetch from TMVDB
-                        show=Show.query.get(session.get('show_id',None))
-        
-                        # Populate a temp show object which will be used for display the show data got from tmvdb
-                        tmvdb_show=get_show(select_form.show.data)
-                        
-                        # Fill the confirm_form with the correct values gotten from the mobie object    
-                        confirm_form=ConfirmShowForm(origin=show.origin_object,type=show.type_object)
-                        confirm_form.show_id.data=select_form.show.data
-                
-                        # Update the text button
-                        confirm_form.submit_confirm.label.text=u'Mettre à jour le film'
-
-                        # Go to the final confirmation form
-                        return render_template('confirm_show_wizard.html', show=tmvdb_show,form=confirm_form,url_wizard_next=url_for("update_show"))
-
-                else:
-                        # Select Form Error => Display it again in order the user to correct the error
-                        flash("Veuillez sélectionenr un film","danger")
-                        return render_template('select_show_wizard.html', select_form=select_form,url_wizard_next=url_for("update_show"))
 
 @show_bp.route('/show/<int:show_id>')
 @login_required
