@@ -70,7 +70,6 @@ class FlaskrTestCase(unittest.TestCase):
         
         db.session.commit()
         db.drop_all()
-        print("KIKOO")
 
     def test_01_populateUsers(self):
         hashed_password=hashpw("toto1234".encode('utf-8'),gensalt())
