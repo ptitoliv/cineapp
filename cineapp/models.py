@@ -208,7 +208,7 @@ class Mark(db.Model):
 	user = db.relationship('User', backref='marked_shows',foreign_keys='Mark.user_id')
 	homework_who_user = db.relationship('User', backref='given_homework',foreign_keys='Mark.homework_who')
 	comments = db.relationship('MarkComment', backref='mark', order_by=desc("posted_when"))
-	active_comments = db.relationship('MarkComment', order_by=desc("posted_when"), primaryjoin=("and_(MarkComment.mark_user_id==Mark.user_id, MarkComment.mark_show_id==Mark.show_id,MarkComment.deleted_when==None)"))
+	active_comments = db.relationship('MarkComment', order_by=desc("posted_when"), primaryjoin=("and_(MarkComment.mark_user_id==Mark.user_id, MarkComment.mark_show_id==Mark.show_id,MarkComment.deleted_when==None)"),viewonly=True)
 
 class ChatMessage(db.Model):
 	__tablename__ = "chat_messages"
