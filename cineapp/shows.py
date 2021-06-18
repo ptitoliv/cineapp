@@ -44,7 +44,7 @@ def check_show_type(endpoint,values):
         g.show_type=show_type
 
 
-@show_bp.route('/add/', methods=['GET','POST'])
+@show_bp.route('/add', methods=['GET','POST'])
 @login_required
 @guest_control
 def add_show():
@@ -193,16 +193,10 @@ def confirm_show():
                         return render_template('confirm_show_wizard.html', show=show_form_tmvdb, form=confirm_form, endpoint=endpoint)
                 else:
                         # Warn the user that the form is incomplete
-                        if g.show_type=="movies":
-                            flash("Veuillez sélectionner un film","danger")
-                            confirm_form.submit_confirm.label.text="Mettre à jour le film"
-                        elif g.show_type=="tvshows":
-                            flash("Veuillez sélectionner une série","danger")
-                            confirm_form.submit_confirm.label.text="Mettre à jour la série"
                         if endpoint == "add":
-                                return redirect(url_for('select_add_show',page=session["page"]))
+                                return redirect(url_for('show.select_add_show',show_type=g.show_type,page=session["page"]))
                         elif endpoint == "update":
-                                return redirect(url_for('select_update_show',page=session["page"]))
+                                return redirect(url_for('show.select_update_show',show_type=g.show_type,page=session["page"]))
 
         # Create the form we're going to use    
         confirm_form=ConfirmShowForm(button_label=g.messages["label_generic"])
@@ -1020,8 +1014,14 @@ def display_show_random():
         # Fetch all the id matching the active show type
         ids_list=db.session.query(Show.id).filter(Show.show_type==g.show_type).all()
 
+        # Check if there is something to query
+        if len(ids_list) == 0:
+            flash("Impossible d\'efffectuer une recherche aléatoire - Pas de contenu disponible","danger")
+            app.logger.error("Liste vide. Pas de recherche aléatoire possible")
+            return redirect(url_for('show.list_shows',show_type=g.show_type))
+
         # Get the random index id
-        random_id = randint(0,len(ids_list))
+        random_id = randint(0,len(ids_list)-1)
 
         # Check if the movie exists
         while Show.query.get(ids_list[random_id].id) is None:
