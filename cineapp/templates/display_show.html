@@ -180,7 +180,7 @@ aria-hidden="true">&rarr;</span></a>
 					<a class="disabled btn btn-warning btn-xs fa-bg-white btn-mark">Devoir</a>
 				{% elif cur_mark["mark"] == None %}
 					{% if g.user.id != (cur_mark["user"]).id and not g.user.is_guest %}
-						<a href={{ url_for("add_homework",show_id=show.id,user_id=cur_mark["user"].id) }} class="btn btn-success btn-xs btn-mark">Donner un devoir</a>
+						<a href={{ url_for("homework.add_homework",show_id=show.id,user_id=cur_mark["user"].id) }} class="btn btn-success btn-xs btn-mark">Donner un devoir</a>
 					{% else %}
 						<a class="disabled btn btn-danger btn-xs btn-mark">Pas de note</a>
 					{% endif %}
