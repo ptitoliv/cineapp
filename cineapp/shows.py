@@ -263,7 +263,7 @@ def confirm_show():
                                 return redirect(url_for("shows_list"))
 
                         # All checks are okay => Update the show !
-                        temp_show=get_show(confirm_form.show_id.data)
+                        temp_show=get_show(confirm_form.show_id.data,show_type=g.show_type)
 
                         # Put the notifications into a dictionnary for notification mail
                         notification_data={}
