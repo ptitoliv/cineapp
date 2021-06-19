@@ -206,7 +206,7 @@ class FlaskrTestCase(unittest.TestCase):
         
         # We are logged => mark the movie
         rv=self.app.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment="plop"),follow_redirects=True)
-        rv=self.app.get('/movie/show/1', follow_redirects=True)
+        rv=self.app.get('/movie/display/1', follow_redirects=True)
         assert "plop" in str(rv.data) 
         
         rv=self.app.get('/logout', follow_redirects=True)
@@ -218,7 +218,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
         
         # We are logged => mark the movie
-        rv=self.app.get('/movie/show/random', follow_redirects=True)
+        rv=self.app.get('/movie/display/random', follow_redirects=True)
         assert "Fiche" in str(rv.data) 
         
         rv=self.app.get('/logout', follow_redirects=True)
@@ -250,12 +250,12 @@ class FlaskrTestCase(unittest.TestCase):
         
         # We are logged => mark the movie
         rv=self.app.post('/json/edit_mark_comment',data=dict(comment_id=1,comment_text="plup"),follow_redirects=True)
-        rv=self.app.get('/movie/show/1', follow_redirects=True)
+        rv=self.app.get('/movie/display/1', follow_redirects=True)
         assert "plup" in str(rv.data) 
         
         # Delete the comment    
         rv=self.app.post('/json/delete_mark_comment',data=dict(comment_id=1),follow_redirects=True)
-        rv=self.app.get('/movie/show/1', follow_redirects=True)
+        rv=self.app.get('/movie/display/1', follow_redirects=True)
         assert "plup" not in str(rv.data) 
         
         rv=self.app.get('/logout', follow_redirects=True)
