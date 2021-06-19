@@ -41,8 +41,12 @@ def add_show_notification(show):
     
         # Send the mail if we have too  
         if cur_user.notifications != None and cur_user.notifications["notif_show_add"] == True and send_own_activity_mail==True:
-            send_email('[Cineapp] - %s' % g.messages["email_title_add"] , app.config['MAIL_SENDER'],[ cur_user.email ] ,
-            render_template('add_show_notification.txt', dest_user=cur_user, add_user=g.user,show=show,you_user=you_user))
+            try:
+                send_email('[Cineapp] - %s' % g.messages["email_title_add"] , app.config['MAIL_SENDER'],[ cur_user.email ] ,
+                render_template('add_show_notification.txt', dest_user=cur_user, add_user=g.user,show=show,you_user=you_user))
+            except Exception as e:
+                app.logger.error("Impossible d'envoyer le mail d'ajout: %s",e)
+                return 1
 
 # Function which sends notifications to users when a show is added
 def mark_show_notification(mark,notif_type):
