@@ -528,12 +528,12 @@ def show_graphs():
                 for cur_user in users:
                         data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
 
-                        # Set the percentage considering the total movies number seen for each user and not globally
-                        user_movies_count = basequery.filter(Mark.user_id==cur_user.id).count()
+                        # Set the percentage considering the total shows number seen for each user and not globally
+                        user_shows = basequery.filter(Mark.user_id==cur_user.id).count()
 
-                        if user_movies_count != 0:
+                        if user_shows_count != 0:
                             for cur_mark in frange(0,20,0.5):
-                                    percent = float((basequery.filter(Mark.mark==cur_mark,Mark.user_id==cur_user.id).count() * 100)) / float(user_movies_count)
+                                    percent = float((basequery.filter(Mark.mark==cur_mark,Mark.user_id==cur_user.id).count() * 100)) / float(user_shows_count)
                                     data[cur_user.nickname]["data"].append(round(percent,2))
 
         elif graph_to_generate == "type":
@@ -615,7 +615,7 @@ def show_graphs():
 
         elif graph_to_generate == "year":
 
-                # Distributed movies graph by year
+                # Distributed shows graph by year
                 graph_type="line"
 
                 # Search the min and max year in order to generate a optimized graph
