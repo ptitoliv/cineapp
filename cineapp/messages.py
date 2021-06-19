@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-tvshows_messages = { 'label_add': "Ajout d\'une série",
+tvshow_messages = { 'label_add': "Ajout d\'une série",
                     'label_update': "Mise à jour de la série",
                     'label_select': "Sélection de la série",
                     'label_list': "Liste des séries",
@@ -39,7 +39,7 @@ tvshows_messages = { 'label_add': "Ajout d\'une série",
                     'flash_favorite_delete': "Série supprimée des favoris",
                     'flash_favorite_delete_failed': "Impossible de supprimer la série des favoris" }
 
-movies_messages = { 'label_add': "Ajout d\'un film",
+movie_messages = { 'label_add': "Ajout d\'un film",
                     'label_update': "Mise à jour du film",
                     'label_select': "Sélection du film",
                     'label_list': "Liste des films",

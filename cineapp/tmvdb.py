@@ -10,7 +10,7 @@ from cineapp import app,db
 from cineapp.models import Movie,TVShow, ProductionStatus
 
 # Conversion from show_type
-tmvdb_mode={ "movies": "movie", "tvshows": "tv" }
+tmvdb_mode={ "movie": "movie", "tvshow": "tv" }
 
 def tmvdb_connect(url):
     """
@@ -114,7 +114,7 @@ def get_show(id,fetch_poster=True,show_type=None):
             url=None
 
     # Create the show object
-    if show_type == "movies":
+    if show_type == "movie":
 
         # Set date to None if the string is empty
         if len(show['release_date']) == 0:
@@ -143,7 +143,7 @@ def get_show(id,fetch_poster=True,show_type=None):
             overview=show['overview'],
             duration=show['runtime'])
 
-    elif show_type == "tvshows":
+    elif show_type == "tvshow":
 
         # Generate the showruners string
         showrunner=""

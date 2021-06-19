@@ -134,19 +134,19 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
         
         # We are logged => add the movie
-        rv=self.app.get('/movies/add')
+        rv=self.app.get('/movie/add')
         assert "Ajout d&#39;un film" in str(rv.data)
         
         # Fill the movie title
-        rv=self.app.post('/movies/add/select',data=dict(search="tuche",submit_search=True))
+        rv=self.app.post('/movie/add/select',data=dict(search="tuche",submit_search=True))
         assert "Les Tuche" in str(rv.data)
         
         # Select the movie
-        rv=self.app.post('/movies/add/confirm',data=dict(show="66129",submit_select=True))
+        rv=self.app.post('/movie/add/confirm',data=dict(show="66129",submit_select=True))
         assert "Ajouter le film" in str(rv.data)
         
         # Store the movie into database
-        rv=self.app.post('/movies/add/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+        rv=self.app.post('/movie/add/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
         assert "Film ajout" in str(rv.data)
         assert "Affiche" in str(rv.data)
         
@@ -189,11 +189,11 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
         
         # We are logged => mark the movie
-        rv=self.app.post('/movies/mark/1',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        rv=self.app.post('/movie/mark/1',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note ajout" in str(rv.data)
         
         # We are logged => mark the movie
-        rv=self.app.post('/movies/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        rv=self.app.post('/movie/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note mise" in str(rv.data)
         
         rv=self.app.get('/logout', follow_redirects=True)
@@ -206,7 +206,7 @@ class FlaskrTestCase(unittest.TestCase):
         
         # We are logged => mark the movie
         rv=self.app.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment="plop"),follow_redirects=True)
-        rv=self.app.get('/movies/show/1', follow_redirects=True)
+        rv=self.app.get('/movie/show/1', follow_redirects=True)
         assert "plop" in str(rv.data) 
         
         rv=self.app.get('/logout', follow_redirects=True)
@@ -218,7 +218,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
         
         # We are logged => mark the movie
-        rv=self.app.get('/movies/show/random', follow_redirects=True)
+        rv=self.app.get('/movie/show/random', follow_redirects=True)
         assert "Fiche" in str(rv.data) 
         
         rv=self.app.get('/logout', follow_redirects=True)
@@ -230,12 +230,12 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
         
         # We are logged => mark the movie
-        rv=self.app.get('/movies/list', follow_redirects=True)
+        rv=self.app.get('/movie/list', follow_redirects=True)
         assert "Liste des films" in str(rv.data)
         
         args = {'search': {'regex': False, 'value': ''}, 'draw': 1, 'start': 0, 'length': 100, 'order': [{'column': 0, 'dir': 'asc'}], 'columns': [{'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'name', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'director', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'average', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_fav', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_mark', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_when', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.3', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.3', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.3', 'name': '', 'searchable': True}]}
         
-        rv=self.app.get('/movies/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        rv=self.app.get('/movie/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
 
         response_args=json.loads(rv.data)["data"]
         assert "Les Tuche" in response_args[0]["name"]
@@ -250,12 +250,12 @@ class FlaskrTestCase(unittest.TestCase):
         
         # We are logged => mark the movie
         rv=self.app.post('/json/edit_mark_comment',data=dict(comment_id=1,comment_text="plup"),follow_redirects=True)
-        rv=self.app.get('/movies/show/1', follow_redirects=True)
+        rv=self.app.get('/movie/show/1', follow_redirects=True)
         assert "plup" in str(rv.data) 
         
         # Delete the comment    
         rv=self.app.post('/json/delete_mark_comment',data=dict(comment_id=1),follow_redirects=True)
-        rv=self.app.get('/movies/show/1', follow_redirects=True)
+        rv=self.app.get('/movie/show/1', follow_redirects=True)
         assert "plup" not in str(rv.data) 
         
         rv=self.app.get('/logout', follow_redirects=True)
@@ -268,7 +268,7 @@ class FlaskrTestCase(unittest.TestCase):
         # First : a notification without configured token
         temp_slack_token=app.config["SLACK_TOKEN"]
         app.config["SLACK_TOKEN"]=None
-        assert slack.slack_mark_notification(None,app,"movies") == -1
+        assert slack.slack_mark_notification(None,app,"movie") == -1
         app.config["SLACK_TOKEN"]=temp_slack_token
 
         # Then, A notification with a bad channel configured
@@ -278,7 +278,7 @@ class FlaskrTestCase(unittest.TestCase):
         with self.assertRaises(SystemError):slack_channel.send_message("ZBRAH")
 
         # Let's do the same but with the slack_mark_notification method (In order to catch the exception)
-        assert slack.slack_mark_notification(None,app,"movies") == 1
+        assert slack.slack_mark_notification(None,app,"movie") == 1
 
 if __name__ == '__main__':
     unittest.main()

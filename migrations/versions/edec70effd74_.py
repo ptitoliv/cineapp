@@ -53,7 +53,7 @@ def upgrade():
 
     # Migrate data from movies table to show table
     conn=op.get_bind()
-    conn.execute("INSERT INTO shows (`id`, `name`, `release_date`, `type`, `url`, `origin`, `director`, `overview`, `poster_path`, `added_when`, `added_by_user`, `original_name`, `show_type`) SELECT `id`, `name`, `release_date`, `type`, `url`, `origin`, `director`, `overview`, `poster_path`, `added_when`, `added_by_user`, `original_name`,\"movies\" FROM movies")
+    conn.execute("INSERT INTO shows (`id`, `name`, `release_date`, `type`, `url`, `origin`, `director`, `overview`, `poster_path`, `added_when`, `added_by_user`, `original_name`, `show_type`) SELECT `id`, `name`, `release_date`, `type`, `url`, `origin`, `director`, `overview`, `poster_path`, `added_when`, `added_by_user`, `original_name`,\"movie\" FROM movies")
 
     op.create_table('tvshows',
     sa.Column('id', sa.Integer(), nullable=False),

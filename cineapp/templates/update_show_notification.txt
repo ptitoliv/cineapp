@@ -12,9 +12,9 @@ Nom original: {{ notif["old"]["original_name"] }}
 {{ g.messages["label_release_date"] }}: {{ notif["old"]["release_date"] }}
 Genre: {{ notif["old"]["type"] }}
 Origine: {{ notif["old"]["origin"] }}
-{%- if g.show_type=="movies" %}
+{%- if g.show_type=="movie" %}
 Durée: {% if notif["old"]["duration"] %}{{ notif["old"]["duration"]|minutes_to_human_duration }}{% else %}Inconnue{% endif %}
-{% elif g.show_type=="tvshows" %}
+{% elif g.show_type=="tvshow" %}
 Nombre de saisons: {{ notif["old"]["nb_seasons"] }}
 Production: {{ notif["old"]["production_status"] }}
 {% endif -%}
@@ -28,9 +28,9 @@ Nom original: {{ notif["new"]["original_name"] }}
 {{ g.messages["label_release_date"] }}: {{ notif["new"]["release_date"] }}
 Genre: {{ notif["new"]["type"] }}
 Origine: {{ notif["new"]["origin"] }}
-{%- if g.show_type=="movies" %} 
+{%- if g.show_type=="movie" %} 
 Durée: {% if notif["new"]["duration"] %}{{ notif["new"]["duration"]|minutes_to_human_duration }}{% else %}Inconnue{% endif %}
-{% elif g.show_type=="tvshows" %}
+{% elif g.show_type=="tvshow" %}
 Nombre de saisons: {{ notif["new"]["nb_seasons"] }}
 Production: {{ notif["new"]["production_status"] }}
 {% endif -%}
