@@ -4,7 +4,7 @@
 		<h1 class="text-center">Liste des devoirs</h1>
 		<!-- My Homeworks filter form -->
 		<div style="width:100%;">
-			<form style="width:100%;" class="form-inline text-center" method="post" role="form" action={{ url_for('list_homeworks') }}>
+			<form style="width:100%;" class="form-inline text-center" method="post" role="form" action={{ url_for('homework.list_homeworks') }}>
 				{{ homework_filter_form.hidden_tag() }}
 				{{ render_field(homework_filter_form.from_user_filter) }}	
 				{{ render_field(homework_filter_form.to_user_filter) }}	
@@ -40,7 +40,7 @@
 				{% endif %}
 				<td>
 					{% if cur_homework.homework_who == g.user.id and cur_homework.mark == None %}
-						<a href="{{ url_for("delete_homework", user_id=cur_homework.user.id,show_id=cur_homework.show.id) }}"<i class="fa fa-times fa-1x" id="redcross"/></a>
+						<a href="{{ url_for("homework.delete_homework", user_id=cur_homework.user.id,show_id=cur_homework.show.id) }}"<i class="fa fa-times fa-1x" id="redcross"/></a>
 					{% endif %}
 				</td>
 			</tr>

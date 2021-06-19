@@ -263,7 +263,7 @@ def confirm_show():
                                 return redirect(url_for("shows_list"))
 
                         # All checks are okay => Update the show !
-                        temp_show=get_show(confirm_form.show_id.data,show_type=g.show_type)
+                        temp_show=get_show(confirm_form.show_id.data)
 
                         # Put the notifications into a dictionnary for notification mail
                         notification_data={}
@@ -936,7 +936,7 @@ def update_datatable():
                         dict_where[cur_user.id]="-"
                         dict_when[cur_user.id]="-"
                         dict_favs[cur_user.id]=None
-                        dict_homework[cur_user.id]={ "when" : None, "who:" : None, "link" : url_for("add_homework",show_id=cur_show.id,user_id=cur_user.id)}
+                        dict_homework[cur_user.id]={ "when" : None, "who:" : None, "link" : url_for("homework.add_homework",show_id=cur_show.id,user_id=cur_user.id)}
                         for cur_mark in cur_show.marked_by_users:
                                 if cur_mark.user.id == cur_user.id:
                                         dict_mark[cur_user.id]=cur_mark.mark            

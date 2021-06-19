@@ -66,7 +66,7 @@
 			<div class="collapse navbar-collapse" id="main_navbar">
 				{% if not g.user.is_guest %}
 				<ul class="nav navbar-nav">
-					<li><a href="{{ url_for('list_homeworks') }}">Devoirs</a></li>
+					<li><a href="{{ url_for('homework.list_homeworks') }}">Devoirs</a></li>
 					<li><a href="{{ url_for('show_activity_flow') }}">Activité</a></li>
 					<li><a href="{{ url_for('show.add_show',show_type=g.show_type) }}">
                                                         {{ g.messages["label_add"] }}
