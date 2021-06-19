@@ -15,7 +15,7 @@ from wtforms.ext.sqlalchemy.orm import model_form
 from wtforms.ext.sqlalchemy.fields import QuerySelectField
 from cineapp import app, db, lm
 from cineapp.forms import LoginForm, AddUserForm, AddShowForm, MarkShowForm, SearchShowForm, SelectShowForm, ConfirmShowForm, FilterForm, UserForm, PasswordForm, HomeworkForm, UpdateShowForm, DashboardGraphForm
-from cineapp.models import User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow
+from cineapp.models import User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow, ProductionStatus
 from cineapp.tvmdb import search_shows,get_show,download_poster, search_page_number
 from cineapp.emails import add_show_notification, mark_show_notification, add_homework_notification, update_show_notification
 from cineapp.utils import frange, get_activity_list, resize_avatar
@@ -189,8 +189,12 @@ def confirm_show():
                                 elif g.show_type=="tvshows":
                                     confirm_form.submit_confirm.label.text="Mettre à jour la série"
 
+                        # Since the production_status object is not available because the object is not commited
+                        # let's generate a temporary standalone object filled using the string got in tmvdb
+                        production_status=ProductionStatus.query.get(show_form_tmvdb.production_status)
+
                         # Go to the final confirmation form
-                        return render_template('confirm_show_wizard.html', show=show_form_tmvdb, form=confirm_form, endpoint=endpoint)
+                        return render_template('confirm_show_wizard.html', show=show_form_tmvdb, production_status=production_status, form=confirm_form, endpoint=endpoint)
                 else:
                         # Warn the user that the form is incomplete
                         if endpoint == "add":
@@ -291,7 +295,8 @@ def confirm_show():
                             show.duration=temp_show.duration
                         elif type(show) is TVShow:
                             notification_data["old"]["nb_seasons"]=show.nb_seasons
-                            show.nb_seasons=temp_show.nb_seasons
+                            notification_data["old"]["production_status"]=show.production_status_obj.translated_status
+                            show.production_status=temp_show.production_status
 
                         # Add the show in the database
                         try:
@@ -323,6 +328,7 @@ def confirm_show():
                                     notification_data["new"]["duration"]=show.duration
                                 elif type(show) is TVShow:
                                     notification_data["new"]["nb_seasons"]=show.nb_seasons
+                                    notification_data["new"]["production_status"]=show.production_status_obj.translated_status
 
                                 # Show has been updated => Send notifications
                                 update_show_notification(notification_data)

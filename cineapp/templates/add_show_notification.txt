@@ -4,7 +4,7 @@ Tu viens d'ajouter {{ g.messages["label_generic"] }}: {{ show.name }}.
 {% else %}
 {{ add_user.nickname }} vient d'ajouter {{ g.messages["label_generic"] }}: {{ show.name }}.
 {% endif %}
-Pour {{ g.messages["label_article_generic"] }} noter : {{ url_for('show.display_show', show_id=show.id, _external=True,show_type=g.show_type) }}
+Pour {{ g.messages["label_article_generic"] }} noter: {{ url_for('show.display_show', show_id=show.id, _external=True,show_type=g.show_type) }}
 
 --
 CineApp
