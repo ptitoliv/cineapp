@@ -100,7 +100,7 @@ def select_show(page=1):
                 return redirect(url_for('add_show'))
 
         # Fetch how many pages we have to handle
-        total_pages = search_page_number(query_show)
+        total_pages = search_page_number(query_show,show_type=g.show_type)
 
         # Check if the page number is correct
         if page < 1 or page > total_pages:
@@ -119,7 +119,7 @@ def select_show(page=1):
                 has_next = False
 
         # Fetch the query from the previous form in order to fill correctly the radio choices
-        shows_list=search_shows(query_show,page)
+        shows_list=search_shows(query_show,g.show_type,page)
         select_form=SelectShowForm(g.show_type,shows_list)
         session["page"] = page
 
@@ -159,7 +159,7 @@ def confirm_show():
                 
                         # Last step : Set type and origin and add the show
                         # Note : Show_id is the TMVDB id
-                        show_form_tmvdb=get_show(select_form.show.data, True)
+                        show_form_tmvdb=get_show(select_form.show.data, True, show_type=g.show_type)
 
                         if endpoint == "add":
 
@@ -214,7 +214,7 @@ def confirm_show():
                 if endpoint == "add":
 
                         # Form is okay => We can add the show
-                        show_to_create=get_show(confirm_form.show_id.data)
+                        show_to_create=get_show(confirm_form.show_id.data,show_type=g.show_type)
                         show_to_create.added_by_user=g.user.id
                         show_to_create.type=confirm_form.type.data.id
                         show_to_create.origin=confirm_form.origin.data.id
