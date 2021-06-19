@@ -61,7 +61,9 @@ def upgrade():
     sa.Column('tmvdb_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['id'], ['shows.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('tmvdb_id')
+    sa.UniqueConstraint('tmvdb_id'),
+    mysql_charset='utf8',
+    mysql_collate='utf8_general_ci'
     )
 
     # Rename movie_id column to show_id column and update associated foreign key
@@ -89,7 +91,9 @@ def upgrade():
     sa.Column('tmvdb_id', sa.Integer(), nullable=True),
     sa.ForeignKeyConstraint(['id'], ['shows.id'], ),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('tmvdb_id')
+    sa.UniqueConstraint('tmvdb_id'),
+    mysql_charset='utf8',
+    mysql_collate='utf8_general_ci'
     )
 
     # Fill the movie table with correct data in order to handle correctly inheritance
