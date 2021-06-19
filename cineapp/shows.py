@@ -191,7 +191,10 @@ def confirm_show():
 
                         # Since the production_status object is not available because the object is not commited
                         # let's generate a temporary standalone object filled using the string got in tmvdb
-                        production_status=ProductionStatus.query.get(show_form_tmvdb.production_status)
+                        if g.show_type == "tvshows":
+                            production_status=ProductionStatus.query.get(show_form_tmvdb.production_status)
+                        else:
+                            production_status=None
 
                         # Go to the final confirmation form
                         return render_template('confirm_show_wizard.html', show=show_form_tmvdb, production_status=production_status, form=confirm_form, endpoint=endpoint)
