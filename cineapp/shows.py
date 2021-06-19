@@ -6,7 +6,7 @@ standard_library.install_aliases()
 from builtins import next
 from builtins import str
 from builtins import range
-import urllib.request, urllib.parse, urllib.error, hashlib, re, os, locale, json, copy, time,html2text
+import urllib.request, urllib.parse, urllib.error, hashlib, re, os, locale, json, copy, time,html2text, traceback
 from datetime import datetime
 from flask import render_template, flash, redirect, url_for, g, request, session, abort, Blueprint
 from flask_login import login_user, logout_user, current_user, login_required
@@ -387,7 +387,7 @@ def update_show():
             flash("Erreur Générale", "danger")
             return(url_for('index'))
 
-@show_bp.route('/show/<int:show_id>')
+@show_bp.route('/display/<int:show_id>')
 @login_required
 def display_show(show_id):
 
@@ -407,6 +407,31 @@ def display_show(show_id):
 
         # Init the form that will be used if we want to update the show data
         update_show_form=UpdateShowForm(g.messages["label_generic"],show_id)
+
+        # If we have a TV Show we are going to sync the number of seasons and 
+        # the production status which are dynamic fields
+        if g.show_type == "tvshows":
+            temp_tvshow=get_show(show.tmvdb_id,fetch_poster=False,show_type=g.show_type)
+
+            if temp_tvshow != None:
+                
+                # Let's update the fields
+                if show.production_status != temp_tvshow.production_status or show.nb_seasons != temp_tvshow.nb_seasons:
+                    app.logger.info("Mise à jour des valeurs dynamiques de la série %s" % show.name)
+                    app.logger.info("Anciennes valeurs - Nombre de saisons:%s - Etat de la production: %s" % (show.nb_seasons,show.production_status))
+                    app.logger.info("Nouvelles valeurs - Nombre de saisons:%s - Etat de la production: %s" % (temp_tvshow.nb_seasons,temp_tvshow.production_status))
+
+                    show.production_status=temp_tvshow.production_status
+                    show.nb_seasons=temp_tvshow.nb_seasons
+
+                try:
+                    db.session.add(show)
+                    db.session.flush()
+                    db.session.commit()
+
+                except Exception as e:
+                    app.logger.error("Impossible de mettre à jour les paramètres de la série: %s" % e)
+                    app.logger.error("%s" % traceback.print_exc())
 
         # Browse all users
         for cur_user in users:
@@ -964,7 +989,7 @@ def update_datatable():
         # Send the json object to the browser
         return json.dumps(dict_show) 
 
-@show_bp.route('/show/random')
+@show_bp.route('/display/random')
 @login_required
 def display_show_random():
         """
