@@ -8,7 +8,6 @@ from urllib.request import urlopen
 from datetime import datetime
 from cineapp import app,db
 from cineapp.models import Movie,TVShow, ProductionStatus
-from flask import g
 
 # Conversion from show_type
 tmvdb_mode={ "movies": "movie", "tvshows": "tv" }
@@ -19,6 +18,7 @@ def tmvdb_connect(url):
         using the API rate limiting of the API
     """
     try:
+        app.logger.debug("%s",url)
         data=urlopen(url)
     
     except urllib.error.HTTPError:
@@ -42,7 +42,7 @@ def download_poster(url):
     # If we are here, everything is okay
     return True
 
-def search_shows(query,page=1):
+def search_shows(query,show_type,page=1):
 
     """
         Function that query tvmdb.org and return a list of shows
@@ -53,11 +53,11 @@ def search_shows(query,page=1):
 
     # Query the API using the query in parameter
     for cur_language in languages_list:
-        shows_list=tmvdb_connect(os.path.join(app.config['API_URL'],("search/" + tmvdb_mode[g.show_type] + "?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.parse.quote(query.encode('utf-8')))) + "&page=" + str(page))
-        app.logger.info("URL de recherche: %s" % os.path.join(app.config['API_URL'],("search/" + tmvdb_mode[g.show_type] + "?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.parse.quote(query.encode('utf-8')))))
+        shows_list=tmvdb_connect(os.path.join(app.config['API_URL'],("search/" + tmvdb_mode[show_type] + "?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.parse.quote(query.encode('utf-8')))) + "&page=" + str(page))
+        app.logger.info("URL de recherche: %s" % os.path.join(app.config['API_URL'],("search/" + tmvdb_mode[show_type] + "?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.parse.quote(query.encode('utf-8')))))
 
         for cur_show in shows_list['results']:
-            temp_show=get_show(cur_show['id'],False)
+            temp_show=get_show(cur_show['id'],False,show_type=show_type)
 
             # Only append if we have a real show object
             if temp_show != None:
@@ -70,18 +70,18 @@ def get_show(id,fetch_poster=True,show_type=None):
         Function that fill a show object using TVMDB database
     """
 
-
     # Check if there is an id. If not return None
     if id == None:
+        app.logger.error("Champ id vide")
         return None
 
     # Fetch the show data
-    show=tmvdb_connect(os.path.join(app.config['API_URL'],(tmvdb_mode[g.show_type] + "/" + str(id) + "?api_key=" + app.config['API_KEY'] + "&append_to_response=credits,details&language=fr")))
+    show=tmvdb_connect(os.path.join(app.config['API_URL'],(tmvdb_mode[show_type] + "/" + str(id) + "?api_key=" + app.config['API_KEY'] + "&append_to_response=credits,details&language=fr")))
 
     # Check if we did a successfull search using the API
     if show == None:
+        app.logger.error("Pas de réponse de l'API pour l'id %s", id)
         return None
-
 
     # Initialize url variable
     url = None
@@ -91,7 +91,7 @@ def get_show(id,fetch_poster=True,show_type=None):
     base_url=config_api['images']['secure_base_url']
 
     # Try to get the poster in French
-    show_poster=tmvdb_connect(os.path.join(app.config['API_URL'],(tmvdb_mode[g.show_type] + "/" + str(id) + "/images?api_key=" + app.config['API_KEY'] + "&language=fr&include_image_language=fr,null")))
+    show_poster=tmvdb_connect(os.path.join(app.config['API_URL'],(tmvdb_mode[show_type] + "/" + str(id) + "/images?api_key=" + app.config['API_KEY'] + "&language=fr&include_image_language=fr,null")))
 
     # Fetch poster url !
     try:
@@ -99,7 +99,7 @@ def get_show(id,fetch_poster=True,show_type=None):
     except (IndexError,TypeError):
 
         # No poster with the french or null language= => Fallback in english
-        show_poster=tmvdb_connect(os.path.join(app.config['API_URL'],(tmvdb_mode[g.show_type] + "/" + str(id) + "/images?api_key=" + app.config['API_KEY'])))
+        show_poster=tmvdb_connect(os.path.join(app.config['API_URL'],(tmvdb_mode[show_type] + "/" + str(id) + "/images?api_key=" + app.config['API_KEY'])))
 
         try:
             url = base_url + 'w185' + show_poster['posters'][0]['file_path']
@@ -114,7 +114,7 @@ def get_show(id,fetch_poster=True,show_type=None):
             url=None
 
     # Create the show object
-    if g.show_type == "movies":
+    if show_type == "movies":
 
         # Set date to None if the string is empty
         if len(show['release_date']) == 0:
@@ -143,7 +143,7 @@ def get_show(id,fetch_poster=True,show_type=None):
             overview=show['overview'],
             duration=show['runtime'])
 
-    elif g.show_type == "tvshows":
+    elif show_type == "tvshows":
 
         # Generate the showruners string
         showrunner=""
@@ -178,7 +178,7 @@ def get_show(id,fetch_poster=True,show_type=None):
 
     return show_obj
 
-def search_page_number(query):
+def search_page_number(query,show_type):
     """
         Function that returns how many result page we're going to handle for a specific query
     """
@@ -188,8 +188,8 @@ def search_page_number(query):
 
     # Query the API using the query in parameter
     for cur_language in languages_list:
-        app.logger.info("URL de recherche: %s" % os.path.join(app.config['API_URL'],("search/" + tmvdb_mode[g.show_type] + "?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.parse.quote(query.encode('utf-8')))))
-        result=tmvdb_connect(os.path.join(app.config['API_URL'],("search/" + tmvdb_mode[g.show_type] + "?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.parse.quote(query.encode('utf-8')))))
+        app.logger.info("URL de recherche: %s" % os.path.join(app.config['API_URL'],("search/" + tmvdb_mode[show_type] + "?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.parse.quote(query.encode('utf-8')))))
+        result=tmvdb_connect(os.path.join(app.config['API_URL'],("search/" + tmvdb_mode[show_type] + "?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.parse.quote(query.encode('utf-8')))))
 
     # Return the page number if we have someone to return
     if result != None:
