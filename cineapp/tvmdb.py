@@ -7,7 +7,7 @@ import json, sys, time, urllib.request, urllib.parse, urllib.error, os, math
 from urllib.request import urlopen
 from datetime import datetime
 from cineapp import app,db
-from cineapp.models import Movie,TVShow
+from cineapp.models import Movie,TVShow, ProductionStatus
 from flask import g
 
 # Conversion from show_type
@@ -156,6 +156,12 @@ def get_show(id,fetch_poster=True,show_type=None):
         if showrunner == "":
             showrunner="Inconnu"
 
+        # Check if the production status fetched from tmvdb exists in the database
+        # If not force the status to unknown valueA
+        if ProductionStatus.query.get(show['status']) == None:
+            app.logger.info("Le statut %s n'est pas disponible en base => Définition à Inconnu" % show['status'])
+            show['status']=None
+
         # Create the object
         show_obj=TVShow(name=show['name'],
             release_date=show['first_air_date'],
@@ -164,6 +170,7 @@ def get_show(id,fetch_poster=True,show_type=None):
             tmvdb_id=id,
             poster_path=url,
             director=showrunner,
+            production_status=show['status'],
             overview=show['overview'],
             nb_seasons=show['number_of_seasons'])
     else:

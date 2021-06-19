@@ -21,30 +21,38 @@
 			<div class="col-md-10">
 				<table class="table table-striped">
 					<tr class="text-left">
-					 <td class="col-md-2">Réalisateur:</td>
+                                                <td class="col-md-2">{{ g.messages["label_director"] }}</td>
 					 <td>{{ show.director }}</td>
 					</tr>
 					<tr class="text-left">
-					 <td class="col-md-2">Sortie:</td>
+                                                <td class="col-md-2">{{ g.messages["label_release_date"] }}</td>
 					 <td>{{ show.release_date|date_format("%d/%m/%Y") }}</td>
 					</tr>
 					<tr class="text-left">
 					 <td class="col-md-2">Fiche:</td>
 					 <td><a href="{{ show.url }}">{{ show.url }}</a></td>
 					</tr>
-					<tr class="text-left">
-                                         {% if show is movie %}
-                                                 <td class="col-md-2">Durée:</td>
-                                                 {% if show.duration %}
-                                                 <td>{{ show.duration|minutes_to_human_duration }}</td>
-                                                 {% endif %}
-                                         {% elif show is tvshow %}
-                                                 <td class="col-md-2">Nombre de saisons:</td>
-                                                 <td>{{ show.nb_seasons }}</td>
-					 {% else %}
-					 <td>Inconnue</td>
-					 {% endif %}
+                       {% if show is movie %}
+		       <tr class="text-left">
+                        <td class="col-md-2">Durée:</td>
+                       {% if show.duration %}
+                        <td>{{ show.duration|minutes_to_human_duration }}</td>
+                       {% endif %}
 					</tr>
+                    {% elif show is tvshow %}
+					<tr class="text-left">
+                       <td class="col-md-2">Production:</td>
+                       {% if production_status != None %}
+                       <td><label class="btn-{{ production_status.style }} btn-sm">{{ production_status.translated_status }}</label></td>
+                       {% else %}
+                       <td><label class="btn-default btn-sm">Inconnu</label></td>
+                       {% endif %}
+                    </tr>
+					<tr class="text-left">
+                       <td class="col-md-2">Nombre de saisons:</td>
+                       <td>{{ show.nb_seasons }}</td>
+					</tr>
+					 {% endif %}
 					<tr class="text-left">
 					 <td class="col-md-2">Résumé:</td>
 					 {% if show.overview %}
