@@ -144,7 +144,7 @@ class Movie(Show):
         tmvdb_id = db.Column(db.Integer, unique=True)
 
         __mapper_args__ = {
-                'polymorphic_identity':'movies'
+                'polymorphic_identity':'movie'
         }
 
         def __next__(self):
@@ -172,7 +172,7 @@ class TVShow(Show):
         tmvdb_id = db.Column(db.Integer, unique=True)
 
         __mapper_args__ = {
-                'polymorphic_identity':'tvshows'
+                'polymorphic_identity':'tvshow'
         }
 
         def __next__(self):

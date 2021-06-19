@@ -37,7 +37,7 @@ def check_show_type(endpoint,values):
     show_type = values.pop('show_type')
 
     # Check if the URL is allowed or not
-    if show_type not in [ "movies", "tvshows" ]:
+    if show_type not in [ "movie", "tvshow" ]:
         abort(404)
     else:
         session["show_type"]=show_type
@@ -184,14 +184,14 @@ def confirm_show():
                                 # And then update the others fields
                                 confirm_form.show_id.data=select_form.show.data
 
-                                if g.show_type=="movies":
+                                if g.show_type=="movie":
                                     confirm_form.submit_confirm.label.text="Mettre à jour le film"
-                                elif g.show_type=="tvshows":
+                                elif g.show_type=="tvshow":
                                     confirm_form.submit_confirm.label.text="Mettre à jour la série"
 
                         # Since the production_status object is not available because the object is not commited
                         # let's generate a temporary standalone object filled using the string got in tmvdb
-                        if g.show_type == "tvshows":
+                        if g.show_type == "tvshow":
                             production_status=ProductionStatus.query.get(show_form_tmvdb.production_status)
                         else:
                             production_status=None
@@ -345,9 +345,9 @@ def confirm_show():
                                 return redirect(url_for('show.display_show',show_type=g.show_type,show_id=show.id))
 
                         except IntegrityError as e:
-                                if g.show_type=="movies":
+                                if g.show_type=="movie":
                                     flash('Film déjà existant','danger')
-                                elif g.show_type=="tvshows":
+                                elif g.show_type=="tvshow":
                                     flash('Série déjà existante','danger')
                                 db.session.rollback()
                                 return redirect(url_for('display_show.html',show_id=show.id))
@@ -392,9 +392,9 @@ def update_show():
 def display_show(show_id):
 
         # Select show
-        if g.show_type == "movies":
+        if g.show_type == "movie":
             show = Movie.query.get_or_404(show_id)
-        elif g.show_type == "tvshows":
+        elif g.show_type == "tvshow":
             show = TVShow.query.get_or_404(show_id)
         else:
             abort(404)
@@ -410,7 +410,7 @@ def display_show(show_id):
 
         # If we have a TV Show we are going to sync the number of seasons and 
         # the production status which are dynamic fields
-        if g.show_type == "tvshows":
+        if g.show_type == "tvshow":
             temp_tvshow=get_show(show.tmvdb_id,fetch_poster=False,show_type=g.show_type)
 
             if temp_tvshow != None:
@@ -527,9 +527,9 @@ def list_shows():
 
                         if filter_form.where.data != None:
 
-                                # Use that field only if we are in movies mode
+                                # Use that field only if we are in movie mode
                                 # In other mode, we are necessarily at home
-                                if g.show_type=="movies":
+                                if g.show_type=="movie":
                                     filter_dict['seen_where'] = filter_form.where.data.id
 
                         if filter_form.favorite.data != None:
@@ -588,9 +588,9 @@ def mark_show(show_id_form):
         form=MarkShowForm(button_label=g.messages["label_generic_possessive"])
 
         # Select show
-        if g.show_type == "movies":
+        if g.show_type == "movie":
             show = Movie.query.get_or_404(show_id_form)
-        elif g.show_type == "tvshows":
+        elif g.show_type == "tvshow":
             show = TVShow.query.get_or_404(show_id_form)
         else:
             abort(404)
@@ -734,9 +734,9 @@ def update_datatable():
                 app.logger.info('Entering filter_user is not Null')
 
                 # Let's build msearch base query
-                if g.show_type=="movies":
+                if g.show_type=="movie":
                     basequery = Movie.query
-                elif g.show_type=="tvshows":
+                elif g.show_type=="tvshow":
                     basequery = TVShow.query
 
                 # Let's build the filtered requested following what has been posted in the filter form
@@ -869,9 +869,9 @@ def update_datatable():
                         app.logger.info('Entering list filter')
 
                         # Let's build msearch base query
-                        if g.show_type=="movies":
+                        if g.show_type=="movie":
                             basequery = Movie.query.msearch(session.get('query'),fields=["name","original_name","director"])
-                        elif g.show_type=="tvshows":
+                        elif g.show_type=="tvshow":
                             basequery = TVShow.query.msearch(session.get('query'),fields=["name","original_name","director"])
 
                         if order_column == "average":

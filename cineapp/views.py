@@ -29,7 +29,7 @@ from werkzeug.utils import secure_filename
 from random import randint
 from cineapp.slack import slack_mark_notification
 from cineapp.auth import guest_control
-from cineapp.messages import tvshows_messages, movies_messages
+from cineapp.messages import tvshow_messages, movie_messages
 
 @app.route('/')
 @app.route('/index')
@@ -56,20 +56,20 @@ def before_request():
         g.app_mode = "tv"
         g.tvmdb_api_mode = "tv"
 
-        # Set mode to movies by default
+        # Set mode to movie by default
         if session.get('show_type') == None:
-            app.logger.info("Le type de show n'est pas défini dans la session. Configuration à movies par défaut")
-            session["show_type"] = "movies"
+            app.logger.info("Le type de show n'est pas défini dans la session. Configuration à movie par défaut")
+            session["show_type"] = "movie"
        
         # Configure g with the value stored in the session
         # TIP: g is only set for the current request and not globally to the session
         # For that: there is ... session
         g.show_type=session["show_type"]
 
-        if g.show_type == "movies":
-            g.messages=movies_messages
-        elif g.show_type == "tvshows":
-            g.messages=tvshows_messages
+        if g.show_type == "movie":
+            g.messages=movie_messages
+        elif g.show_type == "tvshow":
+            g.messages=tvshow_messages
 
 @app.route('/login', methods=['GET','POST'])
 def login():
@@ -126,7 +126,7 @@ def logout():
 def switch_show_type(show_type):
 
     # Check if the URL is allowed or not
-    if show_type not in [ "movies", "tvshows" ]:
+    if show_type not in [ "movie", "tvshow" ]:
         app.logger.error("Le mode %s n'est pas autorisé" % show_type)
     else:
         app.logger.info("Bascule vers le mode: %s" % show_type)
@@ -292,7 +292,7 @@ def add_homework(show_id,user_id):
         # Create the mark object
         mark=Mark(user_id=user_id,show_id=show_id,homework_who=g.user.id,homework_when=datetime.now())
 
-        # We want to add an homework => Set a session variable in order to tell to the list_movies table not cleaning the table
+        # We want to add an homework => Set a session variable in order to tell to the list_shows table not cleaning the table
         session['clear_table']=False
 
         # Add the object to the database
@@ -467,9 +467,9 @@ def show_graphs():
 
         # Define the base query for queries where we can use it
         # For some we will use the show_type filter
-        if g.show_type == "movies": 
+        if g.show_type == "movie": 
             basequery = Mark.query.join(Movie)
-        elif g.show_type == "tvshows": 
+        elif g.show_type == "tvshow": 
             basequery = Mark.query.join(TVShow)
 
         # Fetch all users
@@ -832,13 +832,13 @@ def graph_shows_by_year():
         year=request.form.get("year")
         user=request.form.get("user")
 
-        # Create data dictionary containing movies seen for the logged user
+        # Create data dictionary containing shows seen for the logged user
         # in theaters and in others places
         data={"theaters": [], "others": []}
 
         # Fill the dictionnary for each month
         for cur_month in range(1,13,1):
-                if g.show_type=="movies":
+                if g.show_type=="movie":
                     data["theaters"].append(Mark.query.join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==user,Mark.user_id==user,Mark.seen_where=="C",db.func.month(Mark.seen_when)==cur_month,db.func.year(Mark.seen_when)==year).count())
                 data["others"].append(Mark.query.join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==user,Mark.user_id==user,Mark.seen_where=="M",db.func.month(Mark.seen_when)==cur_month,db.func.year(Mark.seen_when)==year).count())
         

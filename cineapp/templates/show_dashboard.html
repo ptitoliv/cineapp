@@ -38,10 +38,10 @@
                         <div class="panel-heading text-center">{{ g.messages["label_show_type_seen_number"] }}</div>
 					  <div class="panel-body text-center">
 							<div>
-                                {% if g.show_type == "movies" %}
+                                {% if g.show_type == "movie" %}
 					  			<div id="seenmovies"> {{ stats_dict[g.user.id]["shows_total"] }}</div>
 							     <div><span id="theaters">Ciné :{{ stats_dict[g.user.id]["shows_theaters"] }} </span> / <span id="home">Maison : {{ stats_dict[g.user.id]["shows_home"] }}</span></div>
-                                {% elif g.show_type == "tvshows" %}
+                                {% elif g.show_type == "tvshow" %}
 					  			<div id="seentvshows"> {{ stats_dict[g.user.id]["shows_total"] }}</div>
                                 {% endif %}
 							</div>
@@ -53,9 +53,9 @@
 									<tr>
 										<td class="text-right"><img src="{{ config.AVATARS_URL}}{{ stats_dict[cur_avg]["user"].avatar }}" width="30" height="30" class="avatar img-circle" alt="avatar"></td>
 										<td class="text-left">{{ stats_dict[cur_avg]["user"].nickname }}</td>
-                                        {% if g.show_type == "movies" %}
+                                        {% if g.show_type == "movie" %}
 										<td class="text-right"><span id="seenshows_small">{{ stats_dict[cur_avg]["shows_total"] }}</span> ( <span id="theaters_small">{{ stats_dict[cur_avg]["shows_theaters"] }}</span> / <span id="home_small">{{ stats_dict[cur_avg]["shows_home"] }}</span> ) </td>
-                                        {% elif g.show_type == "tvshows" %}
+                                        {% elif g.show_type == "tvshow" %}
 										<td class="text-left"><span id="seenmovies_small">{{ stats_dict[cur_avg]["shows_total"] }}</span></td>
                                         {% endif %}
 
@@ -189,7 +189,7 @@ function update_graph_display(json_data,canvas_id) {
 	data= { 
 		labels : [ {% for cur_label in labels %} "{{ cur_label }}", {% endfor %} ],
 		datasets : [
-            {% if g.show_type=="movies" %}
+            {% if g.show_type=="movie" %}
 			{
 				fill: true,
 				borderColor : "#C3D9FF",
@@ -204,7 +204,7 @@ function update_graph_display(json_data,canvas_id) {
 				label: "Maison",
 				data: json_data["others"]
 			}
-            {% elif g.show_type=="tvshows" %}
+            {% elif g.show_type=="tvshow" %}
 			{
 				fill: true,
 				borderColor : "#FF0084",

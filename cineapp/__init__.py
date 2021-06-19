@@ -66,15 +66,15 @@ if "SLACK_NOTIFICATION_ENABLE" in app.config:
 
         # For movies
         if "SLACK_NOTIFICATION_CHANNEL_MOVIES" in app.config and app.config['SLACK_NOTIFICATION_CHANNEL_MOVIES'] != None:
-            app.config['SLACK_NOTIFICATION_CHANNEL']['movies']=app.config['SLACK_NOTIFICATION_CHANNEL_MOVIES']
+            app.config['SLACK_NOTIFICATION_CHANNEL']['movie']=app.config['SLACK_NOTIFICATION_CHANNEL_MOVIES']
         else:
-            app.config['SLACK_NOTIFICATION_CHANNEL']['movies']=None
+            app.config['SLACK_NOTIFICATION_CHANNEL']['movie']=None
 
         # For tvshows
         if "SLACK_NOTIFICATION_CHANNEL_TVSHOWS" in app.config and app.config['SLACK_NOTIFICATION_CHANNEL_TVSHOWS'] != None:
-            app.config['SLACK_NOTIFICATION_CHANNEL']['tvshows']=app.config['SLACK_NOTIFICATION_CHANNEL_TVSHOWS']
+            app.config['SLACK_NOTIFICATION_CHANNEL']['tvshow']=app.config['SLACK_NOTIFICATION_CHANNEL_TVSHOWS']
         else:
-            app.config['SLACK_NOTIFICATION_CHANNEL']['tvshows']=None
+            app.config['SLACK_NOTIFICATION_CHANNEL']['tvshow']=None
 else:
     print("SLACK_NOTIFICATION_ENABLE not defined in configuration file")
     sys.exit(2)
