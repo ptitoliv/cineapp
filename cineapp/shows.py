@@ -183,11 +183,7 @@ def confirm_show():
 
                                 # And then update the others fields
                                 confirm_form.show_id.data=select_form.show.data
-
-                                if g.show_type=="movie":
-                                    confirm_form.submit_confirm.label.text="Mettre à jour le film"
-                                elif g.show_type=="tvshow":
-                                    confirm_form.submit_confirm.label.text="Mettre à jour la série"
+                                confirm_form.submit_confirm.label.text=u"Mettre à jour la %s " % g.messages["label_generic"]
 
                         # Since the production_status object is not available because the object is not commited
                         # let's generate a temporary standalone object filled using the string got in tmvdb
@@ -345,10 +341,7 @@ def confirm_show():
                                 return redirect(url_for('show.display_show',show_type=g.show_type,show_id=show.id))
 
                         except IntegrityError as e:
-                                if g.show_type=="movie":
-                                    flash('Film déjà existant','danger')
-                                elif g.show_type=="tvshow":
-                                    flash('Série déjà existante','danger')
+                                flash('%s déjà existant' % g.messages["label_show_type"],'danger')
                                 db.session.rollback()
                                 return redirect(url_for('display_show.html',show_id=show.id))
 
