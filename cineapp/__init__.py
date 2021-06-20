@@ -25,16 +25,16 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 app.config['VERSION'] = "3.0.0-dev"
 app.config['GRAVATAR_URL'] = "https://www.gravatar.com/avatar/"
 app.config['GRAPH_LIST'] = [
-        { "graph_endpoint": "graph_by_mark", "graph_label": u"Répartition par note", "movies": True, "tvshows": True },
-		{ "graph_endpoint": "graph_by_mark_percent", "graph_label": u"Répartition par note (en %)", "movies": True, "tvshows": True  },
-		{ "graph_endpoint": "graph_by_mark_interval", "graph_label": u"Répartition par intervalle", "movies": True, "tvshows": True  },
-		{ "graph_endpoint": "graph_by_type", "graph_label": u"Répartition par type", "movies": True, "tvshows": True  },
-		{ "graph_endpoint": "graph_by_origin", "graph_label": u"Répartition par origine", "movies": True, "tvshows": True  },
-		{ "graph_endpoint": "average_by_type", "graph_label": u"Moyenne par type", "movies": True, "tvshows": True  },
-		{ "graph_endpoint": "average_by_origin", "graph_label": u"Moyenne par origine", "movies": True, "tvshows": True  },
-		{ "graph_endpoint": "graph_by_year", "graph_label": u"Répartition par année", "movies": True, "tvshows": True  },
-		{ "graph_endpoint": "graph_by_year_theater", "graph_label": u"Films vus au ciné", "movies": True, "tvshows": False  },
-		{ "graph_endpoint": "average_by_year", "graph_label": u"Moyenne par année", "movies": True, "tvshows": True  }
+        { "graph_endpoint": "graphs.graph_by_mark", "graph_label": u"Répartition par note", "movie": True, "tvshow": True },
+		{ "graph_endpoint": "graphs.graph_by_mark_percent", "graph_label": u"Répartition par note (en %)", "movie": True, "tvshow": True  },
+		{ "graph_endpoint": "graphs.graph_by_mark_interval", "graph_label": u"Répartition par intervalle", "movie": True, "tvshow": True  },
+		{ "graph_endpoint": "graphs.graph_by_type", "graph_label": u"Répartition par type", "movie": True, "tvshow": True  },
+		{ "graph_endpoint": "graphs.graph_by_origin", "graph_label": u"Répartition par origine", "movie": True, "tvshow": True  },
+		{ "graph_endpoint": "graphs.average_by_type", "graph_label": u"Moyenne par type", "movie": True, "tvshow": True  },
+		{ "graph_endpoint": "graphs.average_by_origin", "graph_label": u"Moyenne par origine", "movie": True, "tvshow": True  },
+		{ "graph_endpoint": "graphs.graph_by_year", "graph_label": u"Répartition par année", "movie": True, "tvshow": True  },
+		{ "graph_endpoint": "graphs.graph_by_year_theater", "graph_label": u"Films vus au ciné", "movie": True, "tvshow": False  },
+		{ "graph_endpoint": "graphs.average_by_year", "graph_label": u"Moyenne par année", "movie": True, "tvshow": True  }
 	]
 
 # Upload image control
@@ -144,9 +144,10 @@ app.logger.info('Cineapp startup')
 from cineapp.shows import show_bp
 from cineapp.homeworks import homework_bp
 from cineapp.profile import profile_bp
+from cineapp.graphs import graph_bp
 app.register_blueprint(show_bp)
 app.register_blueprint(homework_bp)
 app.register_blueprint(profile_bp)
-
+app.register_blueprint(graph_bp)
 
 from cineapp import views, models, jinja_filters, chat, comments, favorites, jinja_testers
