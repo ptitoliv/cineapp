@@ -22,7 +22,7 @@ app = Flask(__name__)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
 # Global Variables
-app.config['VERSION'] = "3.0.0-dev"
+app.config['VERSION'] = "3.0.0"
 app.config['GRAVATAR_URL'] = "https://www.gravatar.com/avatar/"
 app.config['GRAPH_LIST'] = [
         { "graph_endpoint": "graphs.graph_by_mark", "graph_label": u"Répartition par note", "movie": True, "tvshow": True },
