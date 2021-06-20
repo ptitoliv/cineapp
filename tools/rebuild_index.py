@@ -9,3 +9,4 @@ search = Search()
 search.init_app(app)
 
 search.create_index(models.Movie)
+search.create_index(models.TVShow)

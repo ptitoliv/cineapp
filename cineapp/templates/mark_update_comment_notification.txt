@@ -1,6 +1,6 @@
 Yo {{ dest_user.nickname }},
 
-{% if you_user == True %}Tu viens{% else %}{{ mark_comment.user.nickname }} vient{% endif %} de mettre à jour un commentaire sur {% if you_dest_user == True %}ta note {% else %}{% if own_mark_user == True %}sa note{% else %}la note de {{ mark_comment.mark.user.nickname }}{% endif %} {% endif %}pour le film {{ mark_comment.mark.movie.name }}
+{% if you_user == True %}Tu viens{% else %}{{ mark_comment.user.nickname }} vient{% endif %} de mettre à jour un commentaire sur {% if you_dest_user == True %}ta note {% else %}{% if own_mark_user == True %}sa note{% else %}la note de {{ mark_comment.mark.user.nickname }}{% endif %} {% endif %}pour {{ g.messages["label_generic"] }} {{ mark_comment.mark.show.name }}
 
 Ancien commentaire
 ------------------
@@ -10,7 +10,7 @@ Nouveau commentaire
 -------------------
 {{ mark_comment.message }}
 
-Pour voir le commentaire et y répondre : {{ url_for('show_movie', movie_id=mark_comment.mark.movie.id, _external=True) }}
+Pour voir le commentaire et y répondre : {{ url_for('show.display_show',show_type=g.show_type,show_id=mark_comment.mark.show.id, _external=True) }}
 
 --
 CineApp

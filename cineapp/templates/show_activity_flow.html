@@ -26,7 +26,7 @@
 				],
 			  "language": {
 					"info": "Page _PAGE_ sur _PAGES_",
-					"lengthMenu": "Afficher _MENU_ films",
+                                        "lengthMenu": "Afficher _MENU_ {{ g.messages["label_show_type_lowercase_plural"] }}",
 					"paginate" : {
 						"first": "Première page",
 						"last": "Dernière  page",
@@ -52,7 +52,7 @@
 )
 </script>
 <div class="container">
-	<h1 class="text-center">Flux d'activité global</h1>
+    <h1 class="text-center">{{ g.messages["label_activity"] }}</h1>
 	<table width="100%" id="activitylist" class="table">
 		<thead>
 			<tr>

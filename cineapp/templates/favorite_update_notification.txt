@@ -1,8 +1,8 @@
 Yo {{ dest_user.nickname }},
 
-{% if you_user == True %}Tu viens{% else %}{{ favorite_movie.user.nickname }} vient{% endif %} de {% if notif_type=="add" %}mettre en favori avec le niveau "{{ favorite_movie.star_type_obj.star_message }}"{% elif notif_type == "delete" %}supprimer{% endif %} le film {{ favorite_movie.movie.name }}
+{% if you_user == True %}Tu viens{% else %}{{ favorite_show.user.nickname }} vient{% endif %} de {% if notif_type=="add" %}mettre en favori avec le niveau "{{ favorite_show.star_type_obj.star_message }}"{% elif notif_type == "delete" %}supprimer{% endif %} {{ g.messages["label_generic"] }} {{ favorite_show.show.name }}
 
-Fiche du film : {{ url_for('show_movie', movie_id=favorite_movie.movie.id, _external=True) }}
+Fiche {{ g.messages["label_generic_possessive"] }} : {{ url_for('show.display_show', show_type=g.show_type, show_id=favorite_show.show.id, _external=True) }}
 
 --
 CineApp

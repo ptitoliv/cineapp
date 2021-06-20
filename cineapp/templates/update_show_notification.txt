@@ -1,0 +1,42 @@
+Yo {{ dest_user.nickname }},
+{% if you_user == True %}
+Tu viens de modifier la fiche {{ g.messages["label_generic_possessive"] }}: {{ notif["old"]["name"]  }}
+{% else %}
+{{ add_user.nickname }} vient de modifier la fiche {{ g.messages["label_generic_posssessive"] }}:  {{ notif["old"]["name"] }}.
+{% endif %}
+Anciennes informations
+----------------------
+Nom {{ g.messages["label_generic_possessive"] }}: {{ notif["old"]["name"] }}
+Nom original: {{ notif["old"]["original_name"] }}
+{{ g.messages["label_director"] }}: {{ notif["old"]["director"] }}
+{{ g.messages["label_release_date"] }}: {{ notif["old"]["release_date"] }}
+Genre: {{ notif["old"]["type"] }}
+Origine: {{ notif["old"]["origin"] }}
+{%- if g.show_type=="movie" %}
+Durée: {% if notif["old"]["duration"] %}{{ notif["old"]["duration"]|minutes_to_human_duration }}{% else %}Inconnue{% endif %}
+{% elif g.show_type=="tvshow" %}
+Nombre de saisons: {{ notif["old"]["nb_seasons"] }}
+Production: {{ notif["old"]["production_status"] }}
+{% endif -%}
+Résumé: {% if notif["old"]["overview"] %}{{ notif["old"]["overview"] }}{% else %}Néant{% endif %}
+
+Nouvelles Informations
+----------------------
+Nom {{ g.messages["label_generic_possessive"] }}: {{ notif["new"]["name"] }}
+Nom original: {{ notif["new"]["original_name"] }}
+{{ g.messages["label_director"] }}: {{ notif["new"]["director"] }}
+{{ g.messages["label_release_date"] }}: {{ notif["new"]["release_date"] }}
+Genre: {{ notif["new"]["type"] }}
+Origine: {{ notif["new"]["origin"] }}
+{%- if g.show_type=="movie" %} 
+Durée: {% if notif["new"]["duration"] %}{{ notif["new"]["duration"]|minutes_to_human_duration }}{% else %}Inconnue{% endif %}
+{% elif g.show_type=="tvshow" %}
+Nombre de saisons: {{ notif["new"]["nb_seasons"] }}
+Production: {{ notif["new"]["production_status"] }}
+{% endif -%}
+Résumé: {% if notif["new"]["overview"] %}{{ notif["new"]["overview"] }}{% else %}Néant{% endif %}
+
+Fiche {{ g.messages["label_generic_possessive"] }}: {{ url_for('show.display_show', show_type=g.show_type,show_id=notif["new"]["id"], _external=True) }}
+
+--
+CineApp

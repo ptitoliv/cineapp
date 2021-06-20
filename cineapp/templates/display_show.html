@@ -1,21 +1,21 @@
 {% extends "base.html" %} 
 {% block content %}
 	{% if not mark %}
-	<div class="container" id="movie_navbar">	
+	<div class="container" id="show_navbar">	
 	<nav>
 		<ul class="pager">
-        {% if movie_prev %}
+        {% if show_prev %}
 			<li class="previous">
-			<a href="{{ url_for('show_movie', movie_id=movie_prev.id) }}"><span
-aria-hidden="true">&larr;</span> {{ movie_prev.name }}</a>
+			<a href="{{ url_for('show.display_show', show_id=show_prev.id, show_type=g.show_type) }}"><span
+aria-hidden="true">&larr;</span> {{ show_prev.name }}</a>
 			</li>
 	{% endif %}
 			<li>
-				<a href="{{ url_for('show_movie_random') }}">Sélection aléatoire</a>
+				<a href="{{ url_for('show.display_show_random',show_type=g.show_type) }}">Sélection aléatoire</a>
 			</li>
-        {% if movie_next %}
+        {% if show_next %}
 			<li class="next">
-			<a href="{{ url_for('show_movie', movie_id=movie_next.id) }}"> {{ movie_next.name }} <span
+			<a href="{{ url_for('show.display_show', show_id=show_next.id,show_type=g.show_type) }}"> {{ show_next.name }} <span
 aria-hidden="true">&rarr;</span></a>
 			</li>
 	 {% endif %}
@@ -25,22 +25,22 @@ aria-hidden="true">&rarr;</span></a>
 	{% endif %}
 	<div class="container">
 	<div class="centered text-center">
-		<h1 class="title_position">{{ movie.name }}</h1>
-		{% if movie.original_name != None %}
-		<h3 class="title_position"><em>({{ movie.original_name }})</em></h3>
+		<h1 class="title_position">{{ show.name }}</h1>
+		{% if show.original_name != None %}
+		<h3 class="title_position"><em>({{ show.original_name }})</em></h3>
 		{% endif %}
 	</div>
 	<div class="row">
 		<div class="col-md-2">
-			{% if movie.poster_path != None %}
-			<img src="{{ config['POSTERS_URL'] }}/{{ movie.poster_path }}"/>
+			{% if show.poster_path != None %}
+			<img src="{{ config['POSTERS_URL'] }}/{{ show.poster_path }}"/>
 			{% else %}
 			<div class="jumbotron text-center">Pas d'affiche</div>
 			{% endif %}
 			{% if not mark %}
 			<div class="dropdown text-center">
-				{% if movie.favorite_users|selectattr("user_id","equalto",g.user.id)|list|length > 0 and (movie.favorite_users|selectattr("user_id","equalto",g.user.id)|list)[0].star_type != None %}
-				<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><h1><i id="star_icon" class="fa fa-2x fa-star {{ (movie.favorite_users|selectattr("user_id","equalto",g.user.id)|list)[0].star_type }}" aria-hidden="true"></i></h1></a><span id="star_label" class="{{ (movie.favorite_users|selectattr("user_id","equalto",g.user.id)|list)[0].star_type }}">{{ (movie.favorite_users|selectattr("user_id","equalto",g.user.id)|list)[0].star_type_obj.star_message }}</span>
+				{% if show.favorite_users|selectattr("user_id","equalto",g.user.id)|list|length > 0 and (show.favorite_users|selectattr("user_id","equalto",g.user.id)|list)[0].star_type != None %}
+				<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><h1><i id="star_icon" class="fa fa-2x fa-star {{ (show.favorite_users|selectattr("user_id","equalto",g.user.id)|list)[0].star_type }}" aria-hidden="true"></i></h1></a><span id="star_label" class="{{ (show.favorite_users|selectattr("user_id","equalto",g.user.id)|list)[0].star_type }}">{{ (show.favorite_users|selectattr("user_id","equalto",g.user.id)|list)[0].star_type_obj.star_message }}</span>
 				{% else %}
 				<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><h1><i id="star_icon" class="fa fa-2x fa-star-o nofavorite_star" aria-hidden="true"></i></h1></a><span id="star_label" class="nofavorite_star">Pas de favori</span>
 				{% endif %}
@@ -57,36 +57,45 @@ aria-hidden="true">&rarr;</span></a>
 		<div class="col-md-10">
 			<table class="table table-striped">
 				<tr class="text-left">
-				 <td class="col-md-1">Réalisateur:</td>
-				 <td>{{ movie.director }}</td>
+                  <td class="col-md-1">{{ g.messages["label_director"] }}</td>
+				  <td>{{ show.director }}</td>
 				</tr>
-				 <td class="col-md-2">Sortie:</td>
-				 <td>{{ movie.release_date|date_format("%d/%m/%Y") }}</td>
+                                <td class="col-md-2">{{ g.messages["label_release_date"] }}</td>
+				 <td>{{ show.release_date|date_format("%d/%m/%Y") }}</td>
 				</tr>
 				<tr class="text-left">
 				 <td class="col-md-2">Type:</td>
-				<td> {{ movie.type_object.type }} </td>
+				<td> {{ show.type_object.type }} </td>
 				</tr>
 				<tr class="text-left">
 				 <td class="col-md-2">Fiche:</td>
-				 <td><a href="{{ movie.url }}">{{ movie.url }}</a></td>
+                                 <td><a href="{{show.url}}">{{show.url}}</a></td>
 				</tr>
+                {% if show is movie %}
+				<tr class="text-left">
+                   <td class="col-md-2">Durée:</td>
+                   {% if show.duration %}
+                   <td>{{ show.duration|minutes_to_human_duration }}</td>
+                   {% endif %}
+				</tr>
+                {% elif show is tvshow %}
+				<tr class="text-left">
+                   <td class="col-md-2">Production:</td>
+                   <td><label class="btn-{{ show.production_status_obj.style }} btn-sm disabled">{{ show.production_status_obj.translated_status }}</label></td>
+                </tr>
+				<tr class="text-left">
+                   <td class="col-md-2">Nombre de saisons:</td>
+                   <td>{{ show.nb_seasons }}</td>
+				</tr>
+				 {% endif %}
 				<tr class="text-left">
 				 <td class="col-md-2">Origine:</td>
-				 <td>{{ movie.origin_object.origin }}</td>
-				</tr>
-				<tr class="text-left">
-				 <td class="col-md-2">Durée:</td>
-				 {% if movie.duration %}
-				 <td>{{ movie.duration|minutes_to_human_duration }}</td>
-				 {% else %}
-				 <td>Inconnue</td>
-				 {% endif %}
+				 <td>{{ show.origin_object.origin }}</td>
 				</tr>
 				<tr class="text-left">
 				 <td class="col-md-2">Résumé:</td>
-				 {% if movie.overview %}
-				 <td>{{ movie.overview }}</td>
+				 {% if show.overview %}
+				 <td>{{ show.overview }}</td>
 				 {% else %}
 				 <td>Néant</td>
 				 {% endif %}
@@ -96,39 +105,41 @@ aria-hidden="true">&rarr;</span></a>
 	</div>
 		{% if not g.user.is_guest and not mark %}
 		<div class="text-center">
-			<form method="post" action="{{url_for("update_movie") }}" name="updatemovie" style="display:inline;">
-				{{ update_movie_form.hidden_tag() }}
-				{{ update_movie_form.movie_id}}
-				{{ update_movie_form.submit_update_movie(class="btn btn-primary center-block",style="display:inline;") }}
+			<form method="post" action="{{url_for('show.update_show',show_type=g.show_type) }}" name="updateshow" style="display:inline;">
+				{{ update_show_form.hidden_tag() }}
+				{{ update_show_form.show_id}}
+				{{ update_show_form.submit_update_show(class="btn btn-primary center-block",style="display:inline;") }}
 			</form>
 			{% if marked_flag %}
-			<a href="{{ url_for('mark_movie',movie_id_form=movie.id) }}" class="btn btn-primary">Mettre à jour la note</a>
+			<a href="{{ url_for('show.mark_show',show_type=g.show_type,show_id_form=show.id) }}" class="btn btn-primary">Mettre à jour la note</a>
 			{% else %}
-			<a href="{{ url_for('mark_movie',movie_id_form=movie.id) }}" class="btn btn-primary">Noter ce film</a>
+            <a href="{{ url_for('show.mark_show',show_type=g.show_type,show_id_form=show.id) }}" class="btn btn-primary">{%if show is movie%}Noter ce film{%elif show is tvshow %}Noter cette série{%endif%}</a>
 			{% endif %}
-			{% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_CHANNEL and g.user.notifications["notif_slack"] == True%}
-			<a href="{{ url_for('publish_mark',movie_id=movie.id) }}" class="btn btn-primary">Publier sur Slack</a>
+			{% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE==True and g.user.notifications["notif_slack"] == True%}
+			<a href="{{ url_for('show.publish_mark',show_type=g.show_type,show_id=show.id) }}" class="btn btn-primary">Publier sur Slack</a>
 			{% endif %}
 		</div>
 		{% endif %}
 	<div class="container" id="mark_container">
 	{% if mark %}
 		{%from "_formhelpers.html" import render_field %}
-		<form method="post" action="" name="markmovie">
+		<form method="post" action="" name="markshow">
 			{{ form.hidden_tag() }}
 			{{ render_field(form.mark,message=True) }}
 			{{ render_field(form.comment,message=True,parse_class=False) }}
 			{{ render_field(form.seen_when,message=True) }}
-			{{ form.seen_where.label }}	
-			{% for option in form.seen_where %}
-			<div class="radio">
-			<label>{{ option }}
-			{{ option.label }}
-			</label>
-			</div>
-			{% endfor %}
+            {% if show is movie %}
+                    {{ form.seen_where.label }}	
+                    {% for option in form.seen_where %}
+                    <div class="radio">
+                    <label>{{ option }}
+                    {{ option.label }}
+                    </label>
+                    </div>
+			        {% endfor %}
+            {% endif %}
 
-		{% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_CHANNEL and g.user.notifications["notif_slack"] == True%}
+		{% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE==True and g.user.notifications["notif_slack"] == True%}
 			<!-- Button trigger modal -->
 			<div class="text-center">
 				<button type="button" class="btn btn-success" data-toggle="modal" data-target="#slack_confirm">Noter</button>
@@ -169,7 +180,7 @@ aria-hidden="true">&rarr;</span></a>
 					<a class="disabled btn btn-warning btn-xs fa-bg-white btn-mark">Devoir</a>
 				{% elif cur_mark["mark"] == None %}
 					{% if g.user.id != (cur_mark["user"]).id and not g.user.is_guest %}
-						<a href={{ url_for("add_homework",movie_id=movie.id,user_id=cur_mark["user"].id) }} class="btn btn-success btn-xs btn-mark">Donner un devoir</a>
+						<a href={{ url_for("homework.add_homework",show_id=show.id,user_id=cur_mark["user"].id) }} class="btn btn-success btn-xs btn-mark">Donner un devoir</a>
 					{% else %}
 						<a class="disabled btn btn-danger btn-xs btn-mark">Pas de note</a>
 					{% endif %}
@@ -189,8 +200,8 @@ aria-hidden="true">&rarr;</span></a>
 							N/A
 						{% endif %}
 					</i></small></span>
-					{% if movie.favorite_users|selectattr("user_id","equalto",cur_mark["user"].id)|list|length > 0 and (movie.favorite_users|selectattr("user_id","equalto",cur_mark["user"].id)|list)[0].star_type != None %}
-						<i class="fa fa-star {{ (movie.favorite_users|selectattr("user_id","equalto",cur_mark["user"].id)|list)[0].star_type }} " id="favorite_{{ cur_mark["user"].id }}"></i>
+					{% if show.favorite_users|selectattr("user_id","equalto",cur_mark["user"].id)|list|length > 0 and (show.favorite_users|selectattr("user_id","equalto",cur_mark["user"].id)|list)[0].star_type != None %}
+						<i class="fa fa-star {{ (show.favorite_users|selectattr("user_id","equalto",cur_mark["user"].id)|list)[0].star_type }} " id="favorite_{{ cur_mark["user"].id }}"></i>
 					{% endif %}
 					{% if cur_mark["homework_who"] %}
 						<img src="{{ config.AVATARS_URL}}{{  cur_mark["homework_who"].avatar }}" height="30" width="30" alt="homework_avatar" class="avatar img-circle"/>
@@ -379,7 +390,7 @@ aria-hidden="true">&rarr;</span></a>
 			"{{ url_for('add_mark_comment') }}",
 			{ 
 				 comment : comment_text,
-				 movie_id: {{ movie.id }},
+				 show_id: {{ show.id }},
 				 dest_user: user
 			},
 				 display_comment
@@ -533,14 +544,14 @@ aria-hidden="true">&rarr;</span></a>
 
             }); 
 
-	    // Set or unset favorite movie
+	    // Set or unset favorite show
 	    $(document).on('click','.list_star',function (e) {
 
 		if ($(this).attr("id") != "empty_star" ) {
 
 			// We want to set a favorite level
 			$.post(
-				"{{ url_for('set_favorite_movie',movie=movie.id,user=g.user.id) }}",
+				"{{ url_for('set_favorite_show',show=show.id,user=g.user.id) }}",
 				{ "star_type": $(this).attr("id") },
 				function(data) { favorite_update(data,"set") }
 			);
@@ -549,7 +560,7 @@ aria-hidden="true">&rarr;</span></a>
 
 			// We want to remove the favorite level
 			$.get(
-				"{{ url_for('delete_favorite_movie',movie=movie.id,user=g.user.id) }}",
+				"{{ url_for('delete_favorite_show',show=show.id,user=g.user.id) }}",
 				function(data) { favorite_update(data,"delete") }
 			);
 		}
@@ -565,7 +576,7 @@ aria-hidden="true">&rarr;</span></a>
 			             + '</div>'
 
 		// Display the alert box
-		$(favorite_message).insertBefore('#movie_navbar').hide().slideDown("slow").delay(1000).fadeTo(500,0).slideUp("slow");
+		$(favorite_message).insertBefore('#show_navbar').hide().slideDown("slow").delay(1000).fadeTo(500,0).slideUp("slow");
 
 		// Change the star display only if the transaction is a success
 		if (data.status == "success") {
