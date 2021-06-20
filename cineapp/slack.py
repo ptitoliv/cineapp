@@ -31,13 +31,13 @@ class SlackChannel(object):
                 except Exception as e:
                         raise SystemError("Slack API Error")
 
-def slack_mark_notification(mark,app):
+def slack_mark_notification(mark,app,show_type):
 
         # Create a Slack object
-        if ("SLACK_TOKEN" in app.config and app.config["SLACK_TOKEN"] != None) and app.config["SLACK_NOTIFICATION_CHANNEL"]:
+        if ("SLACK_TOKEN" in app.config and app.config["SLACK_TOKEN"] != None) and app.config["SLACK_NOTIFICATION_ENABLE"] == True and app.config["SLACK_NOTIFICATION_CHANNEL"][show_type] != None:
                 try:
-                        slack_channel = SlackChannel(app.config["SLACK_TOKEN"],app.config["SLACK_NOTIFICATION_CHANNEL"])
-                        app.logger.info("Notification sur SLACK pour la note de %s sur le film %s" % (mark.user.nickname,mark.movie.name))
+                        slack_channel = SlackChannel(app.config["SLACK_TOKEN"],app.config["SLACK_NOTIFICATION_CHANNEL"][show_type])
+                        app.logger.info("Notification sur SLACK pour la note de %s sur le show(%s) %s" % (mark.user.nickname,show_type,mark.show.name))
                         attachment = json.dumps([
                             {
                                 "text": mark.comment
@@ -45,7 +45,7 @@ def slack_mark_notification(mark,app):
                         ])
 
                         # We encode as str in order to avoid SLACK Api Parsing when unfurling the URL
-                        slack_channel.send_message(message="<" + mark.movie.url + "?language=fr|" + mark.movie.name + ">") 
+                        slack_channel.send_message(message="<" + mark.show.url + "?language=fr|" + mark.show.name + ">") 
                         slack_channel.send_message(message="Note de @%s: *%s*" % (mark.user.nickname, str(mark.mark)) ,attachment=attachment)
                         return 0
 

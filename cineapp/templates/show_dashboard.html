@@ -2,7 +2,7 @@
 {% block content %}
 	<div class="container" id="dashboard">
 		<div class="row">
-			<h1 class="text-center">Tableau de bord</h1>
+            <h1 class="text-center">{{ g.messages["label_dashboard"] }}</h1>
 			<div class="col-md-4">
 				<div class="panel panel-default">
 					  <div class="panel-heading text-center">Moyenne</div>
@@ -27,19 +27,23 @@
 			</div>
 			<div class="col-md-4">
 				<div class="panel panel-default">
-					  <div class="panel-heading text-center">Nombre de films total</div>
-					  <div class="panel-body text-center" id="movies">
-							<div class="split">{{ general_stats["movies"] }}</div>
+                        <div class="panel-heading text-center">{{ g.messages["label_show_type_number"] }}</div>
+					  <div class="panel-body text-center" id="shows">
+							<div class="split">{{ general_stats["shows"] }}</div>
 					  </div>
 				</div>
 			</div>
 			<div class="col-md-4">
 				<div class="panel panel-default">
-					  <div class="panel-heading text-center">Nombre de films vus</div>
+                        <div class="panel-heading text-center">{{ g.messages["label_show_type_seen_number"] }}</div>
 					  <div class="panel-body text-center">
 							<div>
-					  			<div id="seenmovies"> {{ stats_dict[g.user.id]["movies_total"] }}</div>
-								<div><span id="theaters">Ciné :{{ stats_dict[g.user.id]["movies_theaters"] }} </span> / <span id="home">Maison : {{ stats_dict[g.user.id]["movies_home"] }}</span></div>
+                                {% if g.show_type == "movie" %}
+					  			<div id="seenmovies"> {{ stats_dict[g.user.id]["shows_total"] }}</div>
+							     <div><span id="theaters">Ciné :{{ stats_dict[g.user.id]["shows_theaters"] }} </span> / <span id="home">Maison : {{ stats_dict[g.user.id]["shows_home"] }}</span></div>
+                                {% elif g.show_type == "tvshow" %}
+					  			<div id="seentvshows"> {{ stats_dict[g.user.id]["shows_total"] }}</div>
+                                {% endif %}
 							</div>
 							<br/>
 							<div>
@@ -49,7 +53,12 @@
 									<tr>
 										<td class="text-right"><img src="{{ config.AVATARS_URL}}{{ stats_dict[cur_avg]["user"].avatar }}" width="30" height="30" class="avatar img-circle" alt="avatar"></td>
 										<td class="text-left">{{ stats_dict[cur_avg]["user"].nickname }}</td>
-										<td class="text-right"><span id="seenmovies_small">{{ stats_dict[cur_avg]["movies_total"] }}</span> ( <span id="theaters_small">{{ stats_dict[cur_avg]["movies_theaters"] }}</span> / <span id="home_small">{{ stats_dict[cur_avg]["movies_home"] }}</span> ) </td>
+                                        {% if g.show_type == "movie" %}
+										<td class="text-right"><span id="seenshows_small">{{ stats_dict[cur_avg]["shows_total"] }}</span> ( <span id="theaters_small">{{ stats_dict[cur_avg]["shows_theaters"] }}</span> / <span id="home_small">{{ stats_dict[cur_avg]["shows_home"] }}</span> ) </td>
+                                        {% elif g.show_type == "tvshow" %}
+										<td class="text-left"><span id="seenmovies_small">{{ stats_dict[cur_avg]["shows_total"] }}</span></td>
+                                        {% endif %}
+
 									</tr>
 									{% endif %}
 									{% endfor %}
@@ -67,7 +76,7 @@
 				<div class="panel panel-default" id="graph_1">
 					  <div class="panel-heading text-center">
 						  <button value="{{ g.cur_date.year - 1 }}"  class="glyphicon glyphicon-menu-left year_nav_left" aria-hidden="true"></button>
-						  <span>Films vus par </span><span>{{ dashboard_graph_form.user_list(class="user_list",id="user_list_canvas_1") }}</span><span> en </span><span class="graph_cur_year" id="graph_cur_year_canvas_1">{{cur_year}}</span>
+                          <span>{{ g.messages["label_show_type_seenby"] }} </span><span>{{ dashboard_graph_form.user_list(class="user_list",id="user_list_canvas_1") }}</span><span> en </span><span class="graph_cur_year" id="graph_cur_year_canvas_1">{{cur_year}}</span>
 						  <button value="{{ g.cur_date.year +1 }}" class="glyphicon glyphicon-menu-right year_nav_right" aria-hidden="true"></button>
 							<a href="#" id="new_graph">
 								<span class="fa-stack pull-right" id="span_new_graph">
@@ -83,7 +92,7 @@
 			</div>
 			<div class="col-md-6">
 				<div class="panel panel-default">
-					  <div class="panel-heading text-center">Flux d'activité</div>
+                        <div class="panel-heading text-center">{{ g.messages["label_activity"] }}</div>
 						<table width="100%" id="activitylist" class="table display">
 							<thead style="display:none;">
 								<tr>
@@ -153,7 +162,7 @@ function draw_graph(canvas) {
 
     // Le code a exécuter !
     $.post(
-		"{{ url_for('graph_movies_by_year') }}",
+		"{{ url_for('graph_shows_by_year') }}",
 		{
 			year: $('#graph_cur_year_' + canvas).text(),
 			user: $('#user_list_' + canvas).val()
@@ -180,6 +189,7 @@ function update_graph_display(json_data,canvas_id) {
 	data= { 
 		labels : [ {% for cur_label in labels %} "{{ cur_label }}", {% endfor %} ],
 		datasets : [
+            {% if g.show_type=="movie" %}
 			{
 				fill: true,
 				borderColor : "#C3D9FF",
@@ -193,7 +203,16 @@ function update_graph_display(json_data,canvas_id) {
 				backgroundColor : "#FF0084",
 				label: "Maison",
 				data: json_data["others"]
-			},
+			}
+            {% elif g.show_type=="tvshow" %}
+			{
+				fill: true,
+				borderColor : "#FF0084",
+				backgroundColor : "#FF0084",
+				label: "Séries",
+				data: json_data["others"]
+			}
+            {% endif %}
 			]
 		}
 

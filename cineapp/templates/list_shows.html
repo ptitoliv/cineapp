@@ -8,11 +8,11 @@
 	<script>
 	$(document).ready(function() {
 	    {% if clear_table == True %}
-	    var table = $('#movielist').DataTable();
+	    var table = $('#showslist').DataTable();
             table.state.clear();
 	    table.destroy();
 	    {% endif %}
-	    var table = $('#movielist').DataTable(
+	    var table = $('#showslist').DataTable(
 			{ "searching":false,
 			  "ordering":true,
 			  "stateSave": true,
@@ -20,7 +20,7 @@
 			  "serverSide": true,
 			  "displayLength": 100,
 			  "ajax": {
-				"url": "{{ url_for('update_datatable') }}",
+				"url": "{{ url_for('show.update_datatable',show_type=g.show_type) }}",
 				"type" : "POST",
 				"data": function(args) {
 				      return { "args": JSON.stringify( args ) };
@@ -112,7 +112,7 @@
 			  ],
 			  "language": {
 					"info": "Page _PAGE_ sur _PAGES_",
-					"lengthMenu": "Afficher _MENU_ films",
+                                                  "lengthMenu": "Afficher _MENU_ {{ g.messages["label_show_type_lowercase_plural"] }}",
 					"paginate" : {
 						"first": "Première page",
 						"last": "Dernière  page",
@@ -135,7 +135,7 @@
 		{% elif session['search_type'] == 'filter_origin_type' %}
 		<h1 class="text-center">Recherche par filtre</h1>
 		{% else %}
-		<h1 class="text-center">Liste des films</h1>
+                <h1 class="text-center">{{ g.messages["label_list"] }}</h1>
 		{% endif %}
 	</div>
 	<div class="container">
@@ -146,7 +146,9 @@
 				<form class="form-inline text-center" method="post" role="form" action={{ url_for('filter_form') }}>
 					{{ render_field(filter_form.origin) }}	
 					{{ render_field(filter_form.type) }}	
+                                        {% if g.show_type == "movie" %}
 					{{ render_field(filter_form.where) }}
+                                        {% endif %}
 					{{ render_field(filter_form.favorite) }}
 					{{ render_field(filter_form.submit_filter,label_visible=false,class="btn btn-success") }}
 				</form>
@@ -159,7 +161,7 @@
 	</div>
 	<div class="container" style="width:70%;">
 		<div class="table-responsive">
-			<table class="table table-striped" width="100%" id="movielist">
+			<table class="table table-striped" width="100%" id="showslist">
 			<!-- Display the users name -->
 			<thead>
 				<tr>

@@ -2,13 +2,13 @@
 {% block content %}
 	<div class="container">
 		<div class="text-center">
-			<h1>{{ header_text }}</h1>
+                        <h1 id="add_wizard_label">{{ header_text }}</h1>
 		</div>
 		{%from "_formhelpers.html" import render_field %}
-		<form action="{{ url_for( 'select_' + endpoint + '_movie') }}" method="post" name="searchmovie">
+		<form action="{{ url_for( 'show.select_' + endpoint + '_show',show_type=g.show_type) }}" method="post" name="searchshow">
 			{{ search_form.hidden_tag() }}
 	        <div class="input-group">
-			{{ render_field(search_form.search,label_visible=false,message=False,placeholder="Fast and furious 7, Les Tuche") }} 
+                        {{ render_field(search_form.search,label_visible=false,message=False,placeholder=g.messages["field_search"]) }} 
 		    <div class="input-group-btn">
 			{{ search_form.submit_search(class="btn btn-success center-block") }}	
 		    </div>

@@ -2,32 +2,32 @@
 {% block content %}
 	<div class="container">
 		<div class="row text-center col-md-offset-1 col-md-10">	
-			<h1>Selection du film (Page {{ cur_page }} / {{ total_pages }})</h1>
+                        <h1>{{g.messages["label_select"] }} (Page {{ cur_page }} / {{ total_pages }})</h1>
 			<ul class="pager">
 				{% if has_prev %}
 				<li class="previous">
-					<a id="prev" href="{{ url_for('select_' + endpoint + '_movie', page=cur_page - 1) }}"><span aria-hidden="true">&larr;</span> Page {{ cur_page - 1 }}</a>
+					<a id="prev" href="{{ url_for('show.select_' + endpoint + '_show', show_type=g.show_type,page=cur_page - 1) }}"><span aria-hidden="true">&larr;</span> Page {{ cur_page - 1 }}</a>
 				</li>
 				{% endif %}
 				{% if has_next %}
 				<li class="next">
-					<a id="next" href="{{ url_for('select_' + endpoint + '_movie', page=cur_page + 1) }}"> Page {{ cur_page + 1 }} <span aria-hidden="true">&rarr;</span></a>
+					<a id="next" href="{{ url_for('show.select_' + endpoint + '_show', show_type=g.show_type,page=cur_page + 1) }}"> Page {{ cur_page + 1 }} <span aria-hidden="true">&rarr;</span></a>
 				</li>
 				{% endif %}
 			</ul>
 		</div>
-		<form action="{{ url_for('confirm_' + endpoint + '_movie') }}" method="post" name="selectmovie">
+		<form action="{{ url_for('show.confirm_' + endpoint + '_show',show_type=g.show_type) }}" method="post" name="selectshow">
 		{{ select_form.hidden_tag() }}
 		<div class="row col-md-offset-1 col-md-10">
 			<table class="table table-hover">
 				<thead>
 					<tr>
 						<th class="text-center">Sélection</th>
-						<th>Film</th>
+                                                <th>{{ g.messages["label_show_type"] }}</th>
 					</tr>
 				</thead>
 				<tbody>
-					{% for option in select_form.movie %}
+					{% for option in select_form.show %}
 					<tr>
 						<td class="text-center">{{ option }}</td>
 						<td>{{ option.label(class_="radio_label") }}</td>

@@ -120,7 +120,13 @@ th.dt-center, td.dt-center { text-align: center; }
 
 #seenmovies {
 	font-size: xx-large;
-	color: #D966FF;
+	color: #F966FF;
+        font-weight: bold;
+}
+
+#seentvshows {
+	font-size: xx-large;
+	color: #FF0084;
         font-weight: bold;
 }
 
@@ -141,6 +147,11 @@ th.dt-center, td.dt-center { text-align: center; }
         font-weight: bold;
 }
 
+#seenshows_small {
+	color: #FF0084;
+        font-weight: bold;
+}
+
 #theaters_small {
 	color: #C3D9FF;
         font-weight: bold;
@@ -151,7 +162,7 @@ th.dt-center, td.dt-center { text-align: center; }
         font-weight: bold;
 }
 
-#movies {
+#shows {
 	font-size: xx-large;
 	color: #4096EE;
         font-weight: bold;
