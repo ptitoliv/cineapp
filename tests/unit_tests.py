@@ -11,6 +11,8 @@ import unittest
 import tempfile
 import shutil
 import io
+from bs4 import BeautifulSoup
+from flask_migrate import upgrade
 
 class FlaskrTestCase(unittest.TestCase):
 
@@ -39,8 +41,10 @@ class FlaskrTestCase(unittest.TestCase):
         # Create directories
         os.makedirs(app.config['POSTERS_PATH'])
         os.makedirs(app.config['AVATARS_FOLDER'])
-        
-        db.create_all()
+
+        # Create the database
+        with app.app_context():
+            upgrade()
         
         # Create the default user for tests
         hashed_password=hashpw("toto1234".encode('utf-8'),gensalt())
@@ -69,6 +73,7 @@ class FlaskrTestCase(unittest.TestCase):
         shutil.rmtree(app.config['AVATARS_FOLDER'])
         
         db.session.commit()
+        db.engine.execute("DROP TABLE alembic_version")
         db.drop_all()
 
     def test_01_populateUsers(self):
@@ -129,26 +134,52 @@ class FlaskrTestCase(unittest.TestCase):
         
         db.session.add(o)
         db.session.commit()
-        
+
         rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
-        
+
         # We are logged => add the movie
         rv=self.app.get('/movie/add')
-        assert "Ajout d&#39;un film" in str(rv.data)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Ajout d'un film" == parsed_html.find(id="add_wizard_label").text
         
         # Fill the movie title
-        rv=self.app.post('/movie/add/select',data=dict(search="tuche",submit_search=True))
-        assert "Les Tuche" in str(rv.data)
+        rv=self.app.post('/movie/add/select',data=dict(search="Les Tuche",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
         
-        # Select the movie
+        # Let's find the show in the list
+        list_shows=(parsed_html.table.find_all('label'))
+        found=False
+        for cur_show in list_shows:
+            if "Les Tuche" in cur_show.text:
+                found=True
+                break
+
+        assert found==True
+        
+        # Select the show
         rv=self.app.post('/movie/add/confirm',data=dict(show="66129",submit_select=True))
-        assert "Ajouter le film" in str(rv.data)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Ajouter le film" == parsed_html.find(id="submit_confirm")['value']
         
         # Store the movie into database
         rv=self.app.post('/movie/add/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
-        assert "Film ajout" in str(rv.data)
-        assert "Affiche" in str(rv.data)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+
+        list_messages=parsed_html.find_all("div", {"class": "msg-alert"})
+
+        found=False
+        for cur_msg in list_messages:
+            if "Film ajouté" in cur_msg.text:
+                found=True
+                break
+        assert found==True
+
+        found=False
+        for cur_msg in list_messages:
+            if "Affiche téléchargée" in cur_msg.text:
+                found=True
+                break
         
         rv=self.app.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
@@ -279,6 +310,97 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Let's do the same but with the slack_mark_notification method (In order to catch the exception)
         assert slack.slack_mark_notification(None,app,"movie") == 1
+
+    def test_12_add_tvshow(self):
+
+        rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        
+        # We are logged => add the movie
+        rv=self.app.get('/tvshow/add')
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Ajout d'une série" == parsed_html.find(id="add_wizard_label").text
+        
+        # Fill the show title
+        rv=self.app.post('/tvshow/add/select',data=dict(search="Babylon 5",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        
+        # Let's find the show in the list
+        list_shows=(parsed_html.table.find_all('label'))
+        found=False
+        for cur_show in list_shows:
+            if "Babylon 5" in cur_show.text:
+                found=True
+                break
+
+        assert found==True
+        
+        # Select the show
+        rv=self.app.post('/tvshow/add/confirm',data=dict(show="3137",submit_select=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Ajouter la série" == parsed_html.find(id="submit_confirm")['value']
+        
+        # Store the movie into database
+        rv=self.app.post('/tvshow/add/confirm',data=dict(show_id="3137",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+
+        list_messages=parsed_html.find_all("div", {"class": "msg-alert"})
+
+        found=False
+        for cur_msg in list_messages:
+            if "Série ajoutée" in cur_msg.text:
+                found=True
+                break
+        assert found==True
+
+        found=False
+        for cur_msg in list_messages:
+            if "Affiche téléchargée" in cur_msg.text:
+                found=True
+                break
+        
+        rv=self.app.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_13_mark_tvshow(self):
+
+        rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        
+        # We are logged => mark the show
+        rv=self.app.post('/tvshow/mark/2',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        assert "Note ajout" in str(rv.data)
+        
+        # We are logged => mark the show
+        rv=self.app.post('/tvshow/mark/2',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        assert "Note mise" in str(rv.data)
+        
+        rv=self.app.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_14_comment_mark(self):
+
+        rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        
+        # We are logged => comment the mark
+        rv=self.app.post('/json/add_mark_comment',data=dict(show_id=2,dest_user=1,comment="plop"),follow_redirects=True)
+        rv=self.app.get('/tvshow/display/2', follow_redirects=True)
+        assert "plop" in str(rv.data) 
+        
+        rv=self.app.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_15_random_show(self):
+
+        rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        
+        rv=self.app.get('/tvshow/display/random', follow_redirects=True)
+        assert "Fiche" in str(rv.data) 
+        
+        rv=self.app.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
 
 if __name__ == '__main__':
     unittest.main()
