@@ -75,7 +75,7 @@ sqlalchemy-migrate==0.13.0
 sqlparse==0.4.1
 Tempita==0.5.2
 typing-extensions==3.7.4.3
-urllib3==1.26.4
+urllib3==1.26.5
 websocket-client==0.58.0
 Werkzeug==1.0.1
 Whoosh==2.7.4
