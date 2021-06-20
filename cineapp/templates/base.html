@@ -111,8 +111,8 @@
                                                         <li><a href="{{ url_for('switch_show_type',show_type="tvshow") }}"><i class="fa fa-television"></i> Séries</a></li>
 							<li role="separator" class="divider"></li>
 							{% if not g.user.is_guest %}
-							<li><a href="{{ url_for('edit_user_profile') }}"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> Profil</a></li>
-							<li><a href="{{ url_for('change_user_password') }}"><span class="glyphicon glyphicon-lock" aria-hidden="true"></span> Mot de passe</a></li>
+							<li><a href="{{ url_for('profile.edit_user_profile') }}"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> Profil</a></li>
+							<li><a href="{{ url_for('profile.change_user_password') }}"><span class="glyphicon glyphicon-lock" aria-hidden="true"></span> Mot de passe</a></li>
 							<li role="separator" class="divider"></li>
 							{% endif %}
 							<li><a href="{{ url_for('logout') }}"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span> Se Deconnecter</a></li>

@@ -143,7 +143,10 @@ app.logger.info('Cineapp startup')
 # Blueprint Registration
 from cineapp.shows import show_bp
 from cineapp.homeworks import homework_bp
+from cineapp.profile import profile_bp
 app.register_blueprint(show_bp)
 app.register_blueprint(homework_bp)
+app.register_blueprint(profile_bp)
+
 
 from cineapp import views, models, jinja_filters, chat, comments, favorites, jinja_testers
