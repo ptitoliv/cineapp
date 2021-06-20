@@ -1,3 +1,10 @@
+Version 3.0.0 (2021-06-20)
+--------------------------
+  * [FEAT]: Update the TMVDB Logo (#116)
+  * [FEAT]: TV show ranking feature (#121)
+  * [FIX]: Fix CKEditor display on the Mark movie page (#122)
+  * [FIX]: Code cleaning and refactoring (#124)
+
 Version 2.3.0 (2021-03-22)
 --------------------------
   * [FEAT]: Migrate to python 3 / Upgrade dependencies (#114)
