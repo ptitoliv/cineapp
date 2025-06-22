@@ -5,18 +5,55 @@ from flask import Markup
 
 # Define wtforms widget and field
 class CKTextAreaWidget(widgets.TextArea):
-	def __call__(self, field, **kwargs):
-		kwargs.setdefault('class_', 'ckeditor')
-		html_string = super(CKTextAreaWidget, self).__call__(field, **kwargs)
-		html_string += Markup(("""<script>
-			CKEDITOR.replace( '%s', {
-				enterMode: CKEDITOR.ENTER_BR
-		        } );	
-			</script>""" % field.id))
-		return widgets.HTMLString(html_string)
+    def __call__(self, field, **kwargs):
+        kwargs.setdefault('class_', 'ckeditor')
+        class_ = kwargs.pop('class', '') or kwargs.pop('class_', '')
+        if field.data is None:
+            comment_value = ""
+        else:
+            comment_value = field.data
+        html_string = Markup(("""<script type="importmap">
+
+            {
+                "imports": {
+                    "ckeditor5": "/static//ckeditor5/ckeditor5.js",
+                    "ckeditor5/": "/static//ckeditor5/"
+                }
+            }
+        </script>
+        <textarea name="comment" id="%s"></textarea>
+        <script type="module">
+        import {
+            ClassicEditor,
+            Essentials,
+            Paragraph,
+            Bold,
+            Italic,
+            Font,
+            List
+        } from 'ckeditor5';
+
+        ClassicEditor
+        .create( document.querySelector( '#%s' ), {
+            licenseKey: 'GPL', 
+            plugins: [ Essentials, Paragraph, Bold, Italic, Font, List ],
+            toolbar: [
+                    'undo', 'redo', '|', 'bold', 'italic', '|',
+                    'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'bulletedList', 'numberedList'
+                ],
+                initialData: "%s"
+            } )
+            .then( editor => {
+                window.editor = editor;
+            } )
+            .catch( error => {
+                console.error( error );
+            } );
+            </script>""") % (field.id, field.id,comment_value));
+        return widgets.HTMLString(html_string)
 
 class CKTextAreaField(fields.TextAreaField):
-	widget = CKTextAreaWidget()
+    widget = CKTextAreaWidget()
 
 # Widget which returns a complete search bar with a glyphicon button
 class SearchButtonWidget(widgets.SubmitInput):
@@ -36,4 +73,4 @@ class SearchButtonWidget(widgets.SubmitInput):
 
 # SearchButtonField used for display the previous widget
 class SearchButtonField(fields.BooleanField):
-	widget = SearchButtonWidget()
+    widget = SearchButtonWidget()
