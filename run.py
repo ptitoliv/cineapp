@@ -1,4 +1,4 @@
-#!flask37/bin/python
+#!/usr/bin/env python3
 from cineapp import app, socketio
 
 # We need to run the application with SocketIO object
