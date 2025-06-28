@@ -821,8 +821,10 @@ def update_datatable():
                                 
                                 count_shows=db.session.query(Show).filter(Show.show_type==g.show_type).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
                         else:
-
-                                shows = Show.query.filter(Show.show_type==g.show_type).order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
+                                if order_dir == "desc":
+                                    shows = Show.query.filter(Show.show_type==g.show_type).order_by(desc(order_column)).slice(int(start),int(start) + int(length))
+                                else:
+                                    shows = Show.query.filter(Show.show_type==g.show_type).order_by(order_column).slice(int(start),int(start) + int(length))
                                 count_shows=Show.query.filter(Show.show_type==g.show_type).count()
 
                 # Let's use the filter form
