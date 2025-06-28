@@ -97,11 +97,12 @@ emodal-footer { border-top: 0px; }
         box-shadow: inset 0 1px 0 rgba(255,255,255,.1),0 1px 0 rgba(255,255,255,.1);
   }
 }
-		
 
 #login_modal {
 	top:15%
 }
+
+table.table.dataTable {margin-bottom: 20px;}
 
 th.dt-center, td.dt-center { text-align: center; }
 
