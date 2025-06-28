@@ -687,8 +687,15 @@ def update_datatable():
         length = args.get('length')
         draw = args.get('draw')
         order_by=args.get('order')
-        order_column=columns[order_by[0]['column']]['data']
-        order_dir=order_by[0]['dir']
+
+        # Check if we must sort or not
+        if len(order_by) == 0:
+            # There is no order directive. Let's display the normal list
+            order_dir="asc"
+            order_column="name";
+        else:
+            order_column=columns[order_by[0]['column']]['data']
+            order_dir=order_by[0]['dir']
 
         # Guess which is the sort column
         m=re.match('other_(.*)\.(.*)',order_column)
@@ -809,7 +816,6 @@ def update_datatable():
         else:
 
                 app.logger.info('Entering filter_user is Null')
-
                 # If we are here => No sort by user but only global sort or no sort
                 if session.get('search_type') == 'list': 
                         app.logger.info('Entering list search_type')
