@@ -28,7 +28,6 @@
 			  },
 			  "columns" : [
 				{ "data": "name",
-				  "className": "align-left",
 				  "render": function(data,type,row) {
 					return $("<div>").append($("<a/>").attr("href", row.DT_RowData.link).text(data)).html();
 					}
@@ -165,31 +164,33 @@
 			<!-- Display the users name -->
 			<thead>
 				<tr>
-					<th class="text-center" style="border:0;width:35%;"></th>
-					<th class="text-center" style="border:0;width:25%;"></th>
-					<th class="text-center" style="border:0;"></th>
+					<th class="text-center" style="border:0;width:35%;" data-dt-order="disable"></th>
+					<th class="text-center" style="border:0;width:25%;" data-dt-order="disable"></th>
+					<th class="text-center" style="border:0;" data-dt-order="disable"</th>
 					{% if not g.user.is_guest %}
-					<th colspan="3" class="text-center hidden-xs">
-						<div>
+					<th class="text-center" colspan="3" data-dt-order="disable">
+						<div class="text-center">
 							<img src="{{ config.AVATARS_URL }}{{ g.user.avatar }}" height="50" width="50" class="avatar img-circle" alt="avatar">
-						</div>
+						<br/>
 						<strong>Mes Notes</strong>
+						</div>
 					</th>
 					{% endif %}
 						{% for cur_user in users %}
 							{% if g.user.id != cur_user.id %}
-							<th colspan="3" class="text-center hidden-xs">
-							<div>
+							<th colspan="3" class="text-center hidden-xs" data-dt-order="disable">
+							<div class="text-center">
 								<img src="{{ config.AVATARS_URL }}{{ cur_user.avatar }}" height="50" width="50" class="avatar img-circle" alt="avatar">
-							</div>
+							<br/>
 							<strong>{{ cur_user.nickname }}</strong></th>
+							</div>
 							{% endif %}
 						{% endfor %}
 				</tr>
 				<tr>
 					<th class="text-center" style="border:0;width:35%;">Titre</th>
 					<th class="text-center" style="border:0;width:35%;">Realisateur</th>
-					<th class="text-center" style="border:0;">Moyenne</th>
+					<th class="text-center" style="border:0;width:15%">Moyenne</th>
 					{% if not g.user.is_guest %}
 					<th class="text-center" style="border:0;">Favori</th>
 					<th class="text-center" style="border:0;">Note</th>
