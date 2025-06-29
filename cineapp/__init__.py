@@ -26,16 +26,16 @@ app.config['VERSION'] = "3.0.0"
 app.config['GRAVATAR_URL'] = "https://www.gravatar.com/avatar/"
 app.config['GRAPH_LIST'] = [
         { "graph_endpoint": "graphs.graph_by_mark", "graph_label": u"Répartition par note", "movie": True, "tvshow": True },
-		{ "graph_endpoint": "graphs.graph_by_mark_percent", "graph_label": u"Répartition par note (en %)", "movie": True, "tvshow": True  },
-		{ "graph_endpoint": "graphs.graph_by_mark_interval", "graph_label": u"Répartition par intervalle", "movie": True, "tvshow": True  },
-		{ "graph_endpoint": "graphs.graph_by_type", "graph_label": u"Répartition par type", "movie": True, "tvshow": True  },
-		{ "graph_endpoint": "graphs.graph_by_origin", "graph_label": u"Répartition par origine", "movie": True, "tvshow": True  },
-		{ "graph_endpoint": "graphs.average_by_type", "graph_label": u"Moyenne par type", "movie": True, "tvshow": True  },
-		{ "graph_endpoint": "graphs.average_by_origin", "graph_label": u"Moyenne par origine", "movie": True, "tvshow": True  },
-		{ "graph_endpoint": "graphs.graph_by_year", "graph_label": u"Répartition par année", "movie": True, "tvshow": True  },
-		{ "graph_endpoint": "graphs.graph_by_year_theater", "graph_label": u"Films vus au ciné", "movie": True, "tvshow": False  },
-		{ "graph_endpoint": "graphs.average_by_year", "graph_label": u"Moyenne par année", "movie": True, "tvshow": True  }
-	]
+        { "graph_endpoint": "graphs.graph_by_mark_percent", "graph_label": u"Répartition par note (en %)", "movie": True, "tvshow": True  },
+        { "graph_endpoint": "graphs.graph_by_mark_interval", "graph_label": u"Répartition par intervalle", "movie": True, "tvshow": True  },
+        { "graph_endpoint": "graphs.graph_by_type", "graph_label": u"Répartition par type", "movie": True, "tvshow": True  },
+        { "graph_endpoint": "graphs.graph_by_origin", "graph_label": u"Répartition par origine", "movie": True, "tvshow": True  },
+        { "graph_endpoint": "graphs.average_by_type", "graph_label": u"Moyenne par type", "movie": True, "tvshow": True  },
+        { "graph_endpoint": "graphs.average_by_origin", "graph_label": u"Moyenne par origine", "movie": True, "tvshow": True  },
+        { "graph_endpoint": "graphs.graph_by_year", "graph_label": u"Répartition par année", "movie": True, "tvshow": True  },
+        { "graph_endpoint": "graphs.graph_by_year_theater", "graph_label": u"Films vus au ciné", "movie": True, "tvshow": False  },
+        { "graph_endpoint": "graphs.average_by_year", "graph_label": u"Moyenne par année", "movie": True, "tvshow": True  }
+    ]
 
 # Upload image control
 app.config['ALLOWED_MIMETYPES'] = [ 'image/png', 'image/jpeg']
@@ -43,19 +43,17 @@ app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024
 
 # Initialize path with default values if necessary
 if 'AVATARS_URL' not in app.config:
-	app.config['AVATARS_URL'] = "/static/avatars/"
+    app.config['AVATARS_URL'] = "/static/avatars/"
 
 if 'POSTERS_URL' not in app.config:
-	app.config['POSTERS_URL'] = "/static/posters/"
+    app.config['POSTERS_URL'] = "/static/posters/"
 
 # TMVDB parameters
 app.config['TMVDB_BASE_URL'] = "https://themoviedb.org/"
 
-# Configuration file reading
-if os.environ.get('TEST') == "yes":
-	app.config.from_pyfile('../configs/settings_test.cfg')
-else:
-	app.config.from_pyfile(os.path.join(app.root_path,'../configs/settings.cfg'))
+# Load the file specified by the APP_CONFIG_FILE environment variable
+# Variables defined here will override those in the default configuration
+app.config.from_envvar('APP_CONFIG_FILE')
 
 # Intialize Slack configuration
 if "SLACK_NOTIFICATION_ENABLE" in app.config:
@@ -101,9 +99,11 @@ sess.init_app(app)
 
 # Mail engine init
 mail = Mail(app)
+mail.init_app(app)
 
 # Translation engine init
 babel = Babel(app)
+babel.init_app(app)
 
 # SocketIO subsystem (For Chat feature)
 socketio=SocketIO()
@@ -119,19 +119,19 @@ search.init_app(app)
 
 # Create the log directory if it doesn't exists
 try:
-	if not os.path.isdir(app.config['LOGDIR']):
-		os.makedirs(app.config['LOGDIR'],0o755)
+    if not os.path.isdir(app.config['LOGDIR']):
+        os.makedirs(app.config['LOGDIR'],0o755)
 except:
-	print("Unable to create " + app.config['LOGDIR'])
-	sys.exit(2)
+    print("Unable to create " + app.config['LOGDIR'])
+    sys.exit(2)
 
 # Create the avatar directory if it doesn't exists
 try:
-	if not os.path.isdir(app.config['AVATARS_FOLDER']):
-		os.makedirs(app.config['AVATARS_FOLDER'],0o755)
+    if not os.path.isdir(app.config['AVATARS_FOLDER']):
+        os.makedirs(app.config['AVATARS_FOLDER'],0o755)
 except:
-	print("Unable to create " + app.config['AVATARS_FOLDER'])
-	sys.exit(2)
+    print("Unable to create " + app.config['AVATARS_FOLDER'])
+    sys.exit(2)
 
 # Open a file rotated every 100MB
 file_handler = RotatingFileHandler(os.path.join(app.config['LOGDIR'],'cineapp.log'), 'a', 100 * 1024 * 1024, 10)
