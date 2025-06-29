@@ -18,19 +18,24 @@ class FlaskrTestCase(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        # Define the test directory
-        cls.dir = os.path.dirname(__file__)
-        
+
+        # Load the file specified by the APP_CONFIG_FILE environment variable
+        # Variables defined here will override those in the default configuration
+        app.config.from_envvar('APP_CONFIG_FILE')
+
+        # Init with default connection string
+        app.config['WTF_CSRF_ENABLED'] = False
+        app.config['TESTING'] = True
+        app.config['MAIL_SUPPRESS_SEND'] = True
+        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
         cls.app = app.test_client()
-        
-        if os.environ.get('LOCAL') == "yes":
-                app.config.from_pyfile('../configs/settings_tests_local.cfg')
-        else:
-                app.config.from_pyfile('../configs/settings_test.cfg')
+        cls.context = app.app_context()
+        db.drop_all()
         
         app.config['WTF_CSRF_ENABLED'] = False
         app.config['TESTING'] = True
-        
+
         # Delete the directories if they exisits
         if os.path.isdir(os.path.join(app.config['POSTERS_PATH'])):
                 shutil.rmtree(app.config['POSTERS_PATH'])
@@ -189,11 +194,14 @@ class FlaskrTestCase(unittest.TestCase):
         # Fetch the user in order to fill the form with the current notifications parameters
         # Otherwise, when we post that form, all notifications are set to false
         u=User.query.get(1);
-
+        
         rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
         
-        with open(self.dir + '/ressources/test_avatar.png', 'rb') as img1:
+        avatar_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+            "ressources/test_avatar.png")
+        
+        with open(avatar_path, 'rb') as img1:
                 img1BytesIO = io.BytesIO(img1.read())
         
         rv=self.app.post('/my/profile',
@@ -207,7 +215,7 @@ class FlaskrTestCase(unittest.TestCase):
                              notif_favorite_update=u.notifications["notif_favorite_update"],
                              notif_chat_message=u.notifications["notif_chat_message"],
                              notif_slack=u.notifications["notif_slack"]), follow_redirects=True)
-
+        
         assert 'Informations mises à jour' in rv.data.decode("utf-8")
         assert "Avatar correctement mis à jour" in rv.data.decode("utf-8")
         
@@ -401,6 +409,3 @@ class FlaskrTestCase(unittest.TestCase):
         
         rv=self.app.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
-
-if __name__ == '__main__':
-    unittest.main()
