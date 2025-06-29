@@ -8,7 +8,7 @@ jobs:
     docker:
       # specify the version you desire here
       # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
-      - image: circleci/python:3.8
+      - image: cimg/python:3.9.21
         environment:
          TEST: "yes"
       
@@ -49,14 +49,8 @@ jobs:
           command: |
             python3 -m virtualenv venv
             . venv/bin/activate
-            pip install -r requirements.txt
             pip install coveralls
-
-      - run:
-          name: Init DB
-          command: |
-            . venv/bin/activate
-            python manage.py db upgrade
+            pip install -r requirements.txt
 
       - run:
           name: Run tests
@@ -64,13 +58,13 @@ jobs:
             . venv/bin/activate
             sudo bash -c 'echo fr_FR.UTF-8 UTF-8 > /etc/locale.gen'
             sudo dpkg-reconfigure locales
-            LC_ALL=fr_FR.UTF-8 PYTHONPATH=. python tests/unit_tests.py
+            LC_ALL=fr_FR.UTF-8 PYTHONPATH=. APP_CONFIG_FILE=/home/circleci/cine_app/configs/settings_test.cfg nose2 tests.unit_tests
 
       - run:
           name: Coverage
           command: |
             . venv/bin/activate
-            LC_ALL=fr_FR.UTF-8 PYTHONPATH=. coverage run --omit=cineapp/templates/*,venv/* tests/unit_tests.py
+            LC_ALL=fr_FR.UTF-8 PYTHONPATH=. APP_CONFIG_FILE=/home/circleci/cine_app/configs/settings_test.cfg coverage run --omit=cineapp/templates/*,venv/* tests/unit_tests.py
             coveralls
 
 #      - save_cache:
