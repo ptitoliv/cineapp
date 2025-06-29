@@ -73,7 +73,7 @@ def resize_avatar(avatar_path):
         # Resize the image
         wpercent = (basewidth / float(img.size[0]))
         hsize = int((float(img.size[1]) * float(wpercent)))
-        img = img.resize((basewidth, hsize), PIL.Image.ANTIALIAS)
+        img = img.resize((basewidth, hsize), PIL.Image.LANCZOS)
 
         # And then we crop
         half_the_width = old_div(img.size[0], 2)
