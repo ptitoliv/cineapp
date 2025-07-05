@@ -52,8 +52,8 @@ def upgrade():
     op.create_index(op.f('ix_shows_url'), 'shows', ['url'], unique=False)
 
     # Migrate data from movies table to show table
-    conn=op.get_bind()
-    conn.execute("INSERT INTO shows (`id`, `name`, `release_date`, `type`, `url`, `origin`, `director`, `overview`, `poster_path`, `added_when`, `added_by_user`, `original_name`, `show_type`) SELECT `id`, `name`, `release_date`, `type`, `url`, `origin`, `director`, `overview`, `poster_path`, `added_when`, `added_by_user`, `original_name`,\"movie\" FROM movies")
+    conn = op.get_bind()
+    conn.execute(sa.text("INSERT INTO shows (`id`, `name`, `release_date`, `type`, `url`, `origin`, `director`, `overview`, `poster_path`, `added_when`, `added_by_user`, `original_name`, `show_type`) SELECT `id`, `name`, `release_date`, `type`, `url`, `origin`, `director`, `overview`, `poster_path`, `added_when`, `added_by_user`, `original_name`,\"movie\" FROM movies"))
 
     op.create_table('tvshows',
     sa.Column('id', sa.Integer(), nullable=False),
@@ -97,7 +97,7 @@ def upgrade():
     )
 
     # Fill the movie table with correct data in order to handle correctly inheritance
-    conn.execute("INSERT INTO movies_temp SELECT `id`, `duration`, `tmvdb_id` FROM movies")
+    conn.execute(sa.text("INSERT INTO movies_temp SELECT `id`, `duration`, `tmvdb_id` FROM movies"))
 
     # Drop the old movie table and rename the temp table
     op.drop_table('movies')
@@ -110,7 +110,7 @@ def upgrade():
 
     # Update notification field with new notifications
     conn=op.get_bind()
-    res = conn.execute("select id,notifications from users")
+    res = conn.execute(sa.text("select id,notifications from users"))
     results = res.fetchall()
 
     for cur_result in results:
@@ -122,7 +122,7 @@ def upgrade():
         final_dict=json.dumps(temp_dict)
 
         # Update the notification field into the database
-        conn.execute("UPDATE users SET notifications='%s' WHERE id=%s" % (json.dumps(temp_dict), temp_id))
+        conn.execute(sa.text("UPDATE users SET notifications='%s' WHERE id=%s" % (json.dumps(temp_dict), temp_id)))
     # ### end Alembic commands ###
 
 def downgrade():
@@ -161,8 +161,8 @@ def downgrade():
 
     # Migrate data from show and movies table
     conn=op.get_bind()
-    conn.execute("INSERT INTO movies_temp (`id`, `name`, `release_date`, `type`, `url`, `origin`, `director`, `overview`, `poster_path`, `added_when`, `added_by_user`, `original_name`) SELECT `id`, `name`, `release_date`, `type`, `url`, `origin`, `director`, `overview`, `poster_path`, `added_when`, `added_by_user`, `original_name` FROM shows")
-    conn.execute("UPDATE movies_temp mo SET mo.duration=(SELECT m.duration FROM movies m WHERE m.id=mo.id)")
+    conn.execute(sa.text("INSERT INTO movies_temp (`id`, `name`, `release_date`, `type`, `url`, `origin`, `director`, `overview`, `poster_path`, `added_when`, `added_by_user`, `original_name`) SELECT `id`, `name`, `release_date`, `type`, `url`, `origin`, `director`, `overview`, `poster_path`, `added_when`, `added_by_user`, `original_name` FROM shows"))
+    conn.execute(sa.text("UPDATE movies_temp mo SET mo.duration=(SELECT m.duration FROM movies m WHERE m.id=mo.id)"))
 
     # Rename the movies_temp table with the definitive name
     # But remove constraints linked to that table before
@@ -191,7 +191,7 @@ def downgrade():
 
     # Update notification field with new notifications
     conn=op.get_bind()
-    res = conn.execute("select id,notifications from users")
+    res = conn.execute(sa.text("select id,notifications from users"))
     results = res.fetchall()
 
     for cur_result in results:
@@ -203,7 +203,7 @@ def downgrade():
         final_dict=json.dumps(temp_dict)
 
         # Update the notification field into the database
-        conn.execute("UPDATE users SET notifications='%s' WHERE id=%s" % (json.dumps(temp_dict), temp_id))
+        conn.execute(sa.text("UPDATE users SET notifications='%s' WHERE id=%s" % (json.dumps(temp_dict), temp_id)))
 
     # Create missing index
     op.create_index(op.f('movie_id'), 'marks', ['movie_id'], unique=False)
