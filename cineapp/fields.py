@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from wtforms import fields, widgets
-from flask import Markup
+from markupsafe import Markup
 
 # Define wtforms widget and field
 class CKTextAreaWidget(widgets.TextArea):
