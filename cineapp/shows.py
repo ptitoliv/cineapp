@@ -24,6 +24,7 @@ from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
 from sqlalchemy import desc, or_, and_, Table, text
 from sqlalchemy.sql.expression import select, case, literal
+from sqlalchemy.dialects.mysql import match
 from bcrypt import hashpw, gensalt
 from werkzeug.utils import secure_filename
 from random import randint
@@ -736,8 +737,10 @@ def update_datatable():
                 # Let's build msearch base query
                 if g.show_type=="movie":
                     basequery = Movie.query
+                    filter_item = Movie
                 elif g.show_type=="tvshow":
                     basequery = TVShow.query
+                    filter_item = TVShow
 
                 # Let's build the filtered requested following what has been posted in the filter form
                 filter_fields=session.get('query')
@@ -789,30 +792,17 @@ def update_datatable():
                                 shows_query = shows_query.filter(FavoriteShow.show_id.in_(favorite_shows_array))
 
                 # Sort my desc marks
-                if order_dir == "desc":
-                        if session.get('search_type') == 'list': 
-                                shows = shows_query.filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
-                                count_shows=shows_query.count()
+                if session.get('search_type') == 'list': 
+                        shows = shows_query.filter(filter_field != None).order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
+                        count_shows=shows_query.count()
 
-                        elif session.get('search_type') == 'filter_origin_type':
-                                shows = shows_query.filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
-                                count_shows=shows_query.filter(Mark.mark != None).count()
-                                        
-                        elif session.get('search_type') == 'filter':
-                                shows = shows_query.msearch(session.get('query'),fields=["name","original_name","director"]).filter(filter_field != None).order_by(desc(filter_field)).slice(int(start),int(start) + int(length))
-                                count_shows=shows_query.msearch(session.get('query'),fields=["name","original_name","director"]).filter(filter_field != None).count()
-
-                # Sort by asc marks
-                else:
-                        if session.get('search_type') == 'list': 
-                                shows = shows_query.filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
-                                count_shows=shows_query.count()
-                        elif session.get('search_type') == 'filter_origin_type':
-                                shows = shows_query.filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
-                                count_shows=shows_query.filter(filter_field != None).count()
-                        elif session.get('search_type') == 'filter':
-                                shows = shows_query.msearch(session.get('query'),fields=["name","original_name","director"]).filter(filter_field != None).order_by(filter_field).slice(int(start),int(start) + int(length))
-                                count_shows=shows_query.msearch(session.get('query'),fields=["name","original_name","director"]).count()
+                elif session.get('search_type') == 'filter_origin_type':
+                        shows = shows_query.filter(filter_field != None).order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
+                        count_shows=shows_query.filter(Mark.mark != None).count()
+                                
+                elif session.get('search_type') == 'filter':
+                            shows=shows_query.filter(match(filter_item.name, filter_item.original_name, filter_item.director, against=(session.get('query')))).filter(filter_field != None).order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
+                            count_shows=shows_query.filter(match(filter_item.name,filter_item.original_name,filter_item.director,against=session.get('query'))).filter(filter_field != None).count()
         else:
 
                 app.logger.info('Entering filter_user is Null')
@@ -861,7 +851,7 @@ def update_datatable():
                                         app.logger.info("Requete par moyenne ascendante")
                                         shows=shows_query.group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
                         else:
-                                shows = shows_query.order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
+                                shows = shows_query.order_by(text(f"{order_column} {order_dir}")).slice(int(start),int(start) + int(length))
 
                         count_shows=shows_query.count()
 
@@ -871,9 +861,9 @@ def update_datatable():
 
                         # Let's build msearch base query
                         if g.show_type=="movie":
-                            basequery = Movie.query.msearch(session.get('query'),fields=["name","original_name","director"])
+                            basequery = db.session.query(Movie).filter(match(Movie.name, Movie.original_name, Movie.director, against=(session.get('query'))))
                         elif g.show_type=="tvshow":
-                            basequery = TVShow.query.msearch(session.get('query'),fields=["name","original_name","director"])
+                            basequery = db.session.query(TVShow).filter(match(TVShow.name, TVShow.original_name, TVShow.director, against=(session.get('query'))))
 
                         if order_column == "average":
                                 if order_dir == "desc":
@@ -883,7 +873,7 @@ def update_datatable():
 
                                 count_shows=basequery.join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
                         else:
-                                shows = basequery.order_by(text(order_column,order_dir)).slice(int(start),int(start) + int(length))
+                                shows = basequery.order_by(text(f"{order_column} {order_dir}")).slice(int(start),int(start) + int(length))
                                 count_shows=basequery.count()
 
         # Let's fetch all the users, I will need them
