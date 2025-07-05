@@ -13,7 +13,6 @@ import logging, sys, os
 from logging.handlers import RotatingFileHandler
 from flask_socketio import SocketIO
 from flask_migrate  import Migrate
-from flask_msearch import Search
 
 app = Flask(__name__)
 
@@ -108,10 +107,6 @@ babel.init_app(app)
 # SocketIO subsystem (For Chat feature)
 socketio=SocketIO()
 socketio.init_app(app)
-
-# FTS Engine
-search=Search()
-search.init_app(app)
 
 ##################
 # Logging system #

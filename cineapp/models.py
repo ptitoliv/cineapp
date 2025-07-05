@@ -1,12 +1,7 @@
 # -*- coding: utf-8 -*-
 from builtins import str
-from cineapp import app,db, search
+from cineapp import app,db
 from sqlalchemy import desc,text, DefaultClause, orm
-from flask_msearch import Search
-from whoosh.analysis import CharsetFilter, NgramWordAnalyzer
-from whoosh import fields
-from whoosh.support.charset import accent_map
-from whoosh.support.charset import default_charset, charset_table_to_dict
 from cineapp.types import JSONEncodedDict
 from sqlalchemy import tuple_
 
@@ -105,12 +100,7 @@ class Origin(db.Model):
 class Show(db.Model):
 
     __tablename__ = "shows"
-    __table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
-
-    # Settings for FTS (WooshAlchemy)
-    __searchable__ = [ 'name', 'director', 'original_name' ]
-    charmap = charset_table_to_dict(default_charset)
-    __msearch_analyzer__ = NgramWordAnalyzer(2) | CharsetFilter(charmap)
+    __table_args__ = (db.Index('idx_show_fulltext_search','name','original_name','director', mysql_prefix="FULLTEXT"), {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'} )
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100),index=True)
@@ -124,6 +114,7 @@ class Show(db.Model):
     poster_path = db.Column(db.String(255))
     added_when = db.Column(db.DateTime())
     added_by_user = db.Column(db.Integer, db.ForeignKey('users.id'))
+
 
     # Inheritance specificity
     show_type=db.Column(db.String(50))
