@@ -1,4 +1,4 @@
-"""empty message
+"""Database Initialisation
 
 Revision ID: bbda659bcd01
 Revises: None

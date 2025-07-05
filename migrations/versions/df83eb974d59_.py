@@ -31,11 +31,11 @@ def upgrade():
 
     # Insert default data
     conn = op.get_bind()
-    conn.execute("INSERT INTO production_status (`production_status`, `translated_status`, `style`) VALUES('Canceled','Annulée','danger')")
-    conn.execute("INSERT INTO production_status (`production_status`, `translated_status`, `style`) VALUES('Ended','Terminée','success')")
-    conn.execute("INSERT INTO production_status (`production_status`, `translated_status`, `style`) VALUES('In Production','En Production','warning')")
-    conn.execute("INSERT INTO production_status (`production_status`, `translated_status`, `style`) VALUES('Pilot','Pilote','info')")
-    conn.execute("INSERT INTO production_status (`production_status`, `translated_status`, `style`) VALUES('Returning Series','En cours / Renouvellée','info')")
+    conn.execute(sa.text("INSERT INTO production_status (`production_status`, `translated_status`, `style`) VALUES('Canceled','Annulée','danger')"))
+    conn.execute(sa.text("INSERT INTO production_status (`production_status`, `translated_status`, `style`) VALUES('Ended','Terminée','success')"))
+    conn.execute(sa.text("INSERT INTO production_status (`production_status`, `translated_status`, `style`) VALUES('In Production','En Production','warning')"))
+    conn.execute(sa.text("INSERT INTO production_status (`production_status`, `translated_status`, `style`) VALUES('Pilot','Pilote','info')"))
+    conn.execute(sa.text("INSERT INTO production_status (`production_status`, `translated_status`, `style`) VALUES('Returning Series','En cours / Renouvellée','info')"))
     # ### end Alembic commands ###
 
 
