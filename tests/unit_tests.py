@@ -13,6 +13,7 @@ import shutil
 import io
 from bs4 import BeautifulSoup
 from flask_migrate import upgrade
+from sqlalchemy import text
 
 class FlaskrTestCase(unittest.TestCase):
 
@@ -31,7 +32,9 @@ class FlaskrTestCase(unittest.TestCase):
 
         cls.app = app.test_client()
         cls.context = app.app_context()
-        db.drop_all()
+
+        with app.app_context():
+            db.drop_all()
         
         app.config['WTF_CSRF_ENABLED'] = False
         app.config['TESTING'] = True
@@ -68,8 +71,9 @@ class FlaskrTestCase(unittest.TestCase):
             "notif_slack": True
             }
         
-        db.session.add(u)
-        db.session.commit()
+        with app.app_context():
+            db.session.add(u)
+            db.session.commit()
 
     @classmethod
     def tearDownClass(cls):
@@ -77,23 +81,25 @@ class FlaskrTestCase(unittest.TestCase):
         shutil.rmtree(app.config['POSTERS_PATH'])
         shutil.rmtree(app.config['AVATARS_FOLDER'])
         
-        db.session.commit()
-        db.engine.execute("DROP TABLE alembic_version")
-        db.drop_all()
+        with app.app_context():
+            db.session.commit()
+            db.session.execute(text("DROP TABLE alembic_version"))
+            db.drop_all()
 
     def test_01_populateUsers(self):
-        hashed_password=hashpw("toto1234".encode('utf-8'),gensalt())
-        u = User()
-        u.nickname="foo"
-        u.password=hashed_password
-        u.email="foo@bar.net"
-        
-        db.session.add(u)
-        db.session.commit()
-        
-        # Try to fetch user
-        u = User.query.get(2)
-        assert u.nickname == 'foo'
+        with app.app_context():
+            hashed_password=hashpw("toto1234".encode('utf-8'),gensalt())
+            u = User()
+            u.nickname="foo"
+            u.password=hashed_password
+            u.email="foo@bar.net"
+            
+            db.session.add(u)
+            db.session.commit()
+            
+            # Try to fetch user
+            u = User.query.get(2)
+            assert u.nickname == 'foo'
 
     def test_02_index(self):
         rv = self.app.get('/login')
@@ -124,21 +130,22 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome to CineApp" in str(str(rv.data))
 
     def test_04_add_movie(self):
-        # Add types
-        t = Type()
-        t.id="C"
-        t.type="Comédie"
-        
-        db.session.add(t)
-        db.session.commit()
-        
-        # Add origin
-        o = Origin()
-        o.id="F"
-        o.origin="Francais"
-        
-        db.session.add(o)
-        db.session.commit()
+        with app.app_context():
+            # Add types
+            t = Type()
+            t.id="C"
+            t.type="Comédie"
+            
+            db.session.add(t)
+            db.session.commit()
+            
+            # Add origin
+            o = Origin()
+            o.id="F"
+            o.origin="Francais"
+            
+            db.session.add(o)
+            db.session.commit()
 
         rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
@@ -193,7 +200,8 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Fetch the user in order to fill the form with the current notifications parameters
         # Otherwise, when we post that form, all notifications are set to false
-        u=User.query.get(1);
+        with app.app_context():
+            u=User.query.get(1);
         
         rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
@@ -274,7 +282,7 @@ class FlaskrTestCase(unittest.TestCase):
         
         args = {'search': {'regex': False, 'value': ''}, 'draw': 1, 'start': 0, 'length': 100, 'order': [{'column': 0, 'dir': 'asc'}], 'columns': [{'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'name', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'director', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'average', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_fav', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_mark', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_when', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.3', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.3', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.3', 'name': '', 'searchable': True}]}
         
-        rv=self.app.get('/movie/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        rv=self.app.post('/movie/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
 
         response_args=json.loads(rv.data)["data"]
         assert "Les Tuche" in response_args[0]["name"]
