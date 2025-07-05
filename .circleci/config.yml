@@ -43,6 +43,12 @@ jobs:
           name: install virtualenv
           command: |
             pip install virtualenv
+
+      - run:
+          name: install system dependencies
+          command: |
+            sudo apt update
+            sudo apt install libjpeg-dev
       
       - run:
           name: install dependencies
