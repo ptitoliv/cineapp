@@ -50,7 +50,7 @@ class CKTextAreaWidget(widgets.TextArea):
                 console.error( error );
             } );
             </script>""") % (field.id, field.id,comment_value));
-        return widgets.HTMLString(html_string)
+        return html_string
 
 class CKTextAreaField(fields.TextAreaField):
     widget = CKTextAreaWidget()
@@ -69,7 +69,7 @@ class SearchButtonWidget(widgets.SubmitInput):
         if 'value' not in kwargs:
             kwargs['value'] = field._value()
 
-        return widgets.HTMLString('<button %s><i class="glyphicon glyphicon-search"></i></button>' % self.html_params(name=field.name, **kwargs))
+        return Markup('<button %s><i class="glyphicon glyphicon-search"></i></button>' % self.html_params(name=field.name, **kwargs))
 
 # SearchButtonField used for display the previous widget
 class SearchButtonField(fields.BooleanField):
