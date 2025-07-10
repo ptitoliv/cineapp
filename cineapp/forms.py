@@ -2,10 +2,9 @@
 
 from builtins import object
 from flask_wtf import FlaskForm as Form
-from wtforms.fields.html5 import SearchField
 from wtforms import StringField, PasswordField, RadioField, SubmitField, HiddenField, SelectField, TextAreaField, BooleanField, DateField, FileField
-from wtforms.ext.sqlalchemy.fields import QuerySelectField
-from wtforms.validators import Required,DataRequired, EqualTo, Email, URL, ValidationError
+from wtforms_sqlalchemy.fields import QuerySelectField
+from wtforms.validators import DataRequired, EqualTo, Email, URL, ValidationError
 from cineapp.models import Origin, Type, User
 from cineapp.fields import CKTextAreaField, SearchButtonField
 from datetime import datetime
@@ -43,8 +42,8 @@ class MarkShowForm(Form):
 
     mark = StringField('Note du Film', [DataRequired()])
     comment = CKTextAreaField('Commentaire du Film', [DataRequired()])
-    seen_where = RadioField('Ou j\'ai vu le film', [Required(message="Date invalide")],choices=[('C', u'Cinema'), ('M', 'Maison')], default='M')
-    seen_when = DateField('Vu le :', default=datetime.now,format="%d/%m/%Y")
+    seen_where = RadioField('Ou j\'ai vu le film', [DataRequired(message="Date invalide")],choices=[('C', u'Cinema'), ('M', 'Maison')], default='M')
+    seen_when = DateField('Vu le :', default=datetime.now,format="%Y-%m-%d")
     submit_mark = SubmitField('Noter')
     submit_mark_only = SubmitField('Noter uniquement')
     submit_mark_slack = SubmitField('Noter et publier')
@@ -75,7 +74,7 @@ class SearchShowForm(Form):
 
 class SelectShowForm(Form):
 
-    show = RadioField('Film',[Required(message="Veuillez sélectionner")],choices=[], coerce=int)
+    show = RadioField('Film',[DataRequired(message="Veuillez sélectionner")],choices=[], coerce=int)
     submit_select = SubmitField(u'Sélectionner')
 
     # Specific constructer in order to pass a show list

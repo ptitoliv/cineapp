@@ -11,8 +11,7 @@ from datetime import datetime
 from flask import render_template, flash, redirect, url_for, g, request, session, abort
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_wtf import Form
-from wtforms.ext.sqlalchemy.orm import model_form
-from wtforms.ext.sqlalchemy.fields import QuerySelectField
+from wtforms_sqlalchemy.fields import QuerySelectField
 from cineapp import app, db, lm
 from cineapp.forms import LoginForm, AddUserForm, AddShowForm, MarkShowForm, SearchShowForm, SelectShowForm, ConfirmShowForm, FilterForm, UserForm, PasswordForm, HomeworkForm, UpdateShowForm, DashboardGraphForm
 from cineapp.models import User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow
