@@ -11,8 +11,7 @@ from datetime import datetime
 from flask import render_template, flash, redirect, url_for, g, request, session, abort, Blueprint
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_wtf import Form
-from wtforms.ext.sqlalchemy.orm import model_form
-from wtforms.ext.sqlalchemy.fields import QuerySelectField
+from wtforms_sqlalchemy.fields import QuerySelectField
 from cineapp import app, db, lm
 from cineapp.forms import HomeworkForm
 from cineapp.models import User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow, ProductionStatus
@@ -120,7 +119,7 @@ def list_homeworks():
         # shows we have to rate and them shows which have been rated
         # For this query, we use a case statement
         # http://stackoverflow.com/questions/1347894/order-by-null-first-then-order-by-other-variable
-        homework_query = Mark.query.join(Mark.show).filter(Show.show_type==g.show_type).order_by(case([(Mark.mark == None, 0)],else_=1),Show.name).filter(Mark.homework_who != None)
+        homework_query = Mark.query.join(Mark.show).filter(Show.show_type==g.show_type).order_by(case((Mark.mark == None, 0),else_=1),Show.name).filter(Mark.homework_who != None)
 
         # Fetch the homeworks
         if homework_filter_form.validate_on_submit():
