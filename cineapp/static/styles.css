@@ -432,3 +432,9 @@ footer {
 
 #activitylist.dataTable.display tbody tr:first-child td {
   border-top: none; }
+
+/* This selector targets the editable element (excluding comments). */
+.ck-editor__editable_inline:not(.ck-comment__input *) {
+    height: 200px;
+    overflow-y: auto;
+}
