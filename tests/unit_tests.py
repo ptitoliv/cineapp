@@ -417,3 +417,28 @@ class FlaskrTestCase(unittest.TestCase):
         
         rv=self.app.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
+
+    def test_16_switch(self):
+
+        """
+            This test tries to switch between different mode
+        """
+
+        modes={ 'movie': 'films', 'tvshow': 'séries' };
+
+        rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+
+        # Switch between availables modes
+        for key, value in modes.items():
+    
+            # Let's change mode
+            rv=self.app.get('/switch/%s' % key, follow_redirects=True)
+            assert ("Liste des %s" % value) in rv.data.decode('utf-8')
+
+        # Test an unkown category
+        rv=self.app.get('/switch/unkown')
+        assert rv.status_code == 404
+
+        rv=self.app.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
