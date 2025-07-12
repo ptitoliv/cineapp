@@ -127,6 +127,7 @@ def switch_show_type(show_type):
     # Check if the URL is allowed or not
     if show_type not in [ "movie", "tvshow" ]:
         app.logger.error("Le mode %s n'est pas autorisé" % show_type)
+        abort(404)
     else:
         app.logger.info("Bascule vers le mode: %s" % show_type)
         session["show_type"]=show_type
