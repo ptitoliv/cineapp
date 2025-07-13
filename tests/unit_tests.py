@@ -442,3 +442,42 @@ class FlaskrTestCase(unittest.TestCase):
 
         rv=self.app.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
+
+    def test_17_add_user(self):
+
+        """
+            User add test
+        """
+
+        rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+
+        # First test ==> Add successfully a user
+        rv=self.app.post('/users/add', data=dict(username="toto",email="toto@toto.com",password="toto",confirm="toto"))
+        assert "Utilisateur ajouté" in rv.data.decode('utf-8')
+
+        # Second test ==> Try to add the same user
+        rv=self.app.post('/users/add', data=dict(username="toto",email="toto@toto.com",password="toto",confirm="toto"))
+        assert "déjà existant" in rv.data.decode("utf-8")
+
+        # Third test ==> Test form validation (Empty form)
+        rv=self.app.post('/users/add', data=dict())
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+
+        for cur_field in [ "div_username", "div_email", "div_password", "div_confirm" ]:
+            assert u"Ce champ est requis" in parsed_html.find(id=cur_field).text
+
+        # Fourth test ==> Field validation
+        rv=self.app.post('/users/add', data=dict(username="tutu",email="tutu",password="1224",confirm="tata"))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+
+        test_fields={ 'div_email': 'Adresse E-Mail Incorrecte', 
+            'div_password': 'Les mots de passe ne correspondent pas',
+            'div_confirm': 'Les mots de passe ne correspondent pas' 
+            }
+
+        for key, value in test_fields.items():
+            assert value in parsed_html.find(id=key).text
+
+        rv=self.app.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
