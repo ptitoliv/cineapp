@@ -503,3 +503,35 @@ class FlaskrTestCase(unittest.TestCase):
         # Logout
         rv=self.app.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
+
+    def test_19_activity_flow(self):
+
+        """
+            Display activity flow and data 
+        """
+
+        # Login
+        rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+
+        # Check if the activity flow route is working
+        modes={ 'tvshow': 'séries', 'movie': 'films' };
+
+        # Switch between availables modes
+        for key, value in modes.items():
+
+            # Let's change mode
+            rv=self.app.get('/switch/%s' % key, follow_redirects=True)
+            rv=self.app.get('/activity/show', follow_redirects=True)
+            assert "Flux d&#39;activité des %s" % value in str(rv.data.decode('utf-8'))
+        
+        # Now test the datatable part
+        args={'draw': 1, 'columns': [{'data': 'entry_type', 'name': '', 'searchable': True, 'orderable': False, 'search': {'value': '', 'regex': False, 'fixed': []}}, {'data': None, 'name': '', 'searchable': True, 'orderable': False, 'search': {'value': '', 'regex': False, 'fixed': []}}, {'data': 'entry_text', 'name': '', 'searchable': True, 'orderable': False, 'search': {'value': '', 'regex': False, 'fixed': []}}], 'order': [], 'start': 0, 'length': 100, 'search': {'value': '', 'regex': False, 'fixed': []}}
+
+        rv=self.app.post('/activity/update', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        response_args=json.loads(rv.data)["data"]
+        assert len(response_args) > 0
+
+        # Logout
+        rv=self.app.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
