@@ -468,6 +468,7 @@ def list_shows():
 
         # Display the search form
         filter_form = FilterForm()
+        search_form = SearchShowForm()
 
         # Fetch the query string or dict => We'll need it later
         session_query=session.get('query',None)
@@ -488,10 +489,11 @@ def list_shows():
                 return redirect(url_for("show.list_shows",show_type=g.show_type))
 
         # We are in filter mode
-        if g.search_form.submit_search.data == True:
+        if search_form.submit_search.data == True:
+
                 # We come from the form into the navbar
-                if g.search_form.validate_on_submit():
-                        filter_string=g.search_form.search.data
+                if search_form.validate_on_submit():
+                        filter_string=search_form.search.data
                         session['query']=filter_string
 
                         session['search_type']="filter"
