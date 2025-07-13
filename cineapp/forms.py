@@ -26,7 +26,8 @@ class AddUserForm(Form):
     username = StringField('Nom Utilisateur', [DataRequired()])
     email = StringField('Adresse Email', [DataRequired(), Email(message="Adresse E-Mail Incorrecte")])
     password = PasswordField('Mot de passe',[DataRequired(), EqualTo('confirm',message='Les mots de passe ne correspondent pas')])
-    confirm = PasswordField('Confirmation mot de passe')
+    confirm = PasswordField('Confirmation du mot de passe',[DataRequired(), EqualTo('password',message='Les mots de passe ne correspondent pas')])
+    submit = SubmitField('Ajouter')
 
 class AddShowForm(Form):
     name = StringField('Nom du Film', [DataRequired()])
