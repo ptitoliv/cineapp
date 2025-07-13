@@ -164,13 +164,23 @@ def add_user():
                 hashed_password=hashpw(form.password.data.encode('utf-8'),gensalt())
         
                 # Now add the user into the database    
-                user=User(nickname=form.username.data,password=hashed_password,email=form.email.data)
+                user=User(guest=False)
                 try:
+
+                        # Fill mandatory fields
+                        user.nickname=form.username.data
+                        user.password=hashed_password
+                        user.email=form.email.data
+
+                        # Add the user to the database
                         db.session.add(user)
                         db.session.commit()
-                        flash('Utilisateur ajouté')
+                        flash('Utilisateur ajouté','success')
+
                 except IntegrityError:
-                        flash('Utilisateur déjà existant')
+                        db.session.rollback()
+                        flash('Utilisateur déjà existant','danger')
+
         return render_template('add_user_form.html', form=form)
 
 @app.route('/dashboard')
