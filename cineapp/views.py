@@ -35,6 +35,13 @@ from cineapp.messages import tvshow_messages, movie_messages
 def index():
         return redirect(url_for('login'))
 
+@app.context_processor
+def inject_search_form():
+
+    # Make the search form available in all templates (Including base.html)
+    search_form = SearchShowForm()
+    return dict(search_form=search_form)
+
 @app.before_request
 def before_request():
         # Store the current authenticated user into a global object
@@ -42,8 +49,6 @@ def before_request():
         # g set by flask
         g.user = current_user
 
-        # Make the search form available in all templates (Including base.html)
-        g.search_form = SearchShowForm(prefix="search")
 
         # Make the graph list available in the whole app
         g.graph_list = app.config['GRAPH_LIST']
