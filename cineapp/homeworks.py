@@ -49,7 +49,7 @@ def add_homework(show_id,user_id):
                 flash('Devoir ajouté','success')
         
         except Exception as e: 
-                flash('Impossible de creer le devoir','danger')
+                flash('Impossible de créer le devoir','danger')
                 return redirect(url_for('show.list_shows',show_type=g.show_type))
 
         # Send email notification
