@@ -119,10 +119,12 @@ def delete_homework_notification(mark):
     if mark.user.notifications != None and mark.user.notifications["notif_homework_add"] == True:
         try:
             send_email('[Cineapp] - Annulation d\'un devoir', app.config['MAIL_SENDER'],[ mark.user.email ],
-            render_template('_homework_notification.txt', dest_user=mark.user, homework_who=mark.homework_who_user, show=mark.show))
+            render_template('delete_homework_notification.txt', dest_user=mark.user, homework_who=mark.homework_who_user, show=mark.show))
             return 0
-        except:
+        except Exception as e:
             # We couldn't send the mail
+            app.logger.error("Impossible d\'envoyer la notification d\'annulation du devoir : %s", e)
+            app.logger.error("%s" % traceback.print_exc())
             return 1
     else:
         # Display a message that the user don't want to be notified

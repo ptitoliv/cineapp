@@ -1,0 +1,6 @@
+Yo {{ dest_user.nickname }},
+
+Le devoir donné par {{ homework_who.nickname }} sur {{ g.messages["label_generic"] }} {{ show.name }} a été annulé.
+
+--
+CineApp

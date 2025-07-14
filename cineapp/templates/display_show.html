@@ -177,7 +177,11 @@ aria-hidden="true">&rarr;</span></a>
 			    <img src="{{ config.AVATARS_URL}}{{ cur_mark["user"].avatar }}" class="img-circle avatar" alt="user profile image">
 			    <div class="h4 text-center">
 				{% if cur_mark["mark"] == "homework_in_progress" %}
-					<a class="disabled btn btn-warning btn-xs fa-bg-white btn-mark">Devoir</a>
+                                        {% if cur_mark["homework_who"].id == g.user.id %}
+					        <a href={{ url_for("homework.delete_homework",show_id=show.id,user_id=cur_mark["user"].id) }} class="btn btn-danger btn-xs btn-mark">Annuler un devoir</a>
+                                        {% else %}
+					        <a class="disabled btn btn-warning btn-xs btn-mark">Devoir</a>
+                                        {% endif %}
 				{% elif cur_mark["mark"] == None %}
 					{% if g.user.id != (cur_mark["user"]).id and not g.user.is_guest %}
 						<a href={{ url_for("homework.add_homework",show_id=show.id,user_id=cur_mark["user"].id) }} class="btn btn-success btn-xs btn-mark">Donner un devoir</a>
