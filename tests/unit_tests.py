@@ -3,7 +3,7 @@
 from future import standard_library
 standard_library.install_aliases()
 import os, sys, json
-from cineapp import app, db
+from cineapp import app, db, mail
 from cineapp import slack
 from cineapp.models import User, Type, Origin, Mark, Movie
 from datetime import datetime
@@ -94,6 +94,16 @@ class FlaskrTestCase(unittest.TestCase):
             u.nickname="foo"
             u.password=hashed_password
             u.email="foo@bar.net"
+            u.notifications={
+                "notif_own_activity" : True,
+                "notif_show_add" : True,
+                "notif_mark_add": True,
+                "notif_homework_add": True,
+                "notif_comment_add": True,
+                "notif_favorite_update": True,
+                "notif_chat_message": True,
+                "notif_slack": True
+                }
             
             db.session.add(u)
             db.session.commit()
@@ -441,6 +451,10 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.app.get('/switch/unkown')
         assert rv.status_code == 404
 
+        # Test a direct acccess to an unkown category
+        rv=self.app.get('/unkown/list')
+        assert rv.status_code == 404
+
         rv=self.app.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
@@ -543,11 +557,18 @@ class FlaskrTestCase(unittest.TestCase):
             Display activity flow and data 
         """
 
-        # Add additionl data in order to test that we can't remove an homework 
-        # given by another user
         with app.app_context():
+
+            # Add additionl data in order to test that we can't remove an homework 
+            # given by another user
             movie=Movie(name="Movie",original_name="Original Movie", release_date="2000-01-01", origin="F", director="A guy", duration=142)
             mark=Mark(user_id=1,show_id=3,homework_who=2,homework_when=datetime.now())
+            db.session.add(movie)
+            db.session.add(mark)
+            db.session.commit()
+
+            # Add a movie already with a mark
+            mark=Mark(user_id=2,show_id=3,homework_who=1,homework_when=datetime.now(),mark=14,seen_where="C",seen_when=datetime.now())
             db.session.add(movie)
             db.session.add(mark)
             db.session.commit()
@@ -557,16 +578,35 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
 
         # Give an homework from user 1 to user 2
-        rv=self.app.get('/homework/add/1/2',follow_redirects=True)
-        assert "Devoir ajouté" in rv.data.decode('utf-8')
+        with mail.record_messages() as outbox:
+            rv=self.app.get('/homework/add/1/2',follow_redirects=True)
+            assert "Devoir ajouté" in rv.data.decode('utf-8')
+            assert "Attribution d'un devoir" in outbox[0].subject
+
+        # Give an homework from user 1 to user 2 for a show already with a mark
+        with mail.record_messages() as outbox:
+            rv=self.app.get('/homework/add/3/2',follow_redirects=True)
+            assert "Impossible de créer le devoir. Une note existe déjà" in rv.data.decode('utf-8')
+
+        # List homeworks
+        rv=self.app.get('/homework/list', follow_redirects=True)
+        assert "Liste des devoirs" in rv.data.decode('utf-8')
+        assert "A guy" in rv.data.decode('utf-8')
+
+        # List filtered homeworks
+        rv=self.app.post('/homework/list', data=dict(from_user_filter=1,to_user_filter=2),follow_redirects=True)
+        assert "Liste des devoirs" in rv.data.decode('utf-8')
+        assert "Les Tuche" in rv.data.decode('utf-8')
 
         # Give an incorrect homework
         rv=self.app.get('/homework/add/3/10',follow_redirects=True)
         assert "Impossible de créer le devoir" in rv.data.decode('utf-8')
 
         # Delete an homework
-        rv=self.app.get('/homework/delete/1/2',follow_redirects=True)
-        assert "Devoir annulé" in rv.data.decode('utf-8')
+        with mail.record_messages() as outbox:
+            rv=self.app.get('/homework/delete/1/2',follow_redirects=True)
+            assert "Devoir annulé" in rv.data.decode('utf-8')
+            assert "Annulation d'un devoir" in outbox[0].subject
 
         # Delete an incorrect homework
         rv=self.app.get('/homework/delete/3/10',follow_redirects=True)
@@ -575,6 +615,11 @@ class FlaskrTestCase(unittest.TestCase):
         # Delete an unauthorized homework
         rv=self.app.get('/homework/delete/3/1',follow_redirects=True)
         assert "Vous n&#39;avez pas le droit de supprimer ce devoir" in rv.data.decode('utf-8')
+
+        # Delete an homework already with a mark
+        with mail.record_messages() as outbox:
+            rv=self.app.get('/homework/delete/3/2',follow_redirects=True)
+            assert "Impossible de supprimer le devoir - Une note existe déjà" in rv.data.decode('utf-8')
 
         # Logout
         rv=self.app.get('/logout', follow_redirects=True)
