@@ -5,7 +5,8 @@ standard_library.install_aliases()
 import os, sys, json
 from cineapp import app, db
 from cineapp import slack
-from cineapp.models import User, Type, Origin
+from cineapp.models import User, Type, Origin, Mark, Movie
+from datetime import datetime
 from bcrypt import hashpw, gensalt
 import unittest
 import tempfile
@@ -531,6 +532,49 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.app.post('/activity/update', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
         response_args=json.loads(rv.data)["data"]
         assert len(response_args) > 0
+
+        # Logout
+        rv=self.app.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_20_homework(self):
+
+        """
+            Display activity flow and data 
+        """
+
+        # Add additionl data in order to test that we can't remove an homework 
+        # given by another user
+        with app.app_context():
+            movie=Movie(name="Movie",original_name="Original Movie", release_date="2000-01-01", origin="F", director="A guy", duration=142)
+            mark=Mark(user_id=1,show_id=3,homework_who=2,homework_when=datetime.now())
+            db.session.add(movie)
+            db.session.add(mark)
+            db.session.commit()
+
+        # Login
+        rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+
+        # Give an homework from user 1 to user 2
+        rv=self.app.get('/homework/add/1/2',follow_redirects=True)
+        assert "Devoir ajouté" in rv.data.decode('utf-8')
+
+        # Give an incorrect homework
+        rv=self.app.get('/homework/add/3/10',follow_redirects=True)
+        assert "Impossible de créer le devoir" in rv.data.decode('utf-8')
+
+        # Delete an homework
+        rv=self.app.get('/homework/delete/1/2',follow_redirects=True)
+        assert "Devoir annulé" in rv.data.decode('utf-8')
+
+        # Delete an incorrect homework
+        rv=self.app.get('/homework/delete/3/10',follow_redirects=True)
+        assert "Ce devoir n&#39;existe pas" in rv.data.decode('utf-8')
+
+        # Delete an unauthorized homework
+        rv=self.app.get('/homework/delete/3/1',follow_redirects=True)
+        assert "Vous n&#39;avez pas le droit de supprimer ce devoir" in rv.data.decode('utf-8')
 
         # Logout
         rv=self.app.get('/logout', follow_redirects=True)
