@@ -16,11 +16,12 @@ from cineapp import app, db, lm
 from cineapp.forms import HomeworkForm
 from cineapp.models import User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow, ProductionStatus
 from cineapp.tmvdb import search_shows,get_show,download_poster, search_page_number
-from cineapp.emails import add_homework_notification
+from cineapp.emails import add_homework_notification, delete_homework_notification
 from cineapp.utils import frange, get_activity_list, resize_avatar
 from cineapp.push import notification_unsubscribe
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
+from sqlalchemy.orm import make_transient, selectinload
 from sqlalchemy import desc, or_, and_, Table, text
 from sqlalchemy.sql.expression import select, case, literal
 from bcrypt import hashpw, gensalt
@@ -35,31 +36,40 @@ homework_bp = Blueprint('homework',__name__,url_prefix='/homework')
 @login_required
 @guest_control
 def add_homework(show_id,user_id):
-        
-        # Create the mark object
-        mark=Mark(user_id=user_id,show_id=show_id,homework_who=g.user.id,homework_when=datetime.now())
 
-        # We want to add an homework => Set a session variable in order to tell to the list_shows table not cleaning the table
-        session['clear_table']=False
+        # Check if the show has already a mark
+        mark=Mark.query.get((user_id,show_id))
 
-        # Add the object to the database
-        try:
-                db.session.add(mark)
-                db.session.commit()
-                flash('Devoir ajouté','success')
-        
-        except Exception as e: 
-                flash('Impossible de créer le devoir','danger')
-                return redirect(url_for('show.list_shows',show_type=g.show_type))
+        if mark != None:
 
-        # Send email notification
-        mail_status = add_homework_notification(mark)
-        if mail_status == 0:
-                flash('Notification envoyée','success')
-        elif mail_status == 1:
-                flash('Erreur lors de l\'envoi de la notification','danger')
-        elif mail_status == 2:
-                flash('Aucune notification à envoyer','warning')
+            # Mark exists ==> No need to give an homework
+            flash('Impossible de créer le devoir. Une note existe déjà' , 'warning')
+
+        else:
+
+            # Create the mark object
+            mark=Mark(user_id=user_id,show_id=show_id,homework_who=g.user.id,homework_when=datetime.now())
+    
+            # We want to add an homework => Set a session variable in order to tell to the list_shows table not cleaning the table
+            session['clear_table']=False
+    
+            # Add the object to the database
+            try:
+                    db.session.add(mark)
+                    db.session.commit()
+                    flash('Devoir ajouté','success')
+
+                    # Send email notification
+                    mail_status = add_homework_notification(mark)
+                    if mail_status == 0:
+                            flash('Notification envoyée','success')
+                    elif mail_status == 1:
+                            flash('Erreur lors de l\'envoi de la notification','danger')
+                    elif mail_status == 2:
+                            flash('Aucune notification à envoyer','warning')
+
+            except Exception as e: 
+                    flash('Impossible de créer le devoir','danger')
 
         return redirect(url_for('show.display_show',show_id=show_id,show_type=g.show_type))
 
@@ -70,41 +80,52 @@ def delete_homework(show_id,user_id):
 
         # Check if the homework exists and if the user has the right to delete it
         # We can't delete the homework we didn't propose
-        homework=Mark.query.get((user_id,show_id))
+        homework=Mark.query.options(selectinload(Mark.user),selectinload(Mark.show),selectinload(Mark.homework_who_user)).get((user_id,show_id))
         
         # Homework doesn't exists => Stop processing
-        if homework == None:
+        if homework == None or homework.homework_who == None:
                 flash("Ce devoir n'existe pas", "danger")
                 return redirect(url_for('homework.list_homeworks'))
 
         # Is the user allowed to delete the homework
         if homework.homework_who != g.user.id:
                 flash("Vous n'avez pas le droit de supprimer ce devoir", "danger")
-                return redirect(url_for('homework.list_homeworks'))
+                return redirect(url_for('show.display_show',show_id=show_id,show_type=g.show_type))
 
-        # We are here => We have the right to delete the homework
+        # Copy the object that will be used for notifications
+        db.session.expunge(homework)
+        homework_copy=copy.deepcopy(homework)
+        make_transient(homework_copy)
+        db.session.add(homework)
+
+        # We are here => Check that there is not already a mark
+        # We don't delete an homework when there is always a mark
         if homework.mark == None:
                 # The user didn't mark the movie so we can delete the record
                 try:
                         db.session.delete(homework)
                         db.session.commit()
                         flash("Devoir annulé","success")
+                        homework_deleted=True
                 except:
                         flash("Impossible de supprimer la note","danger")
+                        homework_deleted=False
         else:
-                # The user marked the movie so we can't delete the record => Set the homework fields to none
-                homework.homework_when = None
-                homework.homework_who = None
+            flash("Impossible de supprimer le devoir - Une note existe déjà","danger")
+            homework_deleted=False
                 
-                try:
-                        db.session.add(homework)
-                        db.session.commit()
-                        flash("Devoir annulé","success")
-                except:
-                        flash("Impossible d'annuler le devoir","danger")
+        # Send email notification after databases operations
+        if homework_deleted == True:
+            mail_status = delete_homework_notification(homework_copy)
+            if mail_status == 0:
+                    flash('Notification envoyée','success')
+            elif mail_status == 1:
+                    flash('Erreur lors de l\'envoi de la notification','danger')
+            elif mail_status == 2:
+                    flash('Aucune notification à envoyer','warning')
 
-        # When finished => Go back to the homework page
-        return redirect(url_for('homework.list_homeworks'))
+        # When finished => Go back to the movie page
+        return redirect(url_for('show.display_show',show_id=show_id,show_type=g.show_type))
                 
 @homework_bp.route('/list',methods=['GET','POST'])
 @login_required
