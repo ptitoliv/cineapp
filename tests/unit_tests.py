@@ -5,7 +5,7 @@ standard_library.install_aliases()
 import os, sys, json
 from cineapp import app, db, mail
 from cineapp import slack
-from cineapp.models import User, Type, Origin, Mark, Movie
+from cineapp.models import User, Type, Origin, Mark, Movie, FavoriteShow
 from datetime import datetime
 from bcrypt import hashpw, gensalt
 import unittest
@@ -593,7 +593,71 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.app.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
-    def test_20_activity_flow(self):
+    def test_20_favorites(self):
+
+        """
+            Test favorite feature
+        """
+
+        with app.app_context():
+
+            # Add additional favorites in order to tests specific failure cases (Remove favorite for another user)
+            favorite_show=FavoriteShow(show_id=1,user_id=2,star_type="favorite_star",added_when=datetime.now())
+            db.session.add(favorite_show)
+            db.session.commit()
+
+        # Login
+        rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+
+        # Add a show as favorite
+        rv=self.app.post('/json/favshow/set/1/1',data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
+        response_args=json.loads(rv.data)
+        assert response_args["status"] == "success"
+
+        # Change the favorite type
+        rv=self.app.post('/json/favshow/set/1/1',data=dict({'star_type': 'mustsee_star'}),follow_redirects=True)
+        response_args=json.loads(rv.data)
+        assert response_args["status"] == "success"
+
+        # Change the favorite type but with an incorrect one
+        rv=self.app.post('/json/favshow/set/1/1',data=dict({'star_type': 'bad_star'}),follow_redirects=True)
+        response_args=json.loads(rv.data)
+        assert response_args["status"] == "danger"
+
+        # Try to add a forbidden favortie
+        rv=self.app.post('/json/favshow/set/1/42',data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
+        response_args=json.loads(rv.data)
+        assert response_args["status"] == "danger"
+        assert "Vous n'êtes pas autorisé à ajouter ce film en favori pour cet utilisateur" in response_args["message"]
+
+        # Try to add a favorite on an unknown show
+        rv=self.app.post('/json/favshow/set/42/1',data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
+        response_args=json.loads(rv.data)
+        assert "Le film n\'existe pas" in response_args["message"]
+
+        # Try to delete an incorrect favortie
+        rv=self.app.get('/json/favshow/delete/42/1',follow_redirects=True)
+        response_args=json.loads(rv.data)
+        assert response_args["status"] == "danger"
+        assert "Favori inexistant" in response_args["message"]
+
+        # Try to delete an unauthorized favortie
+        rv=self.app.get('/json/favshow/delete/1/2',follow_redirects=True)
+        response_args=json.loads(rv.data)
+        assert response_args["status"] == "danger"
+        assert "Vous n'êtes pas autorisé à supprimer ce film en favori pour cet utilisateur" in response_args["message"]
+
+        # Finally delete a correct favorite
+        rv=self.app.get('/json/favshow/delete/1/1',follow_redirects=True)
+        response_args=json.loads(rv.data)
+        assert response_args["status"] == "success"
+
+        # Logout
+        rv=self.app.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_21_activity_flow(self):
 
         """
             Display activity flow and data 
