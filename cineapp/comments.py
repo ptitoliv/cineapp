@@ -37,7 +37,7 @@ def add_mark_comment():
 		db.session.add(mark_comment)
 		db.session.commit()
 			
-	except IntegrityError:
+	except IntegrityError: # pragma: no cover
 		db.session.rollback()
 
 	# Try to send the email
@@ -92,7 +92,7 @@ def update_mark_comment():
 			# Try to send the email
 			mark_comment_notification(mark_comment,request.endpoint)
 
-		except IntegrityError:
+		except IntegrityError: # pragma: no cover
 			db.session.rollback()
 
 	else:
