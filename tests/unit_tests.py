@@ -5,7 +5,7 @@ standard_library.install_aliases()
 import os, sys, json
 from cineapp import app, db, mail
 from cineapp import slack
-from cineapp.models import User, Type, Origin, Mark, Movie, FavoriteShow
+from cineapp.models import User, Type, Origin, Mark, Movie, FavoriteShow, MarkComment
 from datetime import datetime
 from bcrypt import hashpw, gensalt
 import unittest
@@ -394,12 +394,17 @@ class FlaskrTestCase(unittest.TestCase):
 
 		rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
 		assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+
+		# Try to send an empty comment
+		rv=self.app.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment=""),follow_redirects=True)
+		response_args=json.loads(rv.data)
+		assert response_args["error"] == "Vous ne pouvez pas insérer un commentaire vide"
 		
-		# We are logged => mark the movie
+		# Comment the movie
 		rv=self.app.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment="plop"),follow_redirects=True)
 		rv=self.app.get('/movie/display/1', follow_redirects=True)
 		assert "plop" in str(rv.data) 
-		
+
 		rv=self.app.get('/logout', follow_redirects=True)
 		assert "Welcome to CineApp" in str(rv.data)
 
@@ -436,6 +441,13 @@ class FlaskrTestCase(unittest.TestCase):
 
 	def test_10_edit_mark_movie(self):
 
+		with app.app_context():
+
+			# Add additional favorites in order to tests specific failure cases (Remove comment of another user)
+			mark_comment=MarkComment(user_id=2,mark_user_id=1,mark_show_id=1,posted_when=datetime.now(),message="COMMENT")
+			db.session.add(mark_comment)
+			db.session.commit()
+
 		rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
 		assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
 		
@@ -448,6 +460,16 @@ class FlaskrTestCase(unittest.TestCase):
 		rv=self.app.post('/json/delete_mark_comment',data=dict(comment_id=1),follow_redirects=True)
 		rv=self.app.get('/movie/display/1', follow_redirects=True)
 		assert "plup" not in str(rv.data) 
+
+		# Delete again the comment
+		rv=self.app.post('/json/delete_mark_comment',data=dict(comment_id=1),follow_redirects=True)
+		response_args=json.loads(rv.data)
+		assert response_args["error"] == "Commentaire inexistant ou déjà supprimé"
+
+		# Delete a comment of another user
+		rv=self.app.post('/json/delete_mark_comment',data=dict(comment_id=2),follow_redirects=True)
+		response_args=json.loads(rv.data)
+		assert response_args["error"] == "Vous ne pouvez supprimer que vos propres commentaires"
 		
 		rv=self.app.get('/logout', follow_redirects=True)
 		assert "Welcome to CineApp" in str(rv.data)

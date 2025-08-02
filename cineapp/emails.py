@@ -107,7 +107,7 @@ def add_homework_notification(mark):
             app.logger.error("%s" % traceback.print_exc())
             return 1
     else:
-        # Display a message that the user don't want to be notified
+        # Display a message that the user doesn't want to be notified
         return 2
 
 # Function which sends notification when an homework has been cancelled
