@@ -107,11 +107,31 @@ class FlaskrTestCase(unittest.TestCase):
 			
 			db.session.add(u)
 			db.session.commit()
-			
+
 			# Try to fetch user
 			u = User.query.get(2)
 			assert u.nickname == 'foo'
 
+			# Add a user who doesn't want to be notified
+			hashed_password=hashpw("toto1234".encode('utf-8'),gensalt())
+			u = User()
+			u.nickname="nonotif_user"
+			u.password=hashed_password
+			u.email="nonotif@ptitoliv.net"
+			u.notifications={
+				"notif_own_activity" : True,
+				"notif_show_add" : True,
+				"notif_mark_add": True,
+				"notif_homework_add": False,
+				"notif_comment_add": True,
+				"notif_favorite_update": True,
+				"notif_chat_message": True,
+				"notif_slack": True
+				}
+
+			db.session.add(u)
+			db.session.commit()
+			
 	def test_02_index(self):
 		rv = self.app.get('/login')
 		assert "Welcome to CineApp" in str(str(rv.data))
@@ -658,6 +678,9 @@ class FlaskrTestCase(unittest.TestCase):
 			db.session.add(mark)
 			db.session.commit()
 
+			# Fetch the user id for later
+			nonotif_user=User.query.filter_by(nickname="nonotif_user").one()
+
 		# Login
 		rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
 		assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
@@ -705,6 +728,15 @@ class FlaskrTestCase(unittest.TestCase):
 		with mail.record_messages() as outbox:
 			rv=self.app.get('/homework/delete/3/2',follow_redirects=True)
 			assert "Impossible de supprimer le devoir - Une note existe déjà" in rv.data.decode('utf-8')
+
+		# Add and remove an homework for a user who doesn't want notification
+		rv=self.app.get('/homework/add/1/%s' % nonotif_user.id,follow_redirects=True)
+		assert "Devoir ajouté" in rv.data.decode('utf-8')
+		assert "Aucune notification à envoyer" in rv.data.decode('utf-8')
+
+		rv=self.app.get('/homework/delete/1/%s' % nonotif_user.id,follow_redirects=True)
+		assert "Devoir annulé" in rv.data.decode('utf-8')
+		assert "Aucune notification à envoyer" in rv.data.decode('utf-8')
 
 		# Logout
 		rv=self.app.get('/logout', follow_redirects=True)

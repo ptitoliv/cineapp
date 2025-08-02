@@ -44,7 +44,7 @@ def add_show_notification(show):
             try:
                 send_email('[Cineapp] - %s' % g.messages["email_title_add"] , app.config['MAIL_SENDER'],[ cur_user.email ] ,
                 render_template('add_show_notification.txt', dest_user=cur_user, add_user=g.user,show=show,you_user=you_user))
-            except Exception as e:
+            except Exception as e: # pragma: no cover
                 app.logger.error("Impossible d'envoyer le mail d'ajout: %s",e)
                 return 1
 
@@ -84,7 +84,7 @@ def mark_show_notification(mark,notif_type):
                     send_email('[Cineapp] - Devoir rempli' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
                     render_template('mark_show_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
                 return 0
-            except Exception as e:
+            except Exception as e: # pragma: no cover
                 app.logger.error("Impossible d'envoyer le mail: %s",e)
                 return 1
 
@@ -101,7 +101,7 @@ def add_homework_notification(mark):
             send_email('[Cineapp] - Attribution d\'un devoir', app.config['MAIL_SENDER'],[ mark.user.email ],
             render_template('add_homework_notification.txt', dest_user=mark.user, homework_who=mark.homework_who_user, show=mark.show))
             return 0
-        except Exception as e:
+        except Exception as e: # pragma: no cover
             # We couldn't send the mail
             app.logger.error("Impossible d\'envoyer la notification de devoir : %s", e)
             app.logger.error("%s" % traceback.print_exc())
@@ -121,7 +121,7 @@ def delete_homework_notification(mark):
             send_email('[Cineapp] - Annulation d\'un devoir', app.config['MAIL_SENDER'],[ mark.user.email ],
             render_template('delete_homework_notification.txt', dest_user=mark.user, homework_who=mark.homework_who_user, show=mark.show))
             return 0
-        except Exception as e:
+        except Exception as e: # pragma: no cover
             # We couldn't send the mail
             app.logger.error("Impossible d\'envoyer la notification d\'annulation du devoir : %s", e)
             app.logger.error("%s" % traceback.print_exc())
