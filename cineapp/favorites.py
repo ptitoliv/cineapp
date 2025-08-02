@@ -43,12 +43,12 @@ def set_favorite_show(show,user):
         favorite_update_notification(favorite_show,"add")
         return jsonify({ "status": "success", "message": u"%s" % g.messages["flash_favorite_add"], "star_type" : favorite_show.star_type_obj.serialize() })
             
-    except IntegrityError:
+    except IntegrityError: # pragma: no cover
         db.session.rollback()
         app.logger.error("Erreur SQL sur l'ajout du favori")
         return jsonify({ "status": "danger", "message": u"Erreur d'intégrité en base de données" })
 
-    except Exception as e:
+    except Exception as e: # pragma: no cover
         db.session.rollback()
         print(e)
         app.logger.error("Erreur générale sur l'ajout du favori")
@@ -78,12 +78,12 @@ def delete_favorite_show(show,user):
         favorite_update_notification(favorite_show,"delete")
         return jsonify({ "status": "success", "message": u"%s" % g.messages["flash_favorite_delete"] })
             
-    except IntegrityError:
+    except IntegrityError: # pragma: no cover
         db.session.rollback()
         app.logger.error("Erreur SQL sur la suppression du favori")
         return jsonify({ "status": "danger", "message": u"Erreur d'intégrité en base de données" })
 
-    except Exception as e:
+    except Exception as e: # pragma: no cover
         db.session.rollback()
         print(e)
         app.logger.error("Erreur générale sur la suppression du favori")
