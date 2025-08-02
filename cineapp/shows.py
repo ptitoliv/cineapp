@@ -183,7 +183,7 @@ def confirm_show():
 
                                 # And then update the others fields
                                 confirm_form.show_id.data=select_form.show.data
-                                confirm_form.submit_confirm.label.text=u"Mettre à jour la %s " % g.messages["label_generic"]
+                                confirm_form.submit_confirm.label.text=u"Mettre à jour %s " % g.messages["label_generic"]
 
                         # Since the production_status object is not available because the object is not commited
                         # let's generate a temporary standalone object filled using the string got in tmvdb
@@ -263,7 +263,7 @@ def confirm_show():
                                 return redirect(url_for("shows_list"))
 
                         # All checks are okay => Update the show !
-                        temp_show=get_show(confirm_form.show_id.data)
+                        temp_show=get_show(confirm_form.show_id.data,fetch_poster=True,show_type=g.show_type)
 
                         # Put the notifications into a dictionnary for notification mail
                         notification_data={}
