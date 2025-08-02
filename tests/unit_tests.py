@@ -165,6 +165,14 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.app.get('/movie/add')
         parsed_html=BeautifulSoup(rv.data,"html.parser")
         assert u"Ajout d'un film" == parsed_html.find(id="add_wizard_label").text
+
+        # Send the form without any title
+        rv=self.app.post('/movie/add/select',data=dict(submit_search=True),follow_redirects=True)
+        assert u"Veuillez saisir une recherche" in rv.data.decode("utf-8")
+
+        # Send the form without a incorrect title
+        rv=self.app.post('/movie/add/select',data=dict(search="fejsgjsgjsd",submit_search=True),follow_redirects=True)
+        assert u"Aucun résultat" in rv.data.decode("utf-8")
         
         # Fill the movie title
         rv=self.app.post('/movie/add/select',data=dict(search="Les Tuche",submit_search=True))
@@ -207,6 +215,74 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.app.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
+    def test_04_update_movie(self):
+
+        """
+            Update show feature test
+        """
+
+        # Login
+        rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+
+        # We are logged => load the movie to update
+        rv=self.app.get('/movie/display/1',follow_redirects=True)
+        assert "Les Tuche" in rv.data.decode("utf-8")
+
+        rv=self.app.post('/movie/update',data=dict(show_id=1,submit_update_show=True),follow_redirects=True)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Mise à jour du film Les Tuche" == parsed_html.find(id="add_wizard_label").text
+
+        # Send the form without any title
+        rv=self.app.post('/movie/update/select',data=dict(submit_search=True),follow_redirects=True)
+        assert u"Veuillez saisir une recherche" in rv.data.decode("utf-8")
+
+        # Send the form without a incorrect title
+        rv=self.app.post('/movie/update/select',data=dict(search="fejsgjsgjsd",submit_search=True),follow_redirects=True)
+        assert u"Aucun résultat" in rv.data.decode("utf-8")
+        
+        # Fill the movie title
+        rv=self.app.post('/movie/update/select',data=dict(search="Les Tuche",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        
+        # Let's find the show in the list
+        list_shows=(parsed_html.table.find_all('label'))
+        found=False
+        for cur_show in list_shows:
+            if "Les Tuche" in cur_show.text:
+                found=True
+                break
+
+        assert found==True
+        
+        # Select the show
+        rv=self.app.post('/movie/update/confirm',data=dict(show="66129",submit_select=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Mettre à jour le film" in parsed_html.find(id="submit_confirm")['value']
+        
+        # Store the movie into database
+        rv=self.app.post('/movie/update/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+
+        list_messages=parsed_html.find_all("div", {"class": "msg-alert"})
+
+        found=False
+        for cur_msg in list_messages:
+            if "Film correctement mis à jour" in cur_msg.text:
+                found=True
+                break
+        assert found==True
+
+        found=False
+        for cur_msg in list_messages:
+            if "Affiche téléchargée" in cur_msg.text:
+                found=True
+                break
+
+        # Logout
+        rv=self.app.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
     def test_05_edit_profile(self):
 
         # Fetch the user in order to fill the form with the current notifications parameters
@@ -216,28 +292,65 @@ class FlaskrTestCase(unittest.TestCase):
         
         rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
-        
-        avatar_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
-            "ressources/test_avatar.png")
-        
-        with open(avatar_path, 'rb') as img1:
-                img1BytesIO = io.BytesIO(img1.read())
-        
-        rv=self.app.post('/my/profile',
-                             content_type='multipart/form-data',
-                             data=dict(email="ptitoliv+test@ptitoliv.net",upload_avatar=(img1BytesIO, 'test_avatar.png'),
-                             notif_own_activity=u.notifications["notif_own_activity"],
-                             notif_show_add=u.notifications["notif_show_add"],
-                             notif_homework_add=u.notifications["notif_homework_add"],
-                             notif_mark_add=u.notifications["notif_mark_add"],
-                             notif_comment_add=u.notifications["notif_comment_add"],
-                             notif_favorite_update=u.notifications["notif_favorite_update"],
-                             notif_chat_message=u.notifications["notif_chat_message"],
-                             notif_slack=u.notifications["notif_slack"]), follow_redirects=True)
-        
-        assert 'Informations mises à jour' in rv.data.decode("utf-8")
-        assert "Avatar correctement mis à jour" in rv.data.decode("utf-8")
-        
+
+        # Check if we can display the page
+        rv=self.app.get('/my/profile', follow_redirects=True)
+        assert "Informations Utilisateur" in rv.data.decode('utf-8')
+
+        # In order to repeat the same code for testing all cases for avatar,
+        # let's use a dictionnary with a loop. test_avatar.png is used twice in
+        # order to test the old avatar deletion code. That code tests also the
+        # profile update
+        avatar_tests={  "test_avatar.png" : "Avatar correctement mis à jour",
+                        "test_avatar2.png" : "Avatar correctement mis à jour",
+                        "test_avatar3.xlsx" : "Extension d&#39;image incorrecte",
+                        "test_avatar4.png": "Impossible de redimensionner l&#39;image"
+                      }
+
+        # Do the update twice in order to test the old avatar deletion
+        for avatar, message in avatar_tests.items():
+
+            # Change the avatar
+            avatar_path = os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                "ressources/%s" % avatar)
+            
+            with open(avatar_path, 'rb') as img1:
+                    img1BytesIO = io.BytesIO(img1.read())
+
+            rv=self.app.post('/my/profile',
+                                 content_type='multipart/form-data',
+                                 data=dict(email="ptitoliv+test@ptitoliv.net",upload_avatar=(img1BytesIO,
+                                                                                             avatar),
+                                 notif_own_activity=u.notifications["notif_own_activity"],
+                                 notif_show_add=u.notifications["notif_show_add"],
+                                 notif_homework_add=u.notifications["notif_homework_add"],
+                                 notif_mark_add=u.notifications["notif_mark_add"],
+                                 notif_comment_add=u.notifications["notif_comment_add"],
+                                 notif_favorite_update=u.notifications["notif_favorite_update"],
+                                 notif_chat_message=u.notifications["notif_chat_message"],
+                                 notif_slack=u.notifications["notif_slack"]), follow_redirects=True)
+           
+            # If we use that file, that message must be displayed
+            if avatar == "test_avatar.png":
+                assert "Informations mises à jour" in rv.data.decode("utf-8")
+            assert message in rv.data.decode("utf-8")
+
+        rv=self.app.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_05_change_password(self):
+
+        rv=self.app.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+
+        # Let's change the password in a bad way
+        rv=self.app.post('/my/password',data=dict(password="toto1234",confirm="toto1235"), follow_redirects=True)
+        assert "Les mots de passe ne correspondent pas" in rv.data.decode('utf-8')
+
+        # Let's change the password for real
+        rv=self.app.post('/my/password',data=dict(password="toto1234",confirm="toto1234"), follow_redirects=True)
+        assert "Mot de passe mis à jour" in rv.data.decode('utf-8')
+
         rv=self.app.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
