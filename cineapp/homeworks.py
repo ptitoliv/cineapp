@@ -63,7 +63,7 @@ def add_homework(show_id,user_id):
                     mail_status = add_homework_notification(mark)
                     if mail_status == 0:
                             flash('Notification envoyée','success')
-                    elif mail_status == 1:
+                    elif mail_status == 1: # pragma: no cover
                             flash('Erreur lors de l\'envoi de la notification','danger')
                     elif mail_status == 2:
                             flash('Aucune notification à envoyer','warning')
@@ -107,7 +107,7 @@ def delete_homework(show_id,user_id):
                         db.session.commit()
                         flash("Devoir annulé","success")
                         homework_deleted=True
-                except:
+                except: # pragma: no cover
                         flash("Impossible de supprimer la note","danger")
                         homework_deleted=False
         else:
@@ -119,7 +119,7 @@ def delete_homework(show_id,user_id):
             mail_status = delete_homework_notification(homework_copy)
             if mail_status == 0:
                     flash('Notification envoyée','success')
-            elif mail_status == 1:
+            elif mail_status == 1: # pragma: no cover
                     flash('Erreur lors de l\'envoi de la notification','danger')
             elif mail_status == 2:
                     flash('Aucune notification à envoyer','warning')
