@@ -34,10 +34,6 @@ def edit_user_profile():
                 # Update the User object
                 g.user.email = form.email.data
 
-                # Init the dictionnary if we don't have anyone (Null attribute in the database)
-                if g.user.notifications == None:
-                        g.user.notifications = {}
-                
                 # Update the notification dictionnary
                 g.user.notifications["notif_own_activity"] = form.notif_own_activity.data
                 g.user.notifications["notif_show_add"] = form.notif_show_add.data
@@ -57,7 +53,7 @@ def edit_user_profile():
 
                                 # Check if the image has the correct mimetype ==> If not,abort the update
                                 if new_avatar.content_type not in app.config['ALLOWED_MIMETYPES']:
-                                        flash('Format d\'image incorrect',"danger")
+                                        flash('Extension d\'image incorrecte',"danger")
                                         return redirect(url_for('profile.edit_user_profile'))
 
                                 # Define the future old avatar to remove
@@ -76,15 +72,15 @@ def edit_user_profile():
                                                         os.remove(os.path.join(app.config['AVATARS_FOLDER'], old_avatar))
 
                                                 flash("Avatar correctement mis à jour","success")
-                                        except OSError as e:
+                                        except OSError as e: # pragma: no cover
                                                 app.logger.error('Impossible de supprimer l\'avatar')
                                                 app.logger.error(str(e))
                                 else:
                                         # Delete the new avatar and go back to the previous one
-                                        flash("Impossible de redimensionner l\'image","success")
+                                        flash("Impossible de redimensionner l\'image","danger")
                                         try:
                                                 os.remove(os.path.join(app.config['AVATARS_FOLDER'], g.user.avatar))
-                                        except OSError as e:
+                                        except OSError as e: # pragma: no cover
                                                 app.logger.error('Impossible de supprimer le nouvel avatar')
                                                 app.logger.error(str(e))
         
@@ -99,7 +95,7 @@ def edit_user_profile():
 
                         flash('Informations mises à jour','success')
 
-                except Exception as e:
+                except Exception as e: # pragma: no cover
                         print(e)
                         flash('Impossible de mettre à jour l\'utilisateur', 'danger')
 
@@ -127,8 +123,8 @@ def change_user_password():
                         db.session.add(g.user)
                         db.session.commit()
                         flash('Mot de passe mis à jour','success')
-                except:
-                        flash('Impossible de mettre à our le mot de passe', 'danger')
+                except: # pragma: no cover
+                        flash('Impossible de mettre à jour le mot de passe', 'danger')
         
         # Fetch the object for the current logged_in user
         return render_template('edit_profile.html',form=form,state="password")
