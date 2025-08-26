@@ -6,6 +6,7 @@ import os, sys, json
 from cineapp import app, db, mail
 from cineapp import slack
 from cineapp.models import User, Type, Origin, Mark, Movie, FavoriteShow, MarkComment
+from cineapp.jinja_filters import minutes_to_human_duration,date_format
 from datetime import datetime
 from bcrypt import hashpw, gensalt
 import unittest
@@ -86,6 +87,20 @@ class FlaskrTestCase(unittest.TestCase):
 			db.session.commit()
 			db.session.execute(text("DROP TABLE alembic_version"))
 			db.drop_all()
+
+	def test_00_utils_functions(self):
+
+		"""
+			Unit test for utils functions
+		"""
+
+		# Test minutes duration to human readable format conversion
+		assert None == minutes_to_human_duration("NaN")
+		assert "3h 0min" == minutes_to_human_duration(180)
+
+		# Test date_format function
+		assert "14/07/2023" == date_format("2023-07-14","%d/%m/%Y")
+		assert None == date_format("NaN","%d/%m/%Y")
 
 	def test_01_populateUsers(self):
 		with app.app_context():
