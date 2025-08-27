@@ -5,8 +5,9 @@ standard_library.install_aliases()
 import os, sys, json
 from cineapp import app, db, mail
 from cineapp import slack
-from cineapp.models import User, Type, Origin, Mark, Movie, FavoriteShow, MarkComment
+from cineapp.models import User, Type, Origin, Mark, Movie, TVShow, FavoriteShow, MarkComment
 from cineapp.jinja_filters import minutes_to_human_duration,date_format
+from cineapp.jinja_testers import movie,tvshow
 from datetime import datetime
 from bcrypt import hashpw, gensalt
 import unittest
@@ -101,6 +102,16 @@ class FlaskrTestCase(unittest.TestCase):
 		# Test date_format function
 		assert "14/07/2023" == date_format("2023-07-14","%d/%m/%Y")
 		assert None == date_format("NaN","%d/%m/%Y")
+
+		# Test functions guessing object type
+		new_movie = Movie()
+		new_tvshow = TVShow()
+		assert movie(new_movie) == True
+		assert movie(new_tvshow) == False
+		assert tvshow(new_tvshow) == True
+		assert tvshow(new_movie) == False
+		assert movie(None) == False
+		assert tvshow(None) == False
 
 	def test_01_populateUsers(self):
 		with app.app_context():
