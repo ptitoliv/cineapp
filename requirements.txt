@@ -83,4 +83,4 @@ Werkzeug==1.0.1
 Whoosh==2.7.4
 WTForms==2.3.3
 yarl==1.6.3
-zipp==3.4.1
+zipp==3.19.1
