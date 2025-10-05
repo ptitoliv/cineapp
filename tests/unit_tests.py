@@ -25,7 +25,10 @@ class FlaskrTestCase(unittest.TestCase):
     def setUpClass(cls):
 
         # Create the appliction considering the factory pattern
-        cls.app = create_app('configs/settings_tests_local.cfg')
+        if os.getenv("CI") == "True":
+            cls.app = create_app('configs/settings_tests_ci.cfg')
+        else:
+            cls.app = create_app('configs/settings_tests_local.cfg')
 
         # Init with default connection string
         cls.app.config['WTF_CSRF_ENABLED'] = False
