@@ -142,7 +142,7 @@
 		        {%from "_formhelpers.html" import render_field %}
 			<!-- Filter Form -->
 			<div>
-				<form class="form-inline text-center" method="post" role="form" action={{ url_for('filter_form') }}>
+				<form class="form-inline text-center" method="post" role="form" action={{ url_for('main.filter_form') }}>
 					{{ render_field(filter_form.origin) }}	
 					{{ render_field(filter_form.type) }}	
                                         {% if g.show_type == "movie" %}
@@ -155,7 +155,7 @@
 			</div>
 		</div>
 		<div class="row text-center">
-			<a class="btn btn-success" href="{{ url_for("reset_list") }}">Réinitialiser la liste</a>
+			<a class="btn btn-success" href="{{ url_for("main.reset_list") }}">Réinitialiser la liste</a>
 		</div>
 	</div>
 	<div class="container" style="width:70%;">

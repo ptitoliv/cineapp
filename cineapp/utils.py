@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 from __future__ import division
 from past.utils import old_div
-from cineapp import db
-from cineapp.models import Show, Mark, MarkComment, FavoriteShow
+from flask import current_app
+from cineapp.models import db, Show, Mark, MarkComment, FavoriteShow
 from sqlalchemy.sql.expression import literal, desc
 import PIL, os
 from PIL import Image
@@ -23,7 +23,7 @@ def get_activity_list(start, length, show_type):
     # Object_items
     object_dict={"count": 0, "list": []}
     object_list=[]
-    
+
     # Show Query
     shows_query=db.session.query(Show.id.label("id"),literal("user_id").label("user_id"),Show.added_when.label("entry_date"),literal("shows").label("entry_type")).filter(Show.show_type==show_type)
 

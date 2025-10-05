@@ -55,7 +55,7 @@
 			      </button>
 			{% endif %}
 				{% if not g.user.is_guest %}
-			      		<a class="navbar-brand" href="{{ url_for('index') }}">CineApp</a>
+			      		<a class="navbar-brand" href="{{ url_for('main.index') }}">CineApp</a>
 				{% else %}
 			      		<a class="navbar-brand" href="{{ url_for('show.list_shows',show_type=g.show_type) }}">CineApp</a>
 				{% endif %}
@@ -65,7 +65,7 @@
 				{% if not g.user.is_guest %}
 				<ul class="nav navbar-nav">
 					<li><a href="{{ url_for('homework.list_homeworks') }}">Devoirs</a></li>
-					<li><a href="{{ url_for('show_activity_flow') }}">Activité</a></li>
+					<li><a href="{{ url_for('main.show_activity_flow') }}">Activité</a></li>
 					<li><a href="{{ url_for('show.add_show',show_type=g.show_type) }}">
                                                         {{ g.messages["label_add"] }}
                                         </a></li>
@@ -82,11 +82,11 @@
 					    {% endfor %}
 					  </ul>
 					  </li>
-					  <li><a href="{{ url_for('chat') }}">Chat</a></li>
+					  <li><a href="{{ url_for('chat.chat') }}">Chat</a></li>
 				</ul>
 				{% endif %}
 				{%from "_formhelpers.html" import render_field %}
-				<form class="navbar-form navbar-left" method="post" action="{{ url_for('filter_form') }}">
+				<form class="navbar-form navbar-left" method="post" action="{{ url_for('main.filter_form') }}">
 					{{ search_form.hidden_tag() }}
 					<div class="input-group">
                                                 {{ search_form.search(class="form-control",placeholder=g.messages["field_search"]) }}	
@@ -105,15 +105,15 @@
 						        Welcome <strong>{{ g.user.nickname }}</strong>
 						</a>
 						<ul class="dropdown-menu">
-							<li><a href="{{ url_for('switch_show_type',show_type="movie") }}"><i class="fa fa-video-camera"></i> Films</a></li>
-                                                        <li><a href="{{ url_for('switch_show_type',show_type="tvshow") }}"><i class="fa fa-television"></i> Séries</a></li>
+							<li><a href="{{ url_for('main.switch_show_type',show_type="movie") }}"><i class="fa fa-video-camera"></i> Films</a></li>
+                                                        <li><a href="{{ url_for('main.switch_show_type',show_type="tvshow") }}"><i class="fa fa-television"></i> Séries</a></li>
 							<li role="separator" class="divider"></li>
 							{% if not g.user.is_guest %}
 							<li><a href="{{ url_for('profile.edit_user_profile') }}"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> Profil</a></li>
 							<li><a href="{{ url_for('profile.change_user_password') }}"><span class="glyphicon glyphicon-lock" aria-hidden="true"></span> Mot de passe</a></li>
 							<li role="separator" class="divider"></li>
 							{% endif %}
-							<li><a href="{{ url_for('logout') }}"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span> Se Deconnecter</a></li>
+							<li><a href="{{ url_for('main.logout') }}"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span> Se Deconnecter</a></li>
 						</ul>
 					</li>
 				</ul>

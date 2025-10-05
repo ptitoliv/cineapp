@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
+
 from __future__ import print_function
 from past.builtins import basestring
-from cineapp import app
+from flask import current_app as app
 import datetime
 
-@app.template_filter()
 def minutes_to_human_duration(minutes_duration):
 	"""
 		Convert a duration in minutes into a duration in a cool format human readable
@@ -15,7 +15,6 @@ def minutes_to_human_duration(minutes_duration):
 	except TypeError:
 		return None
 
-@app.template_filter()
 def date_format(date,format_date):
 	"""
 		Convert a date object into a custom format
@@ -28,5 +27,4 @@ def date_format(date,format_date):
 		else:
 			return date.strftime(format_date)
 	except Exception as e:
-		print(e)
 		return None

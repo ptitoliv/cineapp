@@ -117,7 +117,7 @@
 			  "paging": false,
 			  "dom": 'rt',
 			  "ajax": {
-				"url": "{{ url_for('update_activity_flow') }}",
+				"url": "{{ url_for('main.update_activity_flow') }}",
 				"type" : "POST",
 				"data": function(args) {
 				      return { "args": JSON.stringify( args ) };
@@ -162,7 +162,7 @@ function draw_graph(canvas) {
 
     // Le code a exécuter !
     $.post(
-		"{{ url_for('graph_shows_by_year') }}",
+		"{{ url_for('main.graph_shows_by_year') }}",
 		{
 			year: $('#graph_cur_year_' + canvas).text(),
 			user: $('#user_list_' + canvas).val()

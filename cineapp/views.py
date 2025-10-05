@@ -8,13 +8,13 @@ from builtins import str
 from builtins import range
 import urllib.request, urllib.parse, urllib.error, hashlib, re, os, locale, json, copy, time,html2text
 from datetime import datetime
-from flask import render_template, flash, redirect, url_for, g, request, session, abort
+from flask import Blueprint, render_template, flash, redirect, url_for, g, request, session, abort, current_app as app
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_wtf import Form
 from wtforms_sqlalchemy.fields import QuerySelectField
-from cineapp import app, db, lm
+from cineapp import lm
 from cineapp.forms import LoginForm, AddUserForm, AddShowForm, MarkShowForm, SearchShowForm, SelectShowForm, ConfirmShowForm, FilterForm, UserForm, PasswordForm, HomeworkForm, UpdateShowForm, DashboardGraphForm
-from cineapp.models import User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow
+from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow
 from cineapp.tmvdb import search_shows,get_show,download_poster, search_page_number
 from cineapp.emails import add_show_notification, mark_show_notification, add_homework_notification, update_show_notification
 from cineapp.utils import frange, get_activity_list, resize_avatar
@@ -28,59 +28,20 @@ from werkzeug.utils import secure_filename
 from random import randint
 from cineapp.slack import slack_mark_notification
 from cineapp.auth import guest_control
-from cineapp.messages import tvshow_messages, movie_messages
 
-@app.route('/')
-@app.route('/index')
+view_bp = Blueprint('main', __name__)
+
+@view_bp.route('/')
+@view_bp.route('/index')
 def index():
-        return redirect(url_for('login'))
+        return redirect(url_for('main.login'))
 
-@app.context_processor
-def inject_search_form():
-
-    # Make the search form available in all templates (Including base.html)
-    search_form = SearchShowForm()
-    return dict(search_form=search_form)
-
-@app.before_request
-def before_request():
-        # Store the current authenticated user into a global object
-        # current_user set by flask
-        # g set by flask
-        g.user = current_user
-
-
-        # Make the graph list available in the whole app
-        g.graph_list = app.config['GRAPH_LIST']
-
-        # Return the current date
-        g.cur_date = datetime.now()
-
-        # Define the mode (Movie or TVShow)
-        g.app_mode = "tv"
-        g.tvmdb_api_mode = "tv"
-
-        # Set mode to movie by default
-        if session.get('show_type') == None:
-            app.logger.info("Le type de show n'est pas défini dans la session. Configuration à movie par défaut")
-            session["show_type"] = "movie"
-       
-        # Configure g with the value stored in the session
-        # TIP: g is only set for the current request and not globally to the session
-        # For that: there is ... session
-        g.show_type=session["show_type"]
-
-        if g.show_type == "movie":
-            g.messages=movie_messages
-        elif g.show_type == "tvshow":
-            g.messages=tvshow_messages
-
-@app.route('/login', methods=['GET','POST'])
+@view_bp.route('/login', methods=['GET','POST'])
 def login():
 
         # Let's check if we are authenticated => If yes redirect to the index page
         if g.user is not None and g.user.is_authenticated:
-                return redirect(url_for('show_dashboard'))
+                return redirect(url_for('main.show_dashboard'))
 
         # If we are here, we are not login. Build the form and try the login.
         form = LoginForm()
@@ -96,11 +57,11 @@ def login():
                 user=User.query.filter_by(nickname=form.username.data).first()
                 if user is None:
                         flash("Mauvais utilisateur !",'danger')
-                        return redirect(url_for('login'))
+                        return redirect(url_for('main.login'))
                 else:
                         if hashpw(form.password.data.encode('utf-8'), user.password.encode('utf-8')).decode('utf-8') != user.password:
                                 flash("Mot de passe incorrect !",'danger')
-                                return redirect(url_for('login'))
+                                return redirect(url_for('main.login'))
 
                         # User authenticated => Let's login it
                         login_user(user)
@@ -109,12 +70,12 @@ def login():
                         # We need to use a session since g object is not available because before_request is not executed on sockets event
                         session["user"] = user
 
-                        return redirect(request.args.get('next') or url_for('index'))
-                return redirect(url_for('index'))
+                        return redirect(request.args.get('next') or url_for('main.index'))
+                return redirect(url_for('main.index'))
         
         return render_template('login.html', title='Sign In', form=form)
 
-@app.route('/logout')
+@view_bp.route('/logout')
 def logout():
         logout_user()
 
@@ -123,9 +84,9 @@ def logout():
         for cur_subscription in subscriptions_to_delete:
                 notification_unsubscribe(cur_subscription)
 
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
 
-@app.route('/switch/<show_type>')
+@view_bp.route('/switch/<show_type>')
 @login_required
 def switch_show_type(show_type):
 
@@ -147,7 +108,7 @@ def switch_show_type(show_type):
     if g.user.is_guest == True:
         return redirect(url_for('show.list_shows',show_type=show_type))
     else:
-        return redirect(url_for('index'))
+        return redirect(url_for('main.index'))
 
 
 @lm.user_loader
@@ -158,7 +119,7 @@ def load_user(id):
         else:
                 return User.query.get(int(id))
 
-@app.route('/users/add', methods=['GET','POST'])
+@view_bp.route('/users/add', methods=['GET','POST'])
 @login_required
 @guest_control
 def add_user():
@@ -188,7 +149,7 @@ def add_user():
 
         return render_template('add_user_form.html', form=form)
 
-@app.route('/dashboard')
+@view_bp.route('/dashboard')
 @login_required
 @guest_control
 def show_dashboard():
@@ -241,13 +202,13 @@ def show_dashboard():
         
         return render_template('show_dashboard.html', activity_list=activity_dict["list"], general_stats=general_stats,labels=labels,cur_year=cur_year,stats_dict=stats_dict,dashboard_graph_form=dashboard_graph_form)
 
-@app.route('/activity/show')
+@view_bp.route('/activity/show')
 @login_required
 @guest_control
 def show_activity_flow():
         return render_template('show_activity_flow.html')
 
-@app.route('/activity/update', methods=['POST'])
+@view_bp.route('/activity/update', methods=['POST'])
 @login_required
 @guest_control
 def update_activity_flow():
@@ -336,7 +297,7 @@ def update_activity_flow():
         # Return the dictionnary as a JSON object
         return json.dumps(activity_dict)
 
-@app.route('/json/graph_by_year', methods=['POST'])
+@view_bp.route('/json/graph_by_year', methods=['POST'])
 @login_required
 @guest_control
 def graph_shows_by_year():
