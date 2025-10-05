@@ -8,13 +8,12 @@ from builtins import str
 from builtins import range
 import urllib.request, urllib.parse, urllib.error, hashlib, re, os, locale, json, copy, time,html2text, traceback
 from datetime import datetime
-from flask import render_template, flash, redirect, url_for, g, request, session, abort, Blueprint
+from flask import render_template, flash, redirect, url_for, g, request, session, abort, Blueprint, current_app as app
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_wtf import Form
 from wtforms_sqlalchemy.fields import QuerySelectField
-from cineapp import app, db, lm
 from cineapp.forms import LoginForm, AddUserForm, AddShowForm, MarkShowForm, SearchShowForm, SelectShowForm, ConfirmShowForm, FilterForm, UserForm, PasswordForm, HomeworkForm, UpdateShowForm, DashboardGraphForm
-from cineapp.models import User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow, ProductionStatus
+from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow, ProductionStatus
 from cineapp.tmvdb import search_shows,get_show,download_poster, search_page_number
 from cineapp.emails import add_show_notification, mark_show_notification, add_homework_notification, update_show_notification
 from cineapp.utils import frange, get_activity_list, resize_avatar
@@ -29,6 +28,7 @@ from werkzeug.utils import secure_filename
 from random import randint
 from cineapp.slack import slack_mark_notification
 from cineapp.auth import guest_control
+from cineapp.views import view_bp
 
 show_bp = Blueprint('show',__name__,url_prefix='/<show_type>')
 
@@ -461,8 +461,8 @@ def display_show(show_id):
                 return render_template('display_show.html', show=show, mark_users=mark_users, show_next=next(show),show_prev=show.prev(),marked_flag=True, update_show_form=update_show_form,favorite_type_list=favorite_type_list)
 
 @show_bp.route('/list')
-@app.route('/reset', endpoint="reset_list")
-@app.route('/filter', methods=[ 'GET', 'POST' ], endpoint="filter_form")
+@view_bp.route('/reset', endpoint="reset_list")
+@view_bp.route('/filter', methods=[ 'GET', 'POST' ], endpoint="filter_form")
 @login_required
 def list_shows():
 

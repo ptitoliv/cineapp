@@ -1,9 +1,11 @@
 # -*- coding: utf-8 -*-
 from builtins import str
-from cineapp import app,db
 from sqlalchemy import desc,text, DefaultClause, orm
 from cineapp.types import JSONEncodedDict
+from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import tuple_
+
+db = SQLAlchemy()
 
 class User(db.Model):
 

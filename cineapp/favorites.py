@@ -2,8 +2,9 @@
 
 from __future__ import print_function
 from __future__ import absolute_import
-from cineapp import app, db, lm
-from flask import render_template, flash, redirect, url_for, g, request, session, jsonify
+from cineapp import lm
+from cineapp.models import db
+from flask import Blueprint, render_template, flash, redirect, url_for, g, request, session, jsonify, current_app as app
 from flask_login import login_required
 from cineapp.models import User, FavoriteShow, Show
 from datetime import datetime
@@ -11,7 +12,9 @@ from .emails import favorite_update_notification
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
 
-@app.route('/json/favshow/set/<int:show>/<int:user>', methods=['POST'])
+favorites_bp = Blueprint('favorites', __name__) 
+
+@favorites_bp.route('/json/favshow/set/<int:show>/<int:user>', methods=['POST'])
 @login_required
 def set_favorite_show(show,user):
 
@@ -54,7 +57,7 @@ def set_favorite_show(show,user):
         app.logger.error("Erreur générale sur l'ajout du favori")
         return jsonify({ "status": "danger", "message": u"%s" % g.messages["flash_favorite_add_failed"] })
 
-@app.route('/json/favshow/delete/<int:show>/<int:user>', methods=['GET'])
+@favorites_bp.route('/json/favshow/delete/<int:show>/<int:user>', methods=['GET'])
 @login_required
 def delete_favorite_show(show,user):
 

@@ -3,11 +3,11 @@
 from builtins import next
 import urllib.request, urllib.parse, urllib.error, re, locale, json, copy, html2text, hashlib, time, os
 from datetime import datetime
-from flask import render_template, flash, redirect, url_for, g, request, session, abort, Blueprint
+from flask import render_template, flash, redirect, url_for, g, request, session, abort, Blueprint, current_app as app
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_wtf import Form
-from cineapp import app, db, lm
-from cineapp.models import User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow
+from cineapp import lm
+from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow
 from cineapp.utils import frange, get_activity_list, resize_avatar
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError

@@ -1,24 +1,27 @@
 # -*- coding: utf-8 -*-
 
 from builtins import str
-from flask import render_template,g
-from flask_mail import Message
-from cineapp import mail, db
-from cineapp.models import User
+from flask import render_template, g, current_app as app, copy_current_request_context
+from flask_mail import Mail, Message
+from cineapp.models import db, User
 from threading import Thread
-from cineapp import app
 import html2text, time, json, traceback
 
-# Send mail into a dedicated thread in order to avoir the web app to wait
-def send_async_email(app, msg):
-    with app.app_context():
-        mail.send(msg)
+mail = Mail()
 
 # Wrapper function for sending mails using flask-mail plugin
 def send_email(subject, sender, recipients, text_body):
+
+    # Send mail into a dedicated thread in order to avoir the web app to wait
+    # Must be done using copy_current_request_context
+    # Based on the following doc: https://tedboy.github.io/flask/generated/flask.copy_current_request_context.html
+    @copy_current_request_context
+    def send_async_email(msg):
+        mail.send(msg)
+
     msg = Message(subject, sender=sender, recipients=recipients)
     msg.body = text_body
-    thr = Thread(target=send_async_email, args=[app, msg])
+    thr = Thread(target=send_async_email, args=[msg])
     thr.start()
 
 # Function which sends notifications to users when a show is added

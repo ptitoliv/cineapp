@@ -6,8 +6,8 @@ from builtins import str
 import json, sys, time, urllib.request, urllib.parse, urllib.error, os, math
 from urllib.request import urlopen
 from datetime import datetime
-from cineapp import app,db
 from cineapp.models import Movie,TVShow, ProductionStatus
+from flask import current_app as app
 
 # Conversion from show_type
 tmvdb_mode={ "movie": "movie", "tvshow": "tv" }

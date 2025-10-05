@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-from cineapp import app, lm, socketio, db
-from flask import render_template, flash, redirect, url_for, g, request, session
+from cineapp import lm, socketio
+from flask import Blueprint, render_template, flash, redirect, url_for, g, request, session, current_app as app
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_socketio import SocketIO, emit
-from cineapp.models import ChatMessage, User
+from cineapp.models import db, ChatMessage, User
 from cineapp.emails import chat_message_notification
 from cineapp.push import notification_send
 from cineapp.auth import guest_control
@@ -13,6 +13,8 @@ from datetime import datetime, timedelta
 from sqlalchemy import desc
 import re
 from multiprocessing import Process
+
+chat_bp = Blueprint('chat', __name__)
 
 def transmit_message(message,notify=False):
 	""" This functions sends a message on the socket
@@ -65,7 +67,7 @@ def transmit_message(message,notify=False):
 	# Send the message
 	emit('message', { 'user': message.posted_by.nickname, 'date': message_date_formatted, 'avatar': message.posted_by.avatar, 'msg' : message.message }, broadcast=True)
 
-@app.route('/chat')
+@chat_bp.route('/chat')
 @login_required
 @guest_control
 def chat():

@@ -346,7 +346,7 @@ aria-hidden="true">&rarr;</span></a>
 			$("#comment_number_text_" + data.mark_comment.mark_user_id).text(data.mark_comment_number)
 
 			// Do some stuff if we did a delete operation
-			if (data.operation == "delete_mark_comment") {
+			if (data.operation == "comments.delete_mark_comment") {
 
 				// And then delete the buttons since we can't edit or delete the comment anymore
 				$("#media_comment_" + data.mark_comment.markcomment_id).delay(2000).slideUp("slow", function() {
@@ -354,7 +354,8 @@ aria-hidden="true">&rarr;</span></a>
 				});
 			}
 			// Do some stuff if we did an edit operation
-			else if (data.operation == "edit_mark_comment") {
+			else if (data.operation == "comments.edit_mark_comment") {
+
 
 				// Hide the form and display the comment (Don't do it with toggle Not working :( )
 				$("#comment_nonedit_text_" + data.mark_comment.markcomment_id ).show()
@@ -391,7 +392,7 @@ aria-hidden="true">&rarr;</span></a>
 
 		// Let's send the comment
 		$.post(
-			"{{ url_for('add_mark_comment') }}",
+			"{{ url_for('comments.add_mark_comment') }}",
 			{ 
 				 comment : comment_text,
 				 show_id: {{ show.id }},
@@ -412,7 +413,7 @@ aria-hidden="true">&rarr;</span></a>
 
 		// Let's send the request for deleting the comment
 		$.post(
-			"{{ url_for('edit_mark_comment') }}",
+			"{{ url_for('comments.edit_mark_comment') }}",
 			{ 
 				comment_id: comment_id,
 				comment_text: comment_text,
@@ -494,7 +495,7 @@ aria-hidden="true">&rarr;</span></a>
 
 		// Let's send the request for deleting the comment
 		$.post(
-			"{{ url_for('delete_mark_comment') }}",
+			"{{ url_for('comments.delete_mark_comment') }}",
 			{ 
 				comment_id: comment_id
 			},	update_comment
@@ -555,7 +556,7 @@ aria-hidden="true">&rarr;</span></a>
 
 			// We want to set a favorite level
 			$.post(
-				"{{ url_for('set_favorite_show',show=show.id,user=g.user.id) }}",
+				"{{ url_for('favorites.set_favorite_show',show=show.id,user=g.user.id) }}",
 				{ "star_type": $(this).attr("id") },
 				function(data) { favorite_update(data,"set") }
 			);
@@ -564,7 +565,7 @@ aria-hidden="true">&rarr;</span></a>
 
 			// We want to remove the favorite level
 			$.get(
-				"{{ url_for('delete_favorite_show',show=show.id,user=g.user.id) }}",
+				"{{ url_for('favorites.delete_favorite_show',show=show.id,user=g.user.id) }}",
 				function(data) { favorite_update(data,"delete") }
 			);
 		}

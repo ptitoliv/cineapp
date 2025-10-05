@@ -12,9 +12,9 @@ from flask import render_template, flash, redirect, url_for, g, request, session
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_wtf import Form
 from wtforms_sqlalchemy.fields import QuerySelectField
-from cineapp import app, db, lm
+from cineapp import lm
 from cineapp.forms import HomeworkForm
-from cineapp.models import User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow, ProductionStatus
+from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow, ProductionStatus
 from cineapp.tmvdb import search_shows,get_show,download_poster, search_page_number
 from cineapp.emails import add_homework_notification, delete_homework_notification
 from cineapp.utils import frange, get_activity_list, resize_avatar
@@ -29,6 +29,7 @@ from werkzeug.utils import secure_filename
 from random import randint
 from cineapp.slack import slack_mark_notification
 from cineapp.auth import guest_control
+from flask import current_app as app
 
 homework_bp = Blueprint('homework',__name__,url_prefix='/homework')
 

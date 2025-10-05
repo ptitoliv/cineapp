@@ -1,16 +1,12 @@
-from cineapp import app
 from cineapp.models import Movie, TVShow
 
-@app.template_test()
-def movie(obj):
+def is_movie(obj):
         if type(obj) is Movie:
                 return True
         else:
                 return False
 
-
-@app.template_test()
-def tvshow(obj):
+def is_tvshow(obj):
         if type(obj) is TVShow:
                 return True
         else:

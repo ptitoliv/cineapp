@@ -9,9 +9,11 @@
 			  "processing": true,
 			  "serverSide": true,
 			  "displayLength": 100,
-			  "dom": '<"top"ip>rt<"bottom"flp><"clear">',
+			  "layout": {
+				"topEnd" : "paging"
+			  },
 			  "ajax": {
-				"url": "{{ url_for('update_activity_flow') }}",
+				"url": "{{ url_for('main.update_activity_flow') }}",
 				"type" : "POST",
 				"data": function(args) {
 				      return { "args": JSON.stringify( args ) };
