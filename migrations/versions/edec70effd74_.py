@@ -35,9 +35,9 @@ def upgrade():
     sa.Column('added_when', sa.DateTime(), nullable=True),
     sa.Column('added_by_user', sa.Integer(), nullable=True),
     sa.Column('show_type', sa.String(length=50), nullable=True),
-    sa.ForeignKeyConstraint(['added_by_user'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['origin'], ['origins.id'], ),
-    sa.ForeignKeyConstraint(['type'], ['types.id'], ),
+    sa.ForeignKeyConstraint(['added_by_user'], ['users.id'], name='shows_ibfk_1'),
+    sa.ForeignKeyConstraint(['origin'], ['origins.id'], name='shows_ibfk_2'),
+    sa.ForeignKeyConstraint(['type'], ['types.id'], name='shows_ibfk_3'),
     sa.PrimaryKeyConstraint('id'),
     mysql_charset='utf8',
     mysql_collate='utf8_general_ci'
@@ -59,7 +59,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('nb_seasons', sa.Integer(), nullable=True),
     sa.Column('tmvdb_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['id'], ['shows.id'], ),
+    sa.ForeignKeyConstraint(['id'], ['shows.id'], name='tvshows_ibfk_1'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('tmvdb_id'),
     mysql_charset='utf8',
@@ -68,7 +68,7 @@ def upgrade():
 
     # Rename movie_id column to show_id column and update associated foreign key
     op.drop_constraint('marks_ibfk_2', 'marks', type_='foreignkey')
-    op.drop_index('movie_id', table_name='marks')
+    op.drop_index('marks_ibfk_2', table_name='marks')
     op.alter_column('marks','movie_id', new_column_name='show_id', server_default=None, existing_server_default=None, nullable=False, existing_nullable=False, type_=None, existing_type=sa.Integer())
     op.create_foreign_key('marks_ibfk_2', 'marks', 'shows', ['show_id'], ['id'])
     #op.create_index(op.f('show_id'), 'marks', ['show_id'], unique=False)
@@ -89,7 +89,7 @@ def upgrade():
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('duration', sa.Integer(), nullable=True),
     sa.Column('tmvdb_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['id'], ['shows.id'], ),
+    sa.ForeignKeyConstraint(['id'], ['shows.id'], name='movies_temp_ibfk_1'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('tmvdb_id'),
     mysql_charset='utf8',
@@ -145,9 +145,9 @@ def downgrade():
     sa.Column('poster_path', sa.String(length=255), nullable=True),
     sa.Column('added_when', sa.DateTime(), nullable=True),
     sa.Column('added_by_user', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['added_by_user'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['origin'], ['origins.id'], ),
-    sa.ForeignKeyConstraint(['type'], ['types.id'], ),
+    sa.ForeignKeyConstraint(['added_by_user'], ['users.id'], name='movies_temp_ibfk_1'),
+    sa.ForeignKeyConstraint(['origin'], ['origins.id'], name='movies_temp_ibfk_2'),
+    sa.ForeignKeyConstraint(['type'], ['types.id'], name='movies_temp_ibfk_3'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('tmvdb_id'),
     mysql_charset='utf8',
@@ -205,7 +205,14 @@ def downgrade():
         # Update the notification field into the database
         conn.execute(sa.text("UPDATE users SET notifications='%s' WHERE id=%s" % (json.dumps(temp_dict), temp_id)))
 
-    # Create missing index
-    op.create_index(op.f('movie_id'), 'marks', ['movie_id'], unique=False)
+    # Create missing indexes
+    op.create_index('marks_ibfk_2', 'marks', ['movie_id'], unique=False)
+    op.create_index(op.f('ix_movies_director'), 'movies', ['director'], unique=False)
+    op.create_index(op.f('ix_movies_name'), 'movies', ['name'], unique=False)
+    op.create_index(op.f('ix_movies_origin'), 'movies', ['origin'], unique=False)
+    op.create_index(op.f('ix_movies_original_name'), 'movies', ['original_name'], unique=False)
+    op.create_index(op.f('ix_movies_release_date'), 'movies', ['release_date'], unique=False)
+    op.create_index(op.f('ix_movies_type'), 'movies', ['type'], unique=False)
+    op.create_index(op.f('ix_movies_url'), 'movies', ['url'], unique=False)
 
     # ### end Alembic commands ###

@@ -61,7 +61,7 @@ def upgrade():
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('posted_when', sa.DateTime(), nullable=True),
     sa.Column('message', sa.String(length=1000), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name='chat_messages_ibfk_1'),
     sa.PrimaryKeyConstraint('message_id'),
     mysql_charset='utf8',
     mysql_collate='utf8_general_ci'
@@ -80,9 +80,9 @@ def upgrade():
     sa.Column('poster_path', sa.String(length=255), nullable=True),
     sa.Column('added_when', sa.DateTime(), nullable=True),
     sa.Column('added_by_user', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['added_by_user'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['origin'], ['origins.id'], ),
-    sa.ForeignKeyConstraint(['type'], ['types.id'], ),
+    sa.ForeignKeyConstraint(['added_by_user'], ['users.id'], name='movies_ibfk_1'),
+    sa.ForeignKeyConstraint(['origin'], ['origins.id'], name='movies_ibfk_2'),
+    sa.ForeignKeyConstraint(['type'], ['types.id'], name='movies_ibfk_3'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('tmvdb_id'),
     mysql_charset='utf8',
@@ -100,9 +100,9 @@ def upgrade():
     sa.Column('star_type', sa.String(length=100), nullable=True),
     sa.Column('added_when', sa.DateTime(), nullable=True),
     sa.Column('deleted_when', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['movie_id'], ['movies.id'], ),
-    sa.ForeignKeyConstraint(['star_type'], ['favorite_types.star_type'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['movie_id'], ['movies.id'], name='favorite_movies_ibfk_1'),
+    sa.ForeignKeyConstraint(['star_type'], ['favorite_types.star_type'], name='favorite_movies_ibfk_2'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name='favorite_movies_ibfk_3'),
     sa.PrimaryKeyConstraint('movie_id', 'user_id'),
     mysql_charset='utf8',
     mysql_collate='utf8_general_ci'
@@ -117,9 +117,9 @@ def upgrade():
     sa.Column('comment', sa.String(length=2000), nullable=True),
     sa.Column('homework_when', sa.DateTime(), nullable=True),
     sa.Column('homework_who', sa.Integer(), server_default=sa.text(u'NULL'), nullable=True),
-    sa.ForeignKeyConstraint(['homework_who'], ['users.id'], ),
-    sa.ForeignKeyConstraint(['movie_id'], ['movies.id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['homework_who'], ['users.id'], name='marks_ibfk_1'),
+    sa.ForeignKeyConstraint(['movie_id'], ['movies.id'], name='marks_ibfk_2'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name='marks_ibfk_3'),
     sa.PrimaryKeyConstraint('user_id', 'movie_id'),
     mysql_charset='utf8',
     mysql_collate='utf8_general_ci'
@@ -132,8 +132,8 @@ def upgrade():
     sa.Column('posted_when', sa.DateTime(), nullable=True),
     sa.Column('deleted_when', sa.DateTime(), nullable=True),
     sa.Column('message', sa.String(length=1000), nullable=True),
-    sa.ForeignKeyConstraint(['mark_user_id', 'mark_movie_id'], ['marks.user_id', 'marks.movie_id'], ),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['mark_user_id', 'mark_movie_id'], ['marks.user_id', 'marks.movie_id'], name='mark_comment_ibfk_1'),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name='mark_comment_ibfk_2'),
     sa.PrimaryKeyConstraint('markcomment_id'),
     mysql_charset='utf8',
     mysql_collate='utf8_general_ci'
@@ -146,16 +146,8 @@ def downgrade():
     op.drop_table('mark_comment')
     op.drop_table('marks')
     op.drop_table('favorite_movies')
-    op.drop_index(op.f('ix_movies_url'), table_name='movies')
-    op.drop_index(op.f('ix_movies_type'), table_name='movies')
-    op.drop_index(op.f('ix_movies_release_date'), table_name='movies')
-    op.drop_index(op.f('ix_movies_origin'), table_name='movies')
-    op.drop_index(op.f('ix_movies_name'), table_name='movies')
-    op.drop_index(op.f('ix_movies_director'), table_name='movies')
     op.drop_table('movies')
     op.drop_table('chat_messages')
-    op.drop_index(op.f('ix_users_nickname'), table_name='users')
-    op.drop_index(op.f('ix_users_email'), table_name='users')
     op.drop_table('users')
     op.drop_table('types')
     op.drop_table('origins')

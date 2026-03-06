@@ -27,7 +27,7 @@ def upgrade():
     mysql_collate='utf8_general_ci'
     )
     op.add_column('tvshows', sa.Column('production_status', sa.String(length=30), nullable=True))
-    op.create_foreign_key(None, 'tvshows', 'production_status', ['production_status'], ['production_status'])
+    op.create_foreign_key('tvshows_ibfk_2', 'tvshows', 'production_status', ['production_status'], ['production_status'])
 
     # Insert default data
     conn = op.get_bind()
