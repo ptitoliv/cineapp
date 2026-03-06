@@ -22,7 +22,7 @@ def upgrade():
     sa.Column('subscription_id', sa.String(length=255), nullable=False),
     sa.Column('session_id', sa.String(length=64), nullable=True),
     sa.Column('user_id', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
+    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name='push_notifications_ibfk_1'),
     sa.PrimaryKeyConstraint('subscription_id'),
     mysql_charset='utf8',
     mysql_collate='utf8_general_ci'

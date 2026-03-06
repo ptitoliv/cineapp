@@ -108,14 +108,14 @@ class Show(db.Model):
     name = db.Column(db.String(100),index=True)
     original_name = db.Column(db.String(100),index=True)
     release_date = db.Column(db.Date, index=True)
-    type = db.Column(db.String(5), db.ForeignKey('types.id'),index=True)
+    type = db.Column(db.String(5), db.ForeignKey('types.id', name='shows_ibfk_3'),index=True)
     url = db.Column(db.String(100), index=True)
-    origin = db.Column(db.String(5), db.ForeignKey('origins.id'), index=True)
+    origin = db.Column(db.String(5), db.ForeignKey('origins.id', name='shows_ibfk_2'), index=True)
     director = db.Column(db.String(500), index=True)
     overview = db.Column(db.String(2000))
     poster_path = db.Column(db.String(255))
     added_when = db.Column(db.DateTime())
-    added_by_user = db.Column(db.Integer, db.ForeignKey('users.id'))
+    added_by_user = db.Column(db.Integer, db.ForeignKey('users.id', name='shows_ibfk_1'))
 
 
     # Inheritance specificity
@@ -132,7 +132,7 @@ class Movie(Show):
 
         __tablename__ = 'movies'
 
-        id = db.Column(db.Integer, db.ForeignKey('shows.id'), primary_key=True)
+        id = db.Column(db.Integer, db.ForeignKey('shows.id', name='movies_ibfk_1'), primary_key=True)
         duration = db.Column(db.Integer())
         tmvdb_id = db.Column(db.Integer, unique=True)
 
@@ -159,9 +159,9 @@ class TVShow(Show):
         __tablename__ = 'tvshows'
         __table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
 
-        id = db.Column(db.Integer, db.ForeignKey('shows.id'), primary_key=True)
+        id = db.Column(db.Integer, db.ForeignKey('shows.id', name='tvshows_ibfk_1'), primary_key=True)
         nb_seasons = db.Column(db.Integer())
-        production_status = db.Column(db.String(30),db.ForeignKey('production_status.production_status'))
+        production_status = db.Column(db.String(30),db.ForeignKey('production_status.production_status', name='tvshows_ibfk_2'))
         tmvdb_id = db.Column(db.Integer, unique=True)
 
         __mapper_args__ = {
@@ -197,8 +197,8 @@ class Mark(db.Model):
     __tablename__ = "marks"
     __table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
 
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
-    show_id = db.Column(db.Integer, db.ForeignKey('shows.id'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', name='marks_ibfk_3'), primary_key=True)
+    show_id = db.Column(db.Integer, db.ForeignKey('shows.id', name='marks_ibfk_2'), primary_key=True)
     seen_when = db.Column(db.Date)
     seen_where = db.Column(db.String(4))
     mark = db.Column(db.Float)
@@ -207,7 +207,7 @@ class Mark(db.Model):
     homework_when = db.Column(db.DateTime)
     # Server_default allow to put the column with DEFAULT VALUE to NULL which is mandatory if we want the foreign key to be added
     # If the value is not NULL, the default value is O so the foreign constraint is violated
-    homework_who = db.Column(db.Integer,db.ForeignKey('users.id'),nullable=True,server_default=text('NULL'))
+    homework_who = db.Column(db.Integer,db.ForeignKey('users.id', name='marks_ibfk_1'),nullable=True,server_default=text('NULL'))
     show = db.relationship('Show', backref='marked_by_users')
     user = db.relationship('User', backref='marked_shows',foreign_keys='Mark.user_id')
     homework_who_user = db.relationship('User', backref='given_homework',foreign_keys='Mark.homework_who')
@@ -219,16 +219,16 @@ class ChatMessage(db.Model):
     __table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
 
     message_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', name='chat_messages_ibfk_1'))
     posted_when = db.Column(db.DateTime())
     message = db.Column(db.String(1000))
 
 class MarkComment(db.Model):
     __tablename__ = "mark_comment"
-    __table_args__ = (db.ForeignKeyConstraint([ "mark_user_id", "mark_show_id" ], [ "marks.user_id", "marks.show_id" ]), {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'} )
-    
+    __table_args__ = (db.ForeignKeyConstraint([ "mark_user_id", "mark_show_id" ], [ "marks.user_id", "marks.show_id" ], name='mark_comment_ibfk_1'), {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'} )
+
     markcomment_id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', name='mark_comment_ibfk_2'))
     mark_user_id = db.Column(db.Integer)
     mark_show_id = db.Column(db.Integer)
     posted_when = db.Column(db.DateTime())
@@ -251,11 +251,11 @@ class FavoriteShow(db.Model):
     __tablename__ = "favorite_shows"
     __table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
     
-    show_id = db.Column(db.Integer, db.ForeignKey('shows.id'), primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), primary_key=True)
+    show_id = db.Column(db.Integer, db.ForeignKey('shows.id', name='favorite_shows_ibfk_1'), primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', name='favorite_shows_ibfk_3'), primary_key=True)
     show = db.relationship('Show', backref='favorite_users',lazy="joined")
     user = db.relationship('User', backref='favorite_shows',foreign_keys='FavoriteShow.user_id',lazy="joined")
-    star_type = db.Column(db.String(100),db.ForeignKey('favorite_types.star_type'))
+    star_type = db.Column(db.String(100),db.ForeignKey('favorite_types.star_type', name='favorite_shows_ibfk_2'))
     added_when = db.Column(db.DateTime())
     deleted_when = db.Column(db.DateTime())
 
@@ -291,7 +291,7 @@ class PushNotification(db.Model):
     auth_token = db.Column(db.String(128))
     public_key = db.Column(db.String(128))
     session_id = db.Column(db.String(255),index=True,unique=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', name='push_notifications_ibfk_1'))
 
     def serialize(self):
         return {
