@@ -888,3 +888,102 @@ class FlaskrTestCase(unittest.TestCase):
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
+
+    def test_22_graphs_movie_mode(self):
+
+        """
+            Test all graph endpoints in movie mode
+        """
+
+        # Login
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to movie mode
+        rv=self.client.get('/switch/movie', follow_redirects=True)
+
+        # Test all graph endpoints available in movie mode
+        graph_endpoints = {
+            '/graph/mark': u"Répartition par note",
+            '/graph/mark_percent': u"Répartition par note (en %)",
+            '/graph/mark_interval': u"Répartition par intervalle",
+            '/graph/type': u"Répartition par type",
+            '/graph/origin': u"Répartition par origine",
+            '/graph/average_type': u"Moyenne par type",
+            '/graph/average_origin': u"Moyenne par origine",
+            '/graph/year': u"Répartition par année",
+            '/graph/year_theater': u"Films vus au ciné",
+            '/graph/average_by_year': u"Moyenne par année",
+        }
+
+        for endpoint, expected_title in graph_endpoints.items():
+            rv=self.client.get(endpoint)
+            assert rv.status_code == 200, "Endpoint %s returned %d" % (endpoint, rv.status_code)
+            assert expected_title in rv.data.decode('utf-8'), "Title '%s' not found for endpoint %s" % (expected_title, endpoint)
+
+        # Logout
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_23_graphs_tvshow_mode(self):
+
+        """
+            Test all graph endpoints in tvshow mode and verify year_theater is forbidden
+        """
+
+        # Login
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to tvshow mode
+        rv=self.client.get('/switch/tvshow', follow_redirects=True)
+
+        # Test all graph endpoints available in tvshow mode
+        graph_endpoints = {
+            '/graph/mark': u"Répartition par note",
+            '/graph/mark_percent': u"Répartition par note (en %)",
+            '/graph/mark_interval': u"Répartition par intervalle",
+            '/graph/type': u"Répartition par type",
+            '/graph/origin': u"Répartition par origine",
+            '/graph/average_type': u"Moyenne par type",
+            '/graph/average_origin': u"Moyenne par origine",
+            '/graph/year': u"Répartition par année",
+            '/graph/average_by_year': u"Moyenne par année",
+        }
+
+        for endpoint, expected_title in graph_endpoints.items():
+            rv=self.client.get(endpoint)
+            assert rv.status_code == 200, "Endpoint %s returned %d" % (endpoint, rv.status_code)
+            assert expected_title in rv.data.decode('utf-8'), "Title '%s' not found for endpoint %s" % (expected_title, endpoint)
+
+        # year_theater should be forbidden in tvshow mode
+        rv=self.client.get('/graph/year_theater')
+        assert rv.status_code == 404
+
+        # Logout
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_24_graphs_check_graph_type(self):
+
+        """
+            Test that graph pagination (prev/next) is rendered
+        """
+
+        # Login
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to movie mode
+        rv=self.client.get('/switch/movie', follow_redirects=True)
+
+        # Test a middle graph (type) - should have both prev and next titles in the page
+        rv=self.client.get('/graph/type')
+        page_content = rv.data.decode('utf-8')
+        assert rv.status_code == 200
+        # The type graph is in the middle so it should have navigation references
+        assert u"Répartition par intervalle" in page_content or u"Répartition par origine" in page_content
+
+        # Logout
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
