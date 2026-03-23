@@ -12,11 +12,11 @@ from logging.handlers import RotatingFileHandler
 from flask_socketio import SocketIO
 from flask_migrate  import Migrate
 from datetime import datetime
-from cineapp.messages import tvshow_messages, movie_messages
+from cineapp.messages import tvshow_messages, movie_messages, videogame_messages
 from cineapp.forms import SearchShowForm
-from cineapp.models import Movie, TVShow
+from cineapp.models import Movie, TVShow, VideoGame
 from cineapp.jinja_filters import date_format, minutes_to_human_duration
-from cineapp.jinja_testers import is_movie, is_tvshow
+from cineapp.jinja_testers import is_movie, is_tvshow, is_videogame
 from past.builtins import basestring
 
 lm = LoginManager()
@@ -36,6 +36,7 @@ def create_app(config_path=None):
     # Register Jinja testers
     app.jinja_env.tests['movie'] = is_movie
     app.jinja_env.tests['tvshow'] = is_tvshow
+    app.jinja_env.tests['videogame'] = is_videogame
 
 
     @app.context_processor
@@ -77,6 +78,8 @@ def create_app(config_path=None):
                 g.messages=movie_messages
             elif g.show_type == "tvshow":
                 g.messages=tvshow_messages
+            elif g.show_type == "videogame":
+                g.messages=videogame_messages
 
     # Create ProxyFix middleware in order to handle the HTTP headers sent by apache
     # Used for correct url_for generation
@@ -86,16 +89,16 @@ def create_app(config_path=None):
     app.config['VERSION'] = "3.0.0"
     app.config['GRAVATAR_URL'] = "https://www.gravatar.com/avatar/"
     app.config['GRAPH_LIST'] = [
-            { "graph_endpoint": "graphs.graph_by_mark", "graph_label": u"Répartition par note", "movie": True, "tvshow": True },
-            { "graph_endpoint": "graphs.graph_by_mark_percent", "graph_label": u"Répartition par note (en %)", "movie": True, "tvshow": True  },
-            { "graph_endpoint": "graphs.graph_by_mark_interval", "graph_label": u"Répartition par intervalle", "movie": True, "tvshow": True  },
-            { "graph_endpoint": "graphs.graph_by_type", "graph_label": u"Répartition par type", "movie": True, "tvshow": True  },
-            { "graph_endpoint": "graphs.graph_by_origin", "graph_label": u"Répartition par origine", "movie": True, "tvshow": True  },
-            { "graph_endpoint": "graphs.average_by_type", "graph_label": u"Moyenne par type", "movie": True, "tvshow": True  },
-            { "graph_endpoint": "graphs.average_by_origin", "graph_label": u"Moyenne par origine", "movie": True, "tvshow": True  },
-            { "graph_endpoint": "graphs.graph_by_year", "graph_label": u"Répartition par année", "movie": True, "tvshow": True  },
-            { "graph_endpoint": "graphs.graph_by_year_theater", "graph_label": u"Films vus au ciné", "movie": True, "tvshow": False  },
-            { "graph_endpoint": "graphs.average_by_year", "graph_label": u"Moyenne par année", "movie": True, "tvshow": True  }
+            { "graph_endpoint": "graphs.graph_by_mark", "graph_label": u"Répartition par note", "movie": True, "tvshow": True, "videogame": True },
+            { "graph_endpoint": "graphs.graph_by_mark_percent", "graph_label": u"Répartition par note (en %)", "movie": True, "tvshow": True, "videogame": True  },
+            { "graph_endpoint": "graphs.graph_by_mark_interval", "graph_label": u"Répartition par intervalle", "movie": True, "tvshow": True, "videogame": True  },
+            { "graph_endpoint": "graphs.graph_by_type", "graph_label": u"Répartition par type", "movie": True, "tvshow": True, "videogame": True  },
+            { "graph_endpoint": "graphs.graph_by_origin", "graph_label": u"Répartition par origine", "movie": True, "tvshow": True, "videogame": True  },
+            { "graph_endpoint": "graphs.average_by_type", "graph_label": u"Moyenne par type", "movie": True, "tvshow": True, "videogame": True  },
+            { "graph_endpoint": "graphs.average_by_origin", "graph_label": u"Moyenne par origine", "movie": True, "tvshow": True, "videogame": True  },
+            { "graph_endpoint": "graphs.graph_by_year", "graph_label": u"Répartition par année", "movie": True, "tvshow": True, "videogame": True  },
+            { "graph_endpoint": "graphs.graph_by_year_theater", "graph_label": u"Films vus au ciné", "movie": True, "tvshow": False, "videogame": False  },
+            { "graph_endpoint": "graphs.average_by_year", "graph_label": u"Moyenne par année", "movie": True, "tvshow": True, "videogame": True  }
         ]
     
     # Upload image control
@@ -139,6 +142,12 @@ def create_app(config_path=None):
                 app.config['SLACK_NOTIFICATION_CHANNEL']['tvshow']=app.config['SLACK_NOTIFICATION_CHANNEL_TVSHOWS']
             else:
                 app.config['SLACK_NOTIFICATION_CHANNEL']['tvshow']=None
+
+            # For videogames
+            if "SLACK_NOTIFICATION_CHANNEL_VIDEOGAMES" in app.config and app.config['SLACK_NOTIFICATION_CHANNEL_VIDEOGAMES'] != None:
+                app.config['SLACK_NOTIFICATION_CHANNEL']['videogame']=app.config['SLACK_NOTIFICATION_CHANNEL_VIDEOGAMES']
+            else:
+                app.config['SLACK_NOTIFICATION_CHANNEL']['videogame']=None
     else:
         raise RuntimeError ("SLACK_NOTIFICATION_ENABLE not defined in configuration file")
     

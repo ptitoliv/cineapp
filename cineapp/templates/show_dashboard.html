@@ -43,6 +43,8 @@
 							     <div><span id="theaters">Ciné :{{ stats_dict[g.user.id]["shows_theaters"] }} </span> / <span id="home">Maison : {{ stats_dict[g.user.id]["shows_home"] }}</span></div>
                                 {% elif g.show_type == "tvshow" %}
 					  			<div id="seentvshows"> {{ stats_dict[g.user.id]["shows_total"] }}</div>
+                                {% elif g.show_type == "videogame" %}
+					  			<div id="seenvideogames"> {{ stats_dict[g.user.id]["shows_total"] }}</div>
                                 {% endif %}
 							</div>
 							<br/>
@@ -56,7 +58,9 @@
                                         {% if g.show_type == "movie" %}
 										<td class="text-right"><span id="seenshows_small">{{ stats_dict[cur_avg]["shows_total"] }}</span> ( <span id="theaters_small">{{ stats_dict[cur_avg]["shows_theaters"] }}</span> / <span id="home_small">{{ stats_dict[cur_avg]["shows_home"] }}</span> ) </td>
                                         {% elif g.show_type == "tvshow" %}
-										<td class="text-left"><span id="seenmovies_small">{{ stats_dict[cur_avg]["shows_total"] }}</span></td>
+										<td class="text-left"><span id="seentvshows_small">{{ stats_dict[cur_avg]["shows_total"] }}</span></td>
+                                        {% elif g.show_type == "videogame" %}
+										<td class="text-left"><span id="seenvideogames_small">{{ stats_dict[cur_avg]["shows_total"] }}</span></td>
                                         {% endif %}
 
 									</tr>
@@ -210,6 +214,14 @@ function update_graph_display(json_data,canvas_id) {
 				borderColor : "#FF0084",
 				backgroundColor : "#FF0084",
 				label: "Séries",
+				data: json_data["others"]
+			}
+            {% elif g.show_type=="videogame" %}
+			{
+				fill: true,
+				borderColor : "#FF0084",
+				backgroundColor : "#FF0084",
+				label: "Jeux vidéo",
 				data: json_data["others"]
 			}
             {% endif %}

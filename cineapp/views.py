@@ -91,7 +91,7 @@ def logout():
 def switch_show_type(show_type):
 
     # Check if the URL is allowed or not
-    if show_type not in [ "movie", "tvshow" ]:
+    if show_type not in [ "movie", "tvshow", "videogame" ]:
         app.logger.error("Le mode %s n'est pas autorisé" % show_type)
         abort(404)
     else:

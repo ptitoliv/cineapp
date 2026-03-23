@@ -107,6 +107,7 @@
 						<ul class="dropdown-menu">
 							<li><a href="{{ url_for('main.switch_show_type',show_type="movie") }}"><i class="fa fa-video-camera"></i> Films</a></li>
                                                         <li><a href="{{ url_for('main.switch_show_type',show_type="tvshow") }}"><i class="fa fa-television"></i> Séries</a></li>
+							<li><a href="{{ url_for('main.switch_show_type',show_type="videogame") }}"><i class="fa fa-gamepad"></i> Jeux vidéo</a></li>
 							<li role="separator" class="divider"></li>
 							{% if not g.user.is_guest %}
 							<li><a href="{{ url_for('profile.edit_user_profile') }}"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> Profil</a></li>

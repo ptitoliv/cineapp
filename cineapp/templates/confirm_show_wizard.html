@@ -10,7 +10,7 @@
 		<div class="row">
 			<div class="col-md-2">
 				{% if show.poster_path != None %}
-				<img src="{{ config['POSTERS_URL'] }}/{{ show.poster_path }}"/>
+				<img src="{{ config['POSTERS_URL'] }}/{{ show.poster_path }}" class="img-responsive"/>
 				{% else %}
 				<div class="jumbotron text-center">Pas d'affiche</div>
 				{% endif %}
@@ -51,6 +51,15 @@
 					<tr class="text-left">
                        <td class="col-md-2">Nombre de saisons:</td>
                        <td>{{ show.nb_seasons }}</td>
+					</tr>
+					{% elif show is videogame %}
+					<tr class="text-left">
+                       <td class="col-md-2">Plateformes:</td>
+                       <td>{{ show.platforms }}</td>
+					</tr>
+					<tr class="text-left">
+                       <td class="col-md-2">Éditeur:</td>
+                       <td>{{ show.publisher }}</td>
 					</tr>
 					 {% endif %}
 					<tr class="text-left">

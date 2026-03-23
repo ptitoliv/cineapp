@@ -21,6 +21,7 @@ charset-normalizer==3.4.2
 click==8.2.1
 coverage==7.9.2
 cryptography==45.0.5
+deepl==1.28.0
 decorator==5.2.1
 distlib==0.3.9
 dnspython==2.7.0
@@ -46,6 +47,7 @@ gunicorn==23.0.0
 h11==0.16.0
 html2text==2025.4.15
 http_ece==1.2.1
+igdb-api-v4==0.3.3
 idna==2.10
 importchecker==3.0
 importlib_metadata==8.7.0
