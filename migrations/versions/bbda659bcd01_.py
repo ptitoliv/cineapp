@@ -56,16 +56,21 @@ def upgrade():
     )
     op.create_index(op.f('ix_users_email'), 'users', ['email'], unique=True)
     op.create_index(op.f('ix_users_nickname'), 'users', ['nickname'], unique=True)
+
+    # chat_messages: create table, then index, then FK
     op.create_table('chat_messages',
     sa.Column('message_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
     sa.Column('posted_when', sa.DateTime(), nullable=True),
     sa.Column('message', sa.String(length=1000), nullable=True),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name='chat_messages_ibfk_1'),
     sa.PrimaryKeyConstraint('message_id'),
     mysql_charset='utf8',
     mysql_collate='utf8_general_ci'
     )
+    op.create_index('user_id', 'chat_messages', ['user_id'], unique=False)
+    op.create_foreign_key('chat_messages_ibfk_1', 'chat_messages', 'users', ['user_id'], ['id'])
+
+    # movies: create table, then column-named indexes, then FKs, then explicit indexes
     op.create_table('movies',
     sa.Column('id', sa.Integer(), nullable=False),
     sa.Column('name', sa.String(length=100), nullable=True),
@@ -80,33 +85,44 @@ def upgrade():
     sa.Column('poster_path', sa.String(length=255), nullable=True),
     sa.Column('added_when', sa.DateTime(), nullable=True),
     sa.Column('added_by_user', sa.Integer(), nullable=True),
-    sa.ForeignKeyConstraint(['added_by_user'], ['users.id'], name='movies_ibfk_1'),
-    sa.ForeignKeyConstraint(['origin'], ['origins.id'], name='movies_ibfk_2'),
-    sa.ForeignKeyConstraint(['type'], ['types.id'], name='movies_ibfk_3'),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('tmvdb_id'),
     mysql_charset='utf8',
     mysql_collate='utf8_general_ci'
     )
+    op.create_index('added_by_user', 'movies', ['added_by_user'], unique=False)
+    op.create_foreign_key('movies_ibfk_1', 'movies', 'users', ['added_by_user'], ['id'])
+    op.create_index('origin', 'movies', ['origin'], unique=False)
+    op.create_foreign_key('movies_ibfk_2', 'movies', 'origins', ['origin'], ['id'])
+    op.create_index('type', 'movies', ['type'], unique=False)
+    op.create_foreign_key('movies_ibfk_3', 'movies', 'types', ['type'], ['id'])
     op.create_index(op.f('ix_movies_director'), 'movies', ['director'], unique=False)
     op.create_index(op.f('ix_movies_name'), 'movies', ['name'], unique=False)
     op.create_index(op.f('ix_movies_origin'), 'movies', ['origin'], unique=False)
     op.create_index(op.f('ix_movies_release_date'), 'movies', ['release_date'], unique=False)
     op.create_index(op.f('ix_movies_type'), 'movies', ['type'], unique=False)
     op.create_index(op.f('ix_movies_url'), 'movies', ['url'], unique=False)
+
+    # favorite_movies: create table, then indexes, then FKs
+    # movie_id is covered by PK (movie_id, user_id), no separate index needed
     op.create_table('favorite_movies',
     sa.Column('movie_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('star_type', sa.String(length=100), nullable=True),
     sa.Column('added_when', sa.DateTime(), nullable=True),
     sa.Column('deleted_when', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['movie_id'], ['movies.id'], name='favorite_movies_ibfk_1'),
-    sa.ForeignKeyConstraint(['star_type'], ['favorite_types.star_type'], name='favorite_movies_ibfk_2'),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name='favorite_movies_ibfk_3'),
     sa.PrimaryKeyConstraint('movie_id', 'user_id'),
     mysql_charset='utf8',
     mysql_collate='utf8_general_ci'
     )
+    op.create_index('star_type', 'favorite_movies', ['star_type'], unique=False)
+    op.create_index('user_id', 'favorite_movies', ['user_id'], unique=False)
+    op.create_foreign_key('favorite_movies_ibfk_1', 'favorite_movies', 'movies', ['movie_id'], ['id'])
+    op.create_foreign_key('favorite_movies_ibfk_2', 'favorite_movies', 'favorite_types', ['star_type'], ['star_type'])
+    op.create_foreign_key('favorite_movies_ibfk_3', 'favorite_movies', 'users', ['user_id'], ['id'])
+
+    # marks: create table, then indexes, then FKs
+    # user_id is covered by PK (user_id, movie_id), no separate index needed
     op.create_table('marks',
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('movie_id', sa.Integer(), nullable=False),
@@ -117,13 +133,17 @@ def upgrade():
     sa.Column('comment', sa.String(length=2000), nullable=True),
     sa.Column('homework_when', sa.DateTime(), nullable=True),
     sa.Column('homework_who', sa.Integer(), server_default=sa.text(u'NULL'), nullable=True),
-    sa.ForeignKeyConstraint(['homework_who'], ['users.id'], name='marks_ibfk_1'),
-    sa.ForeignKeyConstraint(['movie_id'], ['movies.id'], name='marks_ibfk_2'),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name='marks_ibfk_3'),
     sa.PrimaryKeyConstraint('user_id', 'movie_id'),
     mysql_charset='utf8',
     mysql_collate='utf8_general_ci'
     )
+    op.create_index('homework_who', 'marks', ['homework_who'], unique=False)
+    op.create_foreign_key('marks_ibfk_1', 'marks', 'users', ['homework_who'], ['id'])
+    op.create_index('movie_id', 'marks', ['movie_id'], unique=False)
+    op.create_foreign_key('marks_ibfk_2', 'marks', 'movies', ['movie_id'], ['id'])
+    op.create_foreign_key('marks_ibfk_3', 'marks', 'users', ['user_id'], ['id'])
+
+    # mark_comment: create table, then indexes, then FKs
     op.create_table('mark_comment',
     sa.Column('markcomment_id', sa.Integer(), nullable=False),
     sa.Column('user_id', sa.Integer(), nullable=True),
@@ -132,12 +152,14 @@ def upgrade():
     sa.Column('posted_when', sa.DateTime(), nullable=True),
     sa.Column('deleted_when', sa.DateTime(), nullable=True),
     sa.Column('message', sa.String(length=1000), nullable=True),
-    sa.ForeignKeyConstraint(['mark_user_id', 'mark_movie_id'], ['marks.user_id', 'marks.movie_id'], name='mark_comment_ibfk_1'),
-    sa.ForeignKeyConstraint(['user_id'], ['users.id'], name='mark_comment_ibfk_2'),
     sa.PrimaryKeyConstraint('markcomment_id'),
     mysql_charset='utf8',
     mysql_collate='utf8_general_ci'
     )
+    op.create_index('mark_user_id', 'mark_comment', ['mark_user_id', 'mark_movie_id'], unique=False)
+    op.create_foreign_key('mark_comment_ibfk_1', 'mark_comment', 'marks', ['mark_user_id', 'mark_movie_id'], ['user_id', 'movie_id'])
+    op.create_index('user_id', 'mark_comment', ['user_id'], unique=False)
+    op.create_foreign_key('mark_comment_ibfk_2', 'mark_comment', 'users', ['user_id'], ['id'])
     # ### end Alembic commands ###
 
 

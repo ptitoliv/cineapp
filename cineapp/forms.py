@@ -13,7 +13,12 @@ def get_origins():
     return Origin.query.all()
 
 def get_types():
-    return Type.query.all()
+    from flask import g
+    if g.show_type == "videogame":
+        return Type.query.filter_by(show_type='videogame').all()
+    else:
+        # Movies and TV shows share the same genre list
+        return Type.query.filter_by(show_type='movie').all()
 
 def get_users():
     return User.query.all()
@@ -56,8 +61,10 @@ class MarkShowForm(Form):
         super(MarkShowForm, self).__init__(*args,**kwargs)
 
         # Populate form fields with correct wording
+        from flask import g
         self.mark.label.text=(u"Note %s" % button_label)
         self.comment.label.text=(u"Commentaire %s" % button_label)
+        self.seen_when.label.text = g.messages["label_seen_when"]
 
     # The method name is important
     # A validate_XXX method will validate a field named XXX
@@ -100,7 +107,12 @@ class SelectShowForm(Form):
                 show_year = "Inconnu"
 
             # Let's build the choice list
-            choice_list.append((cur_show.tmvdb_id, cur_show.name + " ( " + show_year + " - " + cur_show.director + " )"))
+            show_id = cur_show.external_id
+            if show_type == "videogame" and cur_show.platforms:
+                show_label = cur_show.name + " ( " + show_year + " - " + cur_show.director + " / " + cur_show.platforms + " )"
+            else:
+                show_label = cur_show.name + " ( " + show_year + " - " + cur_show.director + " )"
+            choice_list.append((show_id, show_label))
 
         # Populate form
         self.show.choices = choice_list

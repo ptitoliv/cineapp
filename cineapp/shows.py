@@ -13,8 +13,9 @@ from flask_login import login_user, logout_user, current_user, login_required
 from flask_wtf import Form
 from wtforms_sqlalchemy.fields import QuerySelectField
 from cineapp.forms import LoginForm, AddUserForm, AddShowForm, MarkShowForm, SearchShowForm, SelectShowForm, ConfirmShowForm, FilterForm, UserForm, PasswordForm, HomeworkForm, UpdateShowForm, DashboardGraphForm
-from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow, ProductionStatus
+from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow, VideoGame, ProductionStatus
 from cineapp.tmvdb import search_shows,get_show,download_poster, search_page_number
+from cineapp import igdb as igdb_api
 from cineapp.emails import add_show_notification, mark_show_notification, add_homework_notification, update_show_notification
 from cineapp.utils import frange, get_activity_list, resize_avatar
 from cineapp.push import notification_unsubscribe
@@ -37,7 +38,7 @@ def check_show_type(endpoint,values):
     show_type = values.pop('show_type')
 
     # Check if the URL is allowed or not
-    if show_type not in [ "movie", "tvshow" ]:
+    if show_type not in [ "movie", "tvshow", "videogame" ]:
         abort(404)
     else:
         session["show_type"]=show_type
@@ -100,7 +101,11 @@ def select_show(page=1):
                 return redirect(url_for('add_show'))
 
         # Fetch how many pages we have to handle
-        total_pages = search_page_number(query_show,show_type=g.show_type)
+        # Video games use the IGDB API, movies and TV shows use the TMDB API
+        if g.show_type == "videogame":
+                total_pages = igdb_api.search_page_number(query_show)
+        else:
+                total_pages = search_page_number(query_show,show_type=g.show_type)
 
         # Check if the page number is correct
         if page < 1 or page > total_pages:
@@ -119,7 +124,11 @@ def select_show(page=1):
                 has_next = False
 
         # Fetch the query from the previous form in order to fill correctly the radio choices
-        shows_list=search_shows(query_show,g.show_type,page)
+        # Video games: search via IGDB API / Movies and TV shows: search via TMDB API
+        if g.show_type == "videogame":
+                shows_list=igdb_api.search_games(query_show)
+        else:
+                shows_list=search_shows(query_show,g.show_type,page)
         select_form=SelectShowForm(g.show_type,shows_list)
         session["page"] = page
 
@@ -158,8 +167,11 @@ def confirm_show():
                 if select_form.validate_on_submit():
                 
                         # Last step : Set type and origin and add the show
-                        # Note : Show_id is the TMVDB id
-                        show_form_tmvdb=get_show(select_form.show.data, True, show_type=g.show_type)
+                        # Video games: fetch details from IGDB API / Movies and TV shows: fetch from TMDB API
+                        if g.show_type == "videogame":
+                                show_form_tmvdb=igdb_api.get_game(select_form.show.data, True)
+                        else:
+                                show_form_tmvdb=get_show(select_form.show.data, True, show_type=g.show_type)
 
                         if endpoint == "add":
 
@@ -186,7 +198,8 @@ def confirm_show():
                                 confirm_form.submit_confirm.label.text=u"Mettre à jour %s " % g.messages["label_generic"]
 
                         # Since the production_status object is not available because the object is not commited
-                        # let's generate a temporary standalone object filled using the string got in tmvdb
+                        # let's generate a temporary standalone object filled using the string got in the API
+                        # Only TV shows have a production status (not applicable for movies and video games)
                         if g.show_type == "tvshow":
                             production_status=ProductionStatus.query.get(show_form_tmvdb.production_status)
                         else:
@@ -210,7 +223,11 @@ def confirm_show():
                 if endpoint == "add":
 
                         # Form is okay => We can add the show
-                        show_to_create=get_show(confirm_form.show_id.data,show_type=g.show_type)
+                        # Video games: fetch from IGDB API / Movies and TV shows: fetch from TMDB API
+                        if g.show_type == "videogame":
+                                show_to_create=igdb_api.get_game(confirm_form.show_id.data)
+                        else:
+                                show_to_create=get_show(confirm_form.show_id.data,show_type=g.show_type)
                         show_to_create.added_by_user=g.user.id
                         show_to_create.type=confirm_form.type.data.id
                         show_to_create.origin=confirm_form.origin.data.id
@@ -263,7 +280,11 @@ def confirm_show():
                                 return redirect(url_for("shows_list"))
 
                         # All checks are okay => Update the show !
-                        temp_show=get_show(confirm_form.show_id.data,fetch_poster=True,show_type=g.show_type)
+                        # Video games: fetch from IGDB API / Movies and TV shows: fetch from TMDB API
+                        if g.show_type == "videogame":
+                                temp_show=igdb_api.get_game(confirm_form.show_id.data,fetch_poster=True)
+                        else:
+                                temp_show=get_show(confirm_form.show_id.data,fetch_poster=True,show_type=g.show_type)
 
                         # Put the notifications into a dictionnary for notification mail
                         notification_data={}
@@ -281,7 +302,6 @@ def confirm_show():
                         show.original_name=temp_show.original_name
                         show.release_date=temp_show.release_date
                         show.url=temp_show.url
-                        show.tmvdb_id=temp_show.tmvdb_id
                         show.director=temp_show.director
                         show.overview=temp_show.overview
                         show.poster_path=temp_show.poster_path
@@ -289,6 +309,9 @@ def confirm_show():
                         show.origin=confirm_form.origin.data.id
 
                         # Let's consider specific fields considering show_type
+                        # Movies and TV shows use TMDB id, video games use IGDB id
+                        show.external_id=temp_show.external_id
+
                         if type(show) is Movie:
                             notification_data["old"]["duration"]=show.duration
                             show.duration=temp_show.duration
@@ -296,6 +319,11 @@ def confirm_show():
                             notification_data["old"]["nb_seasons"]=show.nb_seasons
                             notification_data["old"]["production_status"]=show.production_status_obj.translated_status
                             show.production_status=temp_show.production_status
+                        elif type(show) is VideoGame:
+                            notification_data["old"]["platforms"]=show.platforms
+                            notification_data["old"]["publisher"]=show.publisher
+                            show.platforms=temp_show.platforms
+                            show.publisher=temp_show.publisher
 
                         # Add the show in the database
                         try:
@@ -328,6 +356,9 @@ def confirm_show():
                                 elif type(show) is TVShow:
                                     notification_data["new"]["nb_seasons"]=show.nb_seasons
                                     notification_data["new"]["production_status"]=show.production_status_obj.translated_status
+                                elif type(show) is VideoGame:
+                                    notification_data["new"]["platforms"]=show.platforms
+                                    notification_data["new"]["publisher"]=show.publisher
 
                                 # Show has been updated => Send notifications
                                 update_show_notification(notification_data)
@@ -389,6 +420,8 @@ def display_show(show_id):
             show = Movie.query.get_or_404(show_id)
         elif g.show_type == "tvshow":
             show = TVShow.query.get_or_404(show_id)
+        elif g.show_type == "videogame":
+            show = VideoGame.query.get_or_404(show_id)
         else:
             abort(404)
 
@@ -401,10 +434,10 @@ def display_show(show_id):
         # Init the form that will be used if we want to update the show data
         update_show_form=UpdateShowForm(g.messages["label_generic"],show_id)
 
-        # If we have a TV Show we are going to sync the number of seasons and 
-        # the production status which are dynamic fields
+        # If we have a TV Show we are going to sync the number of seasons and
+        # the production status which are dynamic fields (fetched from TMDB API)
         if g.show_type == "tvshow":
-            temp_tvshow=get_show(show.tmvdb_id,fetch_poster=False,show_type=g.show_type)
+            temp_tvshow=get_show(show.external_id,fetch_poster=False,show_type=g.show_type)
 
             if temp_tvshow != None:
                 
@@ -587,6 +620,8 @@ def mark_show(show_id_form):
             show = Movie.query.get_or_404(show_id_form)
         elif g.show_type == "tvshow":
             show = TVShow.query.get_or_404(show_id_form)
+        elif g.show_type == "videogame":
+            show = VideoGame.query.get_or_404(show_id_form)
         else:
             abort(404)
 
@@ -742,6 +777,9 @@ def update_datatable():
                 elif g.show_type=="tvshow":
                     basequery = TVShow.query
                     filter_item = TVShow
+                elif g.show_type=="videogame":
+                    basequery = VideoGame.query
+                    filter_item = VideoGame
 
                 # Let's build the filtered requested following what has been posted in the filter form
                 filter_fields=session.get('query')
@@ -865,6 +903,8 @@ def update_datatable():
                             basequery = db.session.query(Movie).filter(match(Movie.name, Movie.original_name, Movie.director, against=(session.get('query'))))
                         elif g.show_type=="tvshow":
                             basequery = db.session.query(TVShow).filter(match(TVShow.name, TVShow.original_name, TVShow.director, against=(session.get('query'))))
+                        elif g.show_type=="videogame":
+                            basequery = db.session.query(VideoGame).filter(match(VideoGame.name, VideoGame.original_name, VideoGame.director, against=(session.get('query'))))
 
                         if order_column == "average":
                                 if order_dir == "desc":

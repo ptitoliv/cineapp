@@ -33,7 +33,7 @@ aria-hidden="true">&rarr;</span></a>
 	<div class="row">
 		<div class="col-md-2">
 			{% if show.poster_path != None %}
-			<img src="{{ config['POSTERS_URL'] }}/{{ show.poster_path }}"/>
+			<img src="{{ config['POSTERS_URL'] }}/{{ show.poster_path }}" class="img-responsive"/>
 			{% else %}
 			<div class="jumbotron text-center">Pas d'affiche</div>
 			{% endif %}
@@ -87,13 +87,22 @@ aria-hidden="true">&rarr;</span></a>
                    <td class="col-md-2">Nombre de saisons:</td>
                    <td>{{ show.nb_seasons }}</td>
 				</tr>
+                {% elif show is videogame %}
+				<tr class="text-left">
+                   <td class="col-md-2">Plateformes:</td>
+                   <td>{{ show.platforms }}</td>
+				</tr>
+				<tr class="text-left">
+                   <td class="col-md-2">Éditeur:</td>
+                   <td>{{ show.publisher }}</td>
+				</tr>
 				 {% endif %}
 				<tr class="text-left">
 				 <td class="col-md-2">Origine:</td>
 				 <td>{{ show.origin_object.origin }}</td>
 				</tr>
 				<tr class="text-left">
-				 <td class="col-md-2">Résumé:</td>
+				 <td class="col-md-2">Résumé:{% if show.overview_translated %}<br><small><i>(Traduction via DeepL)</i></small>{% endif %}</td>
 				 {% if show.overview %}
 				 <td>{{ show.overview }}</td>
 				 {% else %}
@@ -113,7 +122,7 @@ aria-hidden="true">&rarr;</span></a>
 			{% if marked_flag %}
 			<a href="{{ url_for('show.mark_show',show_type=g.show_type,show_id_form=show.id) }}" class="btn btn-primary">Mettre à jour la note</a>
 			{% else %}
-            <a href="{{ url_for('show.mark_show',show_type=g.show_type,show_id_form=show.id) }}" class="btn btn-primary">{%if show is movie%}Noter ce film{%elif show is tvshow %}Noter cette série{%endif%}</a>
+            <a href="{{ url_for('show.mark_show',show_type=g.show_type,show_id_form=show.id) }}" class="btn btn-primary">{%if show is movie%}Noter ce film{%elif show is tvshow %}Noter cette série{%elif show is videogame%}Noter ce jeu vidéo{%endif%}</a>
 			{% endif %}
 			{% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE==True and g.user.notifications["notif_slack"] == True%}
 			<a href="{{ url_for('show.publish_mark',show_type=g.show_type,show_id=show.id) }}" class="btn btn-primary">Publier sur Slack</a>

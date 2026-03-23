@@ -81,12 +81,13 @@ class User(db.Model):
         }
 
 class Type(db.Model):
-    
+
     __tablename__ = "types"
     __table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
-    
+
     id = db.Column(db.String(5),primary_key=True)
-    type = db.Column(db.String(20), unique=True)
+    type = db.Column(db.String(50))
+    show_type = db.Column(db.String(50))
     shows = db.relationship('Show', backref='type_object', lazy='dynamic')
 
 class Origin(db.Model):
@@ -113,7 +114,9 @@ class Show(db.Model):
     origin = db.Column(db.String(5), db.ForeignKey('origins.id', name='shows_ibfk_2'), index=True)
     director = db.Column(db.String(500), index=True)
     overview = db.Column(db.String(2000))
+    overview_translated = db.Column(db.Boolean, default=False)
     poster_path = db.Column(db.String(255))
+    external_id = db.Column(db.Integer, index=True)
     added_when = db.Column(db.DateTime())
     added_by_user = db.Column(db.Integer, db.ForeignKey('users.id', name='shows_ibfk_1'))
 
@@ -134,7 +137,6 @@ class Movie(Show):
 
         id = db.Column(db.Integer, db.ForeignKey('shows.id', name='movies_ibfk_1'), primary_key=True)
         duration = db.Column(db.Integer())
-        tmvdb_id = db.Column(db.Integer, unique=True)
 
         __mapper_args__ = {
                 'polymorphic_identity':'movie'
@@ -162,7 +164,6 @@ class TVShow(Show):
         id = db.Column(db.Integer, db.ForeignKey('shows.id', name='tvshows_ibfk_1'), primary_key=True)
         nb_seasons = db.Column(db.Integer())
         production_status = db.Column(db.String(30),db.ForeignKey('production_status.production_status', name='tvshows_ibfk_2'))
-        tmvdb_id = db.Column(db.Integer, unique=True)
 
         __mapper_args__ = {
                 'polymorphic_identity':'tvshow'
@@ -181,6 +182,32 @@ class TVShow(Show):
                 Let's consider alphabetical order
             """
             return db.session.query(TVShow).filter(tuple_(TVShow.name,TVShow.release_date) < tuple_(self.name,self.release_date)).order_by(desc(TVShow.name),desc(TVShow.release_date)).first()
+
+class VideoGame(Show):
+
+        __tablename__ = 'videogames'
+
+        id = db.Column(db.Integer, db.ForeignKey('shows.id', name='videogames_ibfk_1'), primary_key=True)
+        platforms = db.Column(db.String(500))
+        publisher = db.Column(db.String(500))
+
+        __mapper_args__ = {
+                'polymorphic_identity':'videogame'
+        }
+
+        def __next__(self):
+            """
+                Return the next item into the database
+                Let's consider alphabetical order
+            """
+            return db.session.query(VideoGame).filter(tuple_(VideoGame.name,VideoGame.release_date) > tuple_(self.name,self.release_date)).order_by(VideoGame.name,VideoGame.release_date).first()
+
+        def prev(self):
+            """
+                Return the previous item into the database
+                Let's consider alphabetical order
+            """
+            return db.session.query(VideoGame).filter(tuple_(VideoGame.name,VideoGame.release_date) < tuple_(self.name,self.release_date)).order_by(desc(VideoGame.name),desc(VideoGame.release_date)).first()
 
 class ProductionStatus(db.Model):
 

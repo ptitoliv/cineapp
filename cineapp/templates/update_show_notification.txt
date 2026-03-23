@@ -17,6 +17,9 @@ Durée: {% if notif["old"]["duration"] %}{{ notif["old"]["duration"]|minutes_to_
 {% elif g.show_type=="tvshow" %}
 Nombre de saisons: {{ notif["old"]["nb_seasons"] }}
 Production: {{ notif["old"]["production_status"] }}
+{% elif g.show_type=="videogame" %}
+Plateformes: {{ notif["old"]["platforms"] }}
+Éditeur: {{ notif["old"]["publisher"] }}
 {% endif -%}
 Résumé: {% if notif["old"]["overview"] %}{{ notif["old"]["overview"] }}{% else %}Néant{% endif %}
 
@@ -28,11 +31,14 @@ Nom original: {{ notif["new"]["original_name"] }}
 {{ g.messages["label_release_date"] }}: {{ notif["new"]["release_date"] }}
 Genre: {{ notif["new"]["type"] }}
 Origine: {{ notif["new"]["origin"] }}
-{%- if g.show_type=="movie" %} 
+{%- if g.show_type=="movie" %}
 Durée: {% if notif["new"]["duration"] %}{{ notif["new"]["duration"]|minutes_to_human_duration }}{% else %}Inconnue{% endif %}
 {% elif g.show_type=="tvshow" %}
 Nombre de saisons: {{ notif["new"]["nb_seasons"] }}
 Production: {{ notif["new"]["production_status"] }}
+{% elif g.show_type=="videogame" %}
+Plateformes: {{ notif["new"]["platforms"] }}
+Éditeur: {{ notif["new"]["publisher"] }}
 {% endif -%}
 Résumé: {% if notif["new"]["overview"] %}{{ notif["new"]["overview"] }}{% else %}Néant{% endif %}
 

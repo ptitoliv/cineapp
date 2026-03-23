@@ -7,7 +7,7 @@ from flask import render_template, flash, redirect, url_for, g, request, session
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_wtf import Form
 from cineapp import lm
-from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow
+from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow, VideoGame
 from cineapp.utils import frange, get_activity_list, resize_avatar
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
@@ -98,10 +98,12 @@ def show_graphs():
 
         # Define the base query for queries where we can use it
         # For some we will use the show_type filter
-        if g.show_type == "movie": 
+        if g.show_type == "movie":
             basequery = Mark.query.join(Movie)
-        elif g.show_type == "tvshow": 
+        elif g.show_type == "tvshow":
             basequery = Mark.query.join(TVShow)
+        elif g.show_type == "videogame":
+            basequery = Mark.query.join(VideoGame)
 
         # Fetch all users
         users = User.query.all();
