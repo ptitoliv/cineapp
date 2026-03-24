@@ -195,6 +195,7 @@ class FlaskrTestCase(unittest.TestCase):
             t = Type()
             t.id="C"
             t.type="Comédie"
+            t.show_type = "movie"
             
             db.session.add(t)
             db.session.commit()
