@@ -6,9 +6,9 @@ import os, sys, json
 from cineapp import create_app, minutes_to_human_duration, date_format
 from cineapp.models import db
 from cineapp.emails import mail
-from cineapp.jinja_testers import is_movie, is_tvshow
+from cineapp.jinja_testers import is_movie, is_tvshow, is_videogame
 from cineapp import slack
-from cineapp.models import User, Type, Origin, Mark, Movie, TVShow, FavoriteShow, MarkComment
+from cineapp.models import User, Type, Origin, Mark, Movie, TVShow, VideoGame, FavoriteShow, MarkComment
 from datetime import datetime
 from bcrypt import hashpw, gensalt
 import unittest
@@ -620,7 +620,7 @@ class FlaskrTestCase(unittest.TestCase):
             This test tries to switch between different mode
         """
 
-        modes={ 'movie': 'films', 'tvshow': 'séries' };
+        modes={ 'movie': 'films', 'tvshow': 'séries', 'videogame': 'jeux vidéo' };
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
@@ -961,6 +961,9 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.get('/graph/year_theater')
         assert rv.status_code == 404
 
+         # Switch back to tvshow for the remaining assertion
+        rv=self.client.get('/switch/tvshow', follow_redirects=True)
+
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
@@ -984,6 +987,422 @@ class FlaskrTestCase(unittest.TestCase):
         assert rv.status_code == 200
         # The type graph is in the middle so it should have navigation references
         assert u"Répartition par intervalle" in page_content or u"Répartition par origine" in page_content
+
+        # Logout
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_25_add_videogame(self):
+
+        """
+            Add videogame feature test
+        """
+
+        with self.app.app_context():
+            # Add a videogame type (genre)
+            t = Type()
+            t.id="ACT"
+            t.type="Action"
+            t.show_type = "videogame"
+
+            db.session.add(t)
+            db.session.commit()
+
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to videogame mode
+        rv=self.client.get('/switch/videogame', follow_redirects=True)
+
+        # We are logged => add the videogame
+        rv=self.client.get('/videogame/add')
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Ajout d'un jeu vidéo" == parsed_html.find(id="add_wizard_label").text
+
+        # Send the form without any title
+        rv=self.client.post('/videogame/add/select',data=dict(submit_search=True),follow_redirects=True)
+        assert u"Veuillez saisir une recherche" in rv.data.decode("utf-8")
+
+        # Send the form with an incorrect title
+        rv=self.client.post('/videogame/add/select',data=dict(search="fejsgjsgjsd",submit_search=True),follow_redirects=True)
+        assert u"Aucun résultat" in rv.data.decode("utf-8")
+
+        # Fill the videogame title
+        rv=self.client.post('/videogame/add/select',data=dict(search="Sonic",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+
+        # Let's find the game in the list
+        list_shows=(parsed_html.table.find_all('label'))
+        found=False
+        igdb_id=None
+        for cur_show in list_shows:
+            if "Sonic" in cur_show.text:
+                found=True
+                # Get the radio button value (igdb_id)
+                radio = cur_show.find_previous('input', {'type': 'radio'})
+                if radio:
+                    igdb_id = radio['value']
+                break
+
+        assert found==True
+        assert igdb_id is not None
+
+        # Select the game
+        rv=self.client.post('/videogame/add/confirm',data=dict(show=igdb_id,submit_select=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Ajouter le jeu vidéo" == parsed_html.find(id="submit_confirm")['value']
+
+        # Store the videogame into database
+        rv=self.client.post('/videogame/add/confirm',data=dict(show_id=igdb_id,origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+
+        list_messages=parsed_html.find_all("div", {"class": "msg-alert"})
+
+        found=False
+        for cur_msg in list_messages:
+            if "Jeu vidéo ajouté" in cur_msg.text:
+                found=True
+                break
+        assert found==True
+
+        # Verify the videogame is in the database
+        with self.app.app_context():
+            videogame = VideoGame.query.filter(VideoGame.name.like('%Sonic%')).first()
+            assert videogame is not None
+            assert videogame.platforms is not None
+            assert videogame.external_id is not None
+
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_26_update_videogame(self):
+
+        """
+            Update videogame feature test
+        """
+
+        # Login
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to videogame mode
+        rv=self.client.get('/switch/videogame', follow_redirects=True)
+
+        # Find the videogame id
+        with self.app.app_context():
+            videogame = VideoGame.query.filter(VideoGame.name.like('%Sonic%')).first()
+            videogame_id = videogame.id
+            videogame_igdb_id = videogame.external_id
+
+        # We are logged => load the videogame to update
+        rv=self.client.get('/videogame/display/%s' % videogame_id, follow_redirects=True)
+        assert "Sonic" in rv.data.decode("utf-8")
+
+        rv=self.client.post('/videogame/update',data=dict(show_id=videogame_id,submit_update_show=True),follow_redirects=True)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Mise à jour du jeu vidéo" in parsed_html.find(id="add_wizard_label").text
+
+        # Send the form without any title
+        rv=self.client.post('/videogame/update/select',data=dict(submit_search=True),follow_redirects=True)
+        assert u"Veuillez saisir une recherche" in rv.data.decode("utf-8")
+
+        # Fill the videogame title
+        rv=self.client.post('/videogame/update/select',data=dict(search="Sonic",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+
+        # Let's find the game in the list
+        list_shows=(parsed_html.table.find_all('label'))
+        found=False
+        igdb_id=None
+        for cur_show in list_shows:
+            if "Sonic" in cur_show.text:
+                found=True
+                radio = cur_show.find_previous('input', {'type': 'radio'})
+                if radio:
+                    igdb_id = radio['value']
+                break
+
+        assert found==True
+
+        # Select the game
+        rv=self.client.post('/videogame/update/confirm',data=dict(show=igdb_id,submit_select=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Mettre à jour le jeu vidéo" in parsed_html.find(id="submit_confirm")['value']
+
+        # Store the videogame into database
+        rv=self.client.post('/videogame/update/confirm',data=dict(show_id=igdb_id,origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+
+        list_messages=parsed_html.find_all("div", {"class": "msg-alert"})
+
+        found=False
+        for cur_msg in list_messages:
+            if "Jeu vidéo correctement mis à jour" in cur_msg.text:
+                found=True
+                break
+        assert found==True
+
+        # Logout
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_27_mark_videogame(self):
+
+        """
+            Mark videogame feature test
+        """
+
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to videogame mode
+        rv=self.client.get('/switch/videogame', follow_redirects=True)
+
+        # Find the videogame id
+        with self.app.app_context():
+            videogame = VideoGame.query.filter(VideoGame.name.like('%Sonic%')).first()
+            videogame_id = videogame.id
+
+        # We are logged => mark the videogame
+        rv=self.client.post('/videogame/mark/%s' % videogame_id,data=dict(mark=18,comment="chef d'oeuvre",seen_where="M",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        assert "Note ajout" in str(rv.data)
+
+        # Update the mark
+        rv=self.client.post('/videogame/mark/%s' % videogame_id,data=dict(mark=19,comment="encore mieux",seen_where="M",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        assert "Note mise" in str(rv.data)
+
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_28_comment_mark_videogame(self):
+
+        """
+            Comment a videogame mark
+        """
+
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to videogame mode
+        rv=self.client.get('/switch/videogame', follow_redirects=True)
+
+        # Find the videogame id
+        with self.app.app_context():
+            videogame = VideoGame.query.filter(VideoGame.name.like('%Sonic%')).first()
+            videogame_id = videogame.id
+
+        # Comment the videogame mark
+        rv=self.client.post('/json/add_mark_comment',data=dict(show_id=videogame_id,dest_user=1,comment="super jeu"),follow_redirects=True)
+        rv=self.client.get('/videogame/display/%s' % videogame_id, follow_redirects=True)
+        assert "super jeu" in str(rv.data)
+
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_29_display_videogame(self):
+
+        """
+            Display videogame and check videogame-specific fields
+        """
+
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to videogame mode
+        rv=self.client.get('/switch/videogame', follow_redirects=True)
+
+        # Find the videogame id
+        with self.app.app_context():
+            videogame = VideoGame.query.filter(VideoGame.name.like('%Sonic%')).first()
+            videogame_id = videogame.id
+
+        # Display the videogame
+        rv=self.client.get('/videogame/display/%s' % videogame_id, follow_redirects=True)
+        page_content = rv.data.decode('utf-8')
+        assert "Sonic" in page_content
+
+        # Check videogame-specific labels
+        assert u"Développeur(s)" in page_content or "veloppeur" in page_content
+
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_30_random_videogame(self):
+
+        """
+            Random videogame feature test
+        """
+
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to videogame mode
+        rv=self.client.get('/switch/videogame', follow_redirects=True)
+
+        rv=self.client.get('/videogame/display/random', follow_redirects=True)
+        assert "Fiche" in str(rv.data)
+
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_31_search_videogame(self):
+
+        """
+            Search/list videogame feature test
+        """
+
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to videogame mode
+        rv=self.client.get('/switch/videogame', follow_redirects=True)
+
+        # We are logged => list videogames
+        rv=self.client.get('/videogame/list', follow_redirects=True)
+        assert "Liste des jeux" in rv.data.decode('utf-8')
+
+        args = {'search': {'regex': False, 'value': ''}, 'draw': 1, 'start': 0, 'length': 100, 'order': [{'column': 0, 'dir': 'asc'}], 'columns': [{'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'name', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'director', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'average', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_fav', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_mark', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_when', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.3', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.3', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.3', 'name': '', 'searchable': True}]}
+
+        rv=self.client.post('/videogame/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+
+        response_args=json.loads(rv.data)["data"]
+        assert "Sonic" in response_args[0]["name"]
+
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_32_homework_videogame(self):
+
+        """
+            Test homework feature in videogame mode
+        """
+
+        # Login
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to videogame mode
+        rv=self.client.get('/switch/videogame', follow_redirects=True)
+
+        # Find the videogame id
+        with self.app.app_context():
+            videogame = VideoGame.query.filter(VideoGame.name.like('%Sonic%')).first()
+            videogame_id = videogame.id
+
+        # Give a homework from user 1 to user 2
+        with mail.record_messages() as outbox:
+            rv=self.client.get('/homework/add/%s/2' % videogame_id, follow_redirects=True)
+            assert "Devoir ajouté" in rv.data.decode('utf-8')
+            assert "Attribution d'un devoir" in outbox[0].subject
+
+        # Delete the homework
+        with mail.record_messages() as outbox:
+            rv=self.client.get('/homework/delete/%s/2' % videogame_id, follow_redirects=True)
+            assert "Devoir annulé" in rv.data.decode('utf-8')
+            assert "Annulation d'un devoir" in outbox[0].subject
+
+        # Logout
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_33_favorites_videogame(self):
+
+        """
+            Test favorite feature in videogame mode
+        """
+
+        # Login
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to videogame mode
+        rv=self.client.get('/switch/videogame', follow_redirects=True)
+
+        # Find the videogame id
+        with self.app.app_context():
+            videogame = VideoGame.query.filter(VideoGame.name.like('%Sonic%')).first()
+            videogame_id = videogame.id
+
+        # Add a videogame as favorite
+        rv=self.client.post('/json/favshow/set/%s/1' % videogame_id,data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
+        response_args=json.loads(rv.data)
+        assert response_args["status"] == "success"
+
+        # Change the favorite type
+        rv=self.client.post('/json/favshow/set/%s/1' % videogame_id,data=dict({'star_type': 'mustsee_star'}),follow_redirects=True)
+        response_args=json.loads(rv.data)
+        assert response_args["status"] == "success"
+
+        # Delete the favorite
+        rv=self.client.get('/json/favshow/delete/%s/1' % videogame_id, follow_redirects=True)
+        response_args=json.loads(rv.data)
+        assert response_args["status"] == "success"
+
+        # Logout
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_34_activity_flow_videogame(self):
+
+        """
+            Display activity flow in videogame mode
+        """
+
+        # Login
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to videogame mode
+        rv=self.client.get('/switch/videogame', follow_redirects=True)
+
+        rv=self.client.get('/activity/show', follow_redirects=True)
+        assert "Flux d&#39;activité des jeux vidéo" in rv.data.decode('utf-8')
+
+        # Test the datatable part
+        args={'draw': 1, 'columns': [{'data': 'entry_type', 'name': '', 'searchable': True, 'orderable': False, 'search': {'value': '', 'regex': False, 'fixed': []}}, {'data': None, 'name': '', 'searchable': True, 'orderable': False, 'search': {'value': '', 'regex': False, 'fixed': []}}, {'data': 'entry_text', 'name': '', 'searchable': True, 'orderable': False, 'search': {'value': '', 'regex': False, 'fixed': []}}], 'order': [], 'start': 0, 'length': 100, 'search': {'value': '', 'regex': False, 'fixed': []}}
+
+        rv=self.client.post('/activity/update', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        response_args=json.loads(rv.data)["data"]
+        assert len(response_args) > 0
+
+        # Logout
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_35_graphs_videogame_mode(self):
+
+        """
+            Test all graph endpoints in videogame mode
+        """
+
+        # Login
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to videogame mode
+        rv=self.client.get('/switch/videogame', follow_redirects=True)
+
+        # Test all graph endpoints available in videogame mode
+        graph_endpoints = {
+            '/graph/mark': u"Répartition par note",
+            '/graph/mark_percent': u"Répartition par note (en %)",
+            '/graph/mark_interval': u"Répartition par intervalle",
+            '/graph/type': u"Répartition par type",
+            '/graph/origin': u"Répartition par origine",
+            '/graph/average_type': u"Moyenne par type",
+            '/graph/average_origin': u"Moyenne par origine",
+            '/graph/year': u"Répartition par année",
+            '/graph/average_by_year': u"Moyenne par année",
+        }
+
+        for endpoint, expected_title in graph_endpoints.items():
+            rv=self.client.get(endpoint)
+            assert rv.status_code == 200, "Endpoint %s returned %d" % (endpoint, rv.status_code)
+            assert expected_title in rv.data.decode('utf-8'), "Title '%s' not found for endpoint %s" % (expected_title, endpoint)
+
+        # year_theater should be forbidden in videogame mode
+        rv=self.client.get('/graph/year_theater')
+        assert rv.status_code == 404
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
