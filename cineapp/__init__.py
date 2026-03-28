@@ -152,7 +152,7 @@ def create_app(config_path=None):
         raise RuntimeError ("SLACK_NOTIFICATION_ENABLE not defined in configuration file")
     
     # Check if API_KEY is defined
-    for cur_item in [ "API_KEY", "SLACK_TOKEN" ]:
+    for cur_item in [ "API_KEY", "SLACK_TOKEN", "DEEPL_API_KEY", "IGDB_CLIENT_ID", "IGDB_CLIENT_SECRET"  ]:
         if cur_item not in app.config:
                 # Let's import it from environnment
                 if os.environ.get(cur_item) != None:
