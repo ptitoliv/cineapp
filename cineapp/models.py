@@ -116,7 +116,7 @@ class Show(db.Model):
     overview = db.Column(db.String(2000))
     overview_translated = db.Column(db.Boolean, default=False)
     poster_path = db.Column(db.String(255))
-    external_id = db.Column(db.Integer, index=True)
+    external_id = db.Column(db.Integer, index=True, unique=True)
     added_when = db.Column(db.DateTime())
     added_by_user = db.Column(db.Integer, db.ForeignKey('users.id', name='shows_ibfk_1'))
 
