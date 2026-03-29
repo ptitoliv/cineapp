@@ -739,6 +739,18 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.get('/movie/list', follow_redirects=True)
         assert rv.status_code == 200
 
+        # --- Filter: all filters empty (L542) ---
+        rv=self.client.post('/filter',data=dict(submit_filter=True),follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- Reload list with full filter dict (L578, 585, 590, 595) ---
+        # Set a filter with type, where and favorite (but no origin) to cover all reconstruction branches
+        rv=self.client.post('/filter',data=dict(submit_filter=True,type="C",where=1,favorite=1),follow_redirects=True)
+        assert rv.status_code == 200
+        # GET the list to trigger form reconstruction from session dict
+        rv=self.client.get('/movie/list', follow_redirects=True)
+        assert rv.status_code == 200
+
         # --- Reset list ---
         rv=self.client.get('/reset', follow_redirects=True)
         assert rv.status_code == 200
