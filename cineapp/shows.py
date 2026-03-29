@@ -98,7 +98,7 @@ def select_show(page=1):
         # Let's go back to the main form
         if query_show == None:
                 flash("Absence de chaine de recherche", 'danger')
-                return redirect(url_for('add_show'))
+                return redirect(url_for('show.add_show',show_type=g.show_type))
 
         # Fetch how many pages we have to handle
         # Video games use the IGDB API, movies and TV shows use the TMDB API
@@ -186,7 +186,7 @@ def confirm_show():
 
                                 if show_id == None:
                                         flash("Erreur générale","danger")
-                                        return redirect(url_for("list_shows"))
+                                        return redirect(url_for("show.list_shows",show_type=g.show_type))
 
                                 # If we are here, we have a usable show_id value => Let's fetch the show object
                                 # and use the type and origin value for filling confirm_form.
@@ -268,8 +268,8 @@ def confirm_show():
 
                         if show_id == None:
                                 flash("Erreur générale","danger")
-                                return redirect(url_for("list_shows"))
-                        
+                                return redirect(url_for("show.list_shows",show_type=g.show_type))
+
                         # If we are here, we have a usable show_id value
                         show=Show.query.get(show_id)
 
@@ -277,7 +277,7 @@ def confirm_show():
                         # Don't go back to the show file page since the show_id is an incorrect value
                         if show == None:
                                 flash("Erreur générale","danger")
-                                return redirect(url_for("shows_list"))
+                                return redirect(url_for("show.list_shows",show_type=g.show_type))
 
                         # All checks are okay => Update the show !
                         # Video games: fetch from IGDB API / Movies and TV shows: fetch from TMDB API
@@ -297,36 +297,35 @@ def confirm_show():
                                         "overview": show.overview
                                         }
 
-                        # Update the object that will be stored in the database
-                        show.name=temp_show.name
-                        show.original_name=temp_show.original_name
-                        show.release_date=temp_show.release_date
-                        show.url=temp_show.url
-                        show.director=temp_show.director
-                        show.overview=temp_show.overview
-                        show.poster_path=temp_show.poster_path
-                        show.type=confirm_form.type.data.id
-                        show.origin=confirm_form.origin.data.id
-
-                        # Let's consider specific fields considering show_type
-                        # Movies and TV shows use TMDB id, video games use IGDB id
-                        show.external_id=temp_show.external_id
-
-                        if type(show) is Movie:
-                            notification_data["old"]["duration"]=show.duration
-                            show.duration=temp_show.duration
-                        elif type(show) is TVShow:
-                            notification_data["old"]["nb_seasons"]=show.nb_seasons
-                            notification_data["old"]["production_status"]=show.production_status_obj.translated_status
-                            show.production_status=temp_show.production_status
-                        elif type(show) is VideoGame:
-                            notification_data["old"]["platforms"]=show.platforms
-                            notification_data["old"]["publisher"]=show.publisher
-                            show.platforms=temp_show.platforms
-                            show.publisher=temp_show.publisher
-
-                        # Add the show in the database
+                        # Update the object and store it in the database
                         try:
+                                show.name=temp_show.name
+                                show.original_name=temp_show.original_name
+                                show.release_date=temp_show.release_date
+                                show.url=temp_show.url
+                                show.director=temp_show.director
+                                show.overview=temp_show.overview
+                                show.poster_path=temp_show.poster_path
+                                show.type=confirm_form.type.data.id
+                                show.origin=confirm_form.origin.data.id
+
+                                # Let's consider specific fields considering show_type
+                                # Movies and TV shows use TMDB id, video games use IGDB id
+                                show.external_id=temp_show.external_id
+
+                                if type(show) is Movie:
+                                    notification_data["old"]["duration"]=show.duration
+                                    show.duration=temp_show.duration
+                                elif type(show) is TVShow:
+                                    notification_data["old"]["nb_seasons"]=show.nb_seasons
+                                    notification_data["old"]["production_status"]=show.production_status_obj.translated_status
+                                    show.production_status=temp_show.production_status
+                                elif type(show) is VideoGame:
+                                    notification_data["old"]["platforms"]=show.platforms
+                                    notification_data["old"]["publisher"]=show.publisher
+                                    show.platforms=temp_show.platforms
+                                    show.publisher=temp_show.publisher
+
                                 db.session.add(show)
                                 db.session.flush()
                                 db.session.commit()
@@ -372,9 +371,9 @@ def confirm_show():
                                 return redirect(url_for('show.display_show',show_type=g.show_type,show_id=show.id))
 
                         except IntegrityError as e:
-                                flash('%s déjà existant' % g.messages["label_show_type"],'danger')
                                 db.session.rollback()
-                                return redirect(url_for('display_show.html',show_id=show.id))
+                                flash('%s déjà existant' % g.messages['label_show_type'],'danger')
+                                return redirect(url_for('show.display_show',show_type=g.show_type,show_id=show.id))
 
         # If no validation form is filled, go back to the wizard first step
         return redirect(url_for('show.add_show',show_type=g.show_type)) 
@@ -409,7 +408,7 @@ def update_show():
 
             # If the form is not validated, we shouldn't be there ==> Let's go to the index
             flash("Erreur Générale", "danger")
-            return(url_for('index'))
+            return redirect(url_for('main.index'))
 
 @show_bp.route('/display/<int:show_id>')
 @login_required
