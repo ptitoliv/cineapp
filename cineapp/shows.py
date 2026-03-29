@@ -509,7 +509,7 @@ def list_shows():
         clear_table=False
 
         # If we catch the reset_list endpoint, well reset the list in initial state
-        if request.endpoint == "reset_list":
+        if request.endpoint == "main.reset_list":
 
                 # Reset all the values in order to have the initial list
                 session.pop('query',None)
