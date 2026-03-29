@@ -126,7 +126,7 @@ def select_show(page=1):
         # Fetch the query from the previous form in order to fill correctly the radio choices
         # Video games: search via IGDB API / Movies and TV shows: search via TMDB API
         if g.show_type == "videogame":
-                shows_list=igdb_api.search_games(query_show)
+                shows_list=igdb_api.search_games(query_show,page)
         else:
                 shows_list=search_shows(query_show,g.show_type,page)
         select_form=SelectShowForm(g.show_type,shows_list)
