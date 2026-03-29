@@ -92,11 +92,14 @@ def _translate(text):
         return text, False
 
 
-def search_games(query):
+IGDB_PAGE_SIZE = 20
+
+def search_games(query, page=1):
     """
         Search games on IGDB, return a list of VideoGame objects
     """
-    body = 'search "%s"; fields name,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name; limit 20;' % query.replace('"', '\\"')
+    offset = (page - 1) * IGDB_PAGE_SIZE
+    body = 'search "%s"; fields name,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name; limit %d; offset %d;' % (query.replace('"', '\\"'), IGDB_PAGE_SIZE, offset)
 
     results = _igdb_request("games", body)
     if results is None:
@@ -270,7 +273,17 @@ def download_poster(url):
 
 def search_page_number(query):
     """
-        IGDB doesn't have pagination like TMDB.
-        Return 1 since we fetch all results in a single request.
+        Function that returns how many result pages we're going to handle for a specific query
     """
-    return 1
+    import math
+    body = 'search "%s";' % query.replace('"', '\\"')
+
+    result = _igdb_request("games/count", body)
+    if result is None or "count" not in result:
+        return 1
+
+    total = result["count"]
+    if total == 0:
+        return 1
+
+    return math.ceil(total / IGDB_PAGE_SIZE)
