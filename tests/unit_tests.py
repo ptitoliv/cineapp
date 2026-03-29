@@ -387,6 +387,33 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/movie/update/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
         assert "Erreur" in rv.data.decode("utf-8")
 
+        # --- Edge case: update with poster download failure (line 339) ---
+        with patch('cineapp.shows.get_show') as mock_get_show:
+            mock_movie = Movie()
+            mock_movie.name = "Test No Poster"
+            mock_movie.original_name = "Test No Poster"
+            mock_movie.director = "Test Director"
+            mock_movie.release_date = datetime(2020, 1, 1)
+            mock_movie.overview = "Test overview"
+            mock_movie.duration = 120
+            mock_movie.external_id = 66129
+            mock_movie.poster_path = None
+            mock_movie.url = "https://www.themoviedb.org/movie/66129"
+            mock_get_show.return_value = mock_movie
+
+            rv=self.client.post('/movie/update',data=dict(show_id=1,submit_update_show=True),follow_redirects=True)
+            rv=self.client.post('/movie/update/select',data=dict(search="Les Tuche",submit_search=True))
+            rv=self.client.post('/movie/update/confirm',data=dict(show="66129",submit_select=True))
+            rv=self.client.post('/movie/update/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+            assert "Impossible de télécharger le poster" in rv.data.decode("utf-8")
+
+        # Restore the movie with correct data (re-update without mock)
+        rv=self.client.post('/movie/update',data=dict(show_id=1,submit_update_show=True),follow_redirects=True)
+        rv=self.client.post('/movie/update/select',data=dict(search="Les Tuche",submit_search=True))
+        rv=self.client.post('/movie/update/confirm',data=dict(show="66129",submit_select=True))
+        rv=self.client.post('/movie/update/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+        assert "Film correctement mis à jour" in rv.data.decode("utf-8")
+
         # --- Edge case: IntegrityError during update (lines 374-380) ---
         # Update movie id=2 (Test No Poster) using the TMDB id of movie id=1 (Les Tuche = 66129)
         # This triggers a unique constraint violation on external_id
@@ -821,6 +848,77 @@ class FlaskrTestCase(unittest.TestCase):
                 found=True
                 break
         
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+    def test_12_update_tvshow(self):
+
+        """
+            Update tvshow feature test
+        """
+
+        # Login
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Switch to tvshow mode
+        rv=self.client.get('/switch/tvshow', follow_redirects=True)
+
+        # We are logged => load the tvshow to update
+        rv=self.client.get('/tvshow/display/4',follow_redirects=True)
+        assert "Babylon 5" in rv.data.decode("utf-8")
+
+        rv=self.client.post('/tvshow/update',data=dict(show_id=4,submit_update_show=True),follow_redirects=True)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Mise à jour de la série Babylon 5" in parsed_html.find(id="add_wizard_label").text
+
+        # Send the form without any title
+        rv=self.client.post('/tvshow/update/select',data=dict(submit_search=True),follow_redirects=True)
+        assert u"Veuillez saisir une recherche" in rv.data.decode("utf-8")
+
+        # Fill the tvshow title
+        rv=self.client.post('/tvshow/update/select',data=dict(search="Babylon 5",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+
+        # Let's find the show in the list
+        list_shows=(parsed_html.table.find_all('label'))
+        found=False
+        for cur_show in list_shows:
+            if "Babylon 5" in cur_show.text:
+                found=True
+                break
+
+        assert found==True
+
+        # Select the show
+        rv=self.client.post('/tvshow/update/confirm',data=dict(show="3137",submit_select=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Mettre à jour la série" in parsed_html.find(id="submit_confirm")['value']
+
+        # Store the tvshow into database
+        rv=self.client.post('/tvshow/update/confirm',data=dict(show_id="3137",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+
+        list_messages=parsed_html.find_all("div", {"class": "msg-alert"})
+
+        found=False
+        for cur_msg in list_messages:
+            if "Série correctement mise à jour" in cur_msg.text:
+                found=True
+                break
+        assert found==True
+
+        found=False
+        for cur_msg in list_messages:
+            if "Affiche téléchargée" in cur_msg.text:
+                found=True
+                break
+
+        # --- Edge case: POST update without valid form data ---
+        rv=self.client.post('/tvshow/update',data=dict(),follow_redirects=True)
+        assert "Erreur" in rv.data.decode("utf-8")
+
+        # Logout
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
