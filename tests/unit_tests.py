@@ -12,6 +12,7 @@ from cineapp.models import User, Type, Origin, Mark, Movie, TVShow, VideoGame, F
 from datetime import datetime
 from bcrypt import hashpw, gensalt
 import unittest
+from unittest.mock import patch
 import tempfile
 import shutil
 import io
@@ -261,7 +262,40 @@ class FlaskrTestCase(unittest.TestCase):
             if "Affiche téléchargée" in cur_msg.text:
                 found=True
                 break
-        
+
+        # --- Edge case: access select page without search query in session ---
+        with self.client.session_transaction() as sess:
+            sess.pop('query_show', None)
+        rv=self.client.get('/movie/add/select/1', follow_redirects=True)
+        assert "Absence de chaine de recherche" in rv.data.decode("utf-8")
+
+        # --- Edge case: invalid page number ---
+        rv=self.client.post('/movie/add/select',data=dict(search="Les Tuche",submit_search=True))
+        assert rv.status_code == 200
+        rv=self.client.get('/movie/add/select/9999', follow_redirects=True)
+        assert "Page de resultat inexistante" in rv.data.decode("utf-8")
+
+        # --- Edge case: add a movie with poster download failure (line 243) ---
+        with patch('cineapp.shows.get_show') as mock_get_show:
+            mock_movie = Movie()
+            mock_movie.name = "Test No Poster"
+            mock_movie.original_name = "Test No Poster"
+            mock_movie.director = "Test Director"
+            mock_movie.release_date = datetime(2020, 1, 1)
+            mock_movie.overview = "Test overview"
+            mock_movie.duration = 120
+            mock_movie.external_id = 999999
+            mock_movie.poster_path = None
+            mock_get_show.return_value = mock_movie
+
+            rv=self.client.post('/movie/add/confirm',data=dict(show_id="999999",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+            assert "Impossible de télécharger le poster" in rv.data.decode("utf-8")
+
+        # --- Edge case: add a movie that already exists => IntegrityError (lines 258-262) ---
+        # Film "Les Tuche" (TMDB 66129) is already in DB, adding it again triggers unique constraint on external_id
+        rv=self.client.post('/movie/add/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+        assert "déjà existant" in rv.data.decode("utf-8")
+
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
@@ -273,7 +307,11 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # --- Edge case: POST update without valid form data ---
+        rv=self.client.post('/movie/update',data=dict(),follow_redirects=True)
+        assert "Erreur" in rv.data.decode("utf-8")
 
         # We are logged => load the movie to update
         rv=self.client.get('/movie/display/1',follow_redirects=True)
@@ -328,6 +366,35 @@ class FlaskrTestCase(unittest.TestCase):
             if "Affiche téléchargée" in cur_msg.text:
                 found=True
                 break
+
+        # --- Edge case: update confirm with show_id missing from session (select step, lines 188-189) ---
+        rv=self.client.post('/movie/update/select',data=dict(search="Les Tuche",submit_search=True))
+        assert rv.status_code == 200
+        with self.client.session_transaction() as sess:
+            sess.pop('show_id', None)
+        rv=self.client.post('/movie/update/confirm',data=dict(show="66129",submit_select=True),follow_redirects=True)
+        assert "Erreur" in rv.data.decode("utf-8")
+
+        # --- Edge case: update confirm with show_id missing from session (confirm step, lines 270-271) ---
+        with self.client.session_transaction() as sess:
+            sess.pop('show_id', None)
+        rv=self.client.post('/movie/update/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+        assert "Erreur" in rv.data.decode("utf-8")
+
+        # --- Edge case: update confirm with invalid show_id in session (lines 279-280) ---
+        with self.client.session_transaction() as sess:
+            sess['show_id'] = 99999
+        rv=self.client.post('/movie/update/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+        assert "Erreur" in rv.data.decode("utf-8")
+
+        # --- Edge case: IntegrityError during update (lines 374-380) ---
+        # Update movie id=2 (Test No Poster) using the TMDB id of movie id=1 (Les Tuche = 66129)
+        # This triggers a unique constraint violation on external_id
+        rv=self.client.post('/movie/update',data=dict(show_id=2,submit_update_show=True),follow_redirects=True)
+        rv=self.client.post('/movie/update/select',data=dict(search="Les Tuche",submit_search=True))
+        rv=self.client.post('/movie/update/confirm',data=dict(show="66129",submit_select=True))
+        rv=self.client.post('/movie/update/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+        assert "déjà existant" in rv.data.decode("utf-8")
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
@@ -416,7 +483,56 @@ class FlaskrTestCase(unittest.TestCase):
         # We are logged => mark the movie
         rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note mise" in str(rv.data)
-        
+
+        # --- Edge case: mark form validation failure (missing required fields) ---
+        rv=self.client.post('/movie/mark/1',data=dict(submit_mark=1),follow_redirects=True)
+        assert "has-error" in rv.data.decode("utf-8")
+
+        # --- Publish mark on Slack ---
+        rv=self.client.get('/movie/mark/publish/1', follow_redirects=True)
+        assert "Slack" in rv.data.decode("utf-8")
+
+        # --- Publish mark with Slack disabled ---
+        temp_slack_token=self.app.config["SLACK_TOKEN"]
+        self.app.config["SLACK_TOKEN"]=None
+        rv=self.client.get('/movie/mark/publish/1', follow_redirects=True)
+        assert "désactivées" in rv.data.decode("utf-8")
+        self.app.config["SLACK_TOKEN"]=temp_slack_token
+
+        # --- Enable notif_slack via profile edit ---
+        rv=self.client.post('/my/profile',data=dict(
+            email="ptitoliv@ptitoliv.net",
+            notif_slack=True,
+            submit_user=True
+        ),follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- Mark with Slack notification (bad token → API error, lines 686-689) ---
+        temp_slack_token=self.app.config["SLACK_TOKEN"]
+        self.app.config["SLACK_TOKEN"]="xoxp-bad-token"
+
+        rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        assert "Impossible" in rv.data.decode("utf-8")
+
+        # --- Publish mark with bad token (line 1071) ---
+        rv=self.client.get('/movie/mark/publish/1', follow_redirects=True)
+        assert "Impossible" in rv.data.decode("utf-8")
+
+        # --- Mark with Slack token None (slack_result == -1, line 687) ---
+        self.app.config["SLACK_TOKEN"]=None
+        rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        assert "désactivées" in rv.data.decode("utf-8")
+
+        # Restore token
+        self.app.config["SLACK_TOKEN"]=temp_slack_token
+
+        # --- Disable notif_slack via profile edit ---
+        rv=self.client.post('/my/profile',data=dict(
+            email="ptitoliv@ptitoliv.net",
+            submit_user=True
+        ),follow_redirects=True)
+        assert rv.status_code == 200
+
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
@@ -465,7 +581,141 @@ class FlaskrTestCase(unittest.TestCase):
 
         response_args=json.loads(rv.data)["data"]
         assert "Les Tuche" in response_args[0]["name"]
-        
+
+        # --- DataTable: no order directive ---
+        args_no_order = dict(args)
+        args_no_order['order'] = []
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_no_order)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+        response_args=json.loads(rv.data)["data"]
+        assert len(response_args) > 0
+
+        # --- DataTable: sort by name desc ---
+        args_name_desc = dict(args)
+        args_name_desc['order'] = [{'column': 0, 'dir': 'desc'}]
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_name_desc)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- DataTable: sort by average desc ---
+        args_avg_desc = dict(args)
+        args_avg_desc['order'] = [{'column': 2, 'dir': 'desc'}]
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_avg_desc)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- DataTable: sort by average asc ---
+        args_avg_asc = dict(args)
+        args_avg_asc['order'] = [{'column': 2, 'dir': 'asc'}]
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_avg_asc)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- DataTable: sort by my_mark ---
+        args_my_mark = dict(args)
+        args_my_mark['order'] = [{'column': 4, 'dir': 'asc'}]
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_my_mark)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- DataTable: sort by my_when ---
+        args_my_when = dict(args)
+        args_my_when['order'] = [{'column': 5, 'dir': 'asc'}]
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_my_when)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- DataTable: sort by my_fav ---
+        args_my_fav = dict(args)
+        args_my_fav['order'] = [{'column': 3, 'dir': 'asc'}]
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_my_fav)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- DataTable: sort by other_marks.2 ---
+        args_other_marks = dict(args)
+        args_other_marks['order'] = [{'column': 10, 'dir': 'asc'}]
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_other_marks)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- DataTable: sort by other_when.2 ---
+        args_other_when = dict(args)
+        args_other_when['order'] = [{'column': 11, 'dir': 'asc'}]
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_other_when)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- DataTable: sort by other_favs.2 ---
+        args_other_favs = dict(args)
+        args_other_favs['order'] = [{'column': 9, 'dir': 'asc'}]
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_other_favs)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- Filter: text search via search form ---
+        rv=self.client.post('/filter',data=dict(search="Tuche",submit_search=True),follow_redirects=True)
+        assert rv.status_code == 200
+        # Fetch datatable in text search mode
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        response_args=json.loads(rv.data)["data"]
+        assert len(response_args) > 0
+
+        # --- Filter: text search + sort by average ---
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_avg_desc)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- Filter: text search + sort by my_mark (filter_user + text search) ---
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_my_mark)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- Filter: origin/type ---
+        rv=self.client.post('/filter',data=dict(submit_filter=True,origin="F",type="C"),follow_redirects=True)
+        assert rv.status_code == 200
+        # Fetch datatable in filter_origin_type mode
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- Filter: origin/type + sort by average ---
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_avg_desc)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- Filter: origin/type + sort by average asc ---
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_avg_asc)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- Filter: origin/type + sort by my_mark (filter_user + filter_origin_type) ---
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_my_mark)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- Filter: seen_where ---
+        rv=self.client.post('/filter',data=dict(submit_filter=True,where=1),follow_redirects=True)
+        assert rv.status_code == 200
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- Filter: seen_where + sort by my_mark ---
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_my_mark)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- Filter: favorite ---
+        # First set a favorite
+        rv=self.client.post('/json/favshow/set/1/1',data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
+        response_fav=json.loads(rv.data)
+        assert response_fav["status"] == "success"
+
+        rv=self.client.post('/filter',data=dict(submit_filter=True,favorite=1),follow_redirects=True)
+        assert rv.status_code == 200
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- Filter: favorite + sort by my_fav ---
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_my_fav)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
+        # Clean up favorite
+        rv=self.client.get('/json/favshow/delete/1/1',follow_redirects=True)
+
+        # --- Reload list with session dict (filter still active) ---
+        rv=self.client.post('/filter',data=dict(submit_filter=True,origin="F"),follow_redirects=True)
+        rv=self.client.get('/movie/list', follow_redirects=True)
+        assert rv.status_code == 200
+
+        # --- Reset list ---
+        rv=self.client.get('/reset', follow_redirects=True)
+        assert rv.status_code == 200
+
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
@@ -577,14 +827,14 @@ class FlaskrTestCase(unittest.TestCase):
     def test_13_mark_tvshow(self):
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
-        
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
         # We are logged => mark the show
-        rv=self.client.post('/tvshow/mark/2',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        rv=self.client.post('/tvshow/mark/4',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note ajout" in str(rv.data)
-        
+
         # We are logged => mark the show
-        rv=self.client.post('/tvshow/mark/2',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        rv=self.client.post('/tvshow/mark/4',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note mise" in str(rv.data)
         
         rv=self.client.get('/logout', follow_redirects=True)
@@ -596,10 +846,18 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
         
         # We are logged => comment the mark
-        rv=self.client.post('/json/add_mark_comment',data=dict(show_id=2,dest_user=1,comment="plop"),follow_redirects=True)
-        rv=self.client.get('/tvshow/display/2', follow_redirects=True)
-        assert "plop" in str(rv.data) 
-        
+        rv=self.client.post('/json/add_mark_comment',data=dict(show_id=4,dest_user=1,comment="plop"),follow_redirects=True)
+        rv=self.client.get('/tvshow/display/4', follow_redirects=True)
+        assert "plop" in str(rv.data)
+
+        # --- TVShow dynamic fields sync: force nb_seasons difference to trigger TMDB sync ---
+        with self.app.app_context():
+            tvshow = TVShow.query.get(4)
+            tvshow.nb_seasons = 0
+            db.session.commit()
+        rv=self.client.get('/tvshow/display/4', follow_redirects=True)
+        assert rv.status_code == 200
+
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
@@ -719,13 +977,13 @@ class FlaskrTestCase(unittest.TestCase):
             # Add additionl data in order to test that we can't remove an homework 
             # given by another user
             movie=Movie(name="Movie",original_name="Original Movie", release_date="2000-01-01", origin="F", director="A guy", duration=142)
-            mark=Mark(user_id=1,show_id=3,homework_who=2,homework_when=datetime.now())
+            mark=Mark(user_id=1,show_id=5,homework_who=2,homework_when=datetime.now())
             db.session.add(movie)
             db.session.add(mark)
             db.session.commit()
 
             # Add a movie already with a mark
-            mark=Mark(user_id=2,show_id=3,homework_who=1,homework_when=datetime.now(),mark=14,seen_where="C",seen_when=datetime.now())
+            mark=Mark(user_id=2,show_id=5,homework_who=1,homework_when=datetime.now(),mark=14,seen_where="C",seen_when=datetime.now())
             db.session.add(movie)
             db.session.add(mark)
             db.session.commit()
@@ -745,7 +1003,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Give an homework from user 1 to user 2 for a show already with a mark
         with mail.record_messages() as outbox:
-            rv=self.client.get('/homework/add/3/2',follow_redirects=True)
+            rv=self.client.get('/homework/add/5/2',follow_redirects=True)
             assert "Impossible de créer le devoir. Une note existe déjà" in rv.data.decode('utf-8')
 
         # List homeworks
@@ -759,7 +1017,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Les Tuche" in rv.data.decode('utf-8')
 
         # Give an incorrect homework
-        rv=self.client.get('/homework/add/3/10',follow_redirects=True)
+        rv=self.client.get('/homework/add/5/10',follow_redirects=True)
         assert "Impossible de créer le devoir" in rv.data.decode('utf-8')
 
         # Delete an homework
@@ -769,16 +1027,16 @@ class FlaskrTestCase(unittest.TestCase):
             assert "Annulation d'un devoir" in outbox[0].subject
 
         # Delete an incorrect homework
-        rv=self.client.get('/homework/delete/3/10',follow_redirects=True)
+        rv=self.client.get('/homework/delete/5/10',follow_redirects=True)
         assert "Ce devoir n&#39;existe pas" in rv.data.decode('utf-8')
 
         # Delete an unauthorized homework
-        rv=self.client.get('/homework/delete/3/1',follow_redirects=True)
+        rv=self.client.get('/homework/delete/5/1',follow_redirects=True)
         assert "Vous n&#39;avez pas le droit de supprimer ce devoir" in rv.data.decode('utf-8')
 
         # Delete an homework already with a mark
         with mail.record_messages() as outbox:
-            rv=self.client.get('/homework/delete/3/2',follow_redirects=True)
+            rv=self.client.get('/homework/delete/5/2',follow_redirects=True)
             assert "Impossible de supprimer le devoir - Une note existe déjà" in rv.data.decode('utf-8')
 
         # Add and remove an homework for a user who doesn't want notification
@@ -789,6 +1047,18 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.get('/homework/delete/1/%s' % nonotif_user.id,follow_redirects=True)
         assert "Devoir annulé" in rv.data.decode('utf-8')
         assert "Aucune notification à envoyer" in rv.data.decode('utf-8')
+
+        # --- Homework completion: give movie homework to toto (user 4) then complete it ---
+        rv=self.client.get('/homework/add/1/4',follow_redirects=True)
+        assert "Devoir ajouté" in rv.data.decode('utf-8')
+
+        rv=self.client.get('/logout', follow_redirects=True)
+        rv=self.client.post('/login',data=dict(username="toto",password="toto"), follow_redirects=True)
+        assert "Welcome <strong>toto</strong>" in str(rv.data)
+
+        # Complete the homework by marking the show
+        rv=self.client.post('/movie/mark/1',data=dict(mark=12,comment="devoir fait",seen_where="M",seen_when="2026-03-28",submit_mark=1),follow_redirects=True)
+        assert "Devoir rempli" in rv.data.decode('utf-8')
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
@@ -1047,6 +1317,10 @@ class FlaskrTestCase(unittest.TestCase):
         assert found==True
         assert igdb_id is not None
 
+        # Submit confirm without selecting a game => should redirect back to select page
+        rv=self.client.post('/videogame/add/confirm',data=dict(submit_select=True),follow_redirects=True)
+        assert "submit_select" in rv.data.decode("utf-8")
+
         # Select the game
         rv=self.client.post('/videogame/add/confirm',data=dict(show=igdb_id,submit_select=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
@@ -1123,6 +1397,10 @@ class FlaskrTestCase(unittest.TestCase):
                 break
 
         assert found==True
+
+        # Submit confirm without selecting a game => should redirect back to select page
+        rv=self.client.post('/videogame/update/confirm',data=dict(submit_select=True),follow_redirects=False)
+        assert rv.status_code == 302
 
         # Select the game
         rv=self.client.post('/videogame/update/confirm',data=dict(show=igdb_id,submit_select=True))
