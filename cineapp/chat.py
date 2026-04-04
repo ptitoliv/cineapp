@@ -44,10 +44,15 @@ def transmit_message(message,notify=False):
 
 			if cur_user.id != logged_user.id:
 
-				# Let's handle the notifications in another dedicated process
-				# in order to avoid blocking the chat
-				p = Process(target=notification_send, args=(message.posted_by.nickname + ":  " + message.message, cur_user.subscriptions))
-				p.start()
+				# Serialize subscriptions before forking to avoid sharing
+				# the MySQL connection with the child process
+				serialized_subs = [sub.serialize() for sub in cur_user.subscriptions]
+
+				if len(serialized_subs) > 0:
+					# Let's handle the notifications in another dedicated process
+					# in order to avoid blocking the chat
+					p = Process(target=notification_send, args=(serialized_subs, url_for('chat.chat'),message.posted_by.nickname + ":  " + message.message))
+					p.start()
 
 		# Check if we have a user name into the message
 		user_named = set(re.findall(r'@\w+',message.message))
