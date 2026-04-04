@@ -8,7 +8,7 @@ from cineapp.models import db
 from cineapp.emails import mail
 from cineapp.jinja_testers import is_movie, is_tvshow, is_videogame
 from cineapp import slack
-from cineapp.models import User, Type, Origin, Mark, Movie, TVShow, VideoGame, FavoriteShow, MarkComment
+from cineapp.models import User, Type, Origin, Mark, Movie, TVShow, VideoGame, FavoriteShow, MarkComment, PushNotification
 from datetime import datetime
 from bcrypt import hashpw, gensalt
 import unittest
@@ -20,6 +20,7 @@ from bs4 import BeautifulSoup
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import FlushError
 from flask_migrate import upgrade
+from flask import url_for
 from sqlalchemy import text
 
 class FlaskrTestCase(unittest.TestCase):
@@ -1925,3 +1926,91 @@ class FlaskrTestCase(unittest.TestCase):
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
+
+    def test_36_push_notifications(self):
+
+        """
+            Test push notification subscribe and unsubscribe
+        """
+
+        # Login
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        # Subscribe to push notifications
+        subscription_data = {
+            "endpoint": "https://fcm.googleapis.com/fcm/send/test-endpoint-123",
+            "keys": {
+                "p256dh": "test-public-key-p256dh",
+                "auth": "test-auth-token"
+            }
+        }
+        rv=self.client.post('/notifications/subscribe', data=json.dumps(subscription_data), content_type='application/json')
+        response=json.loads(rv.data)
+        assert response["status"] == "success"
+
+        # Verify subscription is stored in database
+        with self.app.app_context():
+            sub = PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/test-endpoint-123").first()
+            assert sub is not None
+            assert sub.public_key == "test-public-key-p256dh"
+            assert sub.auth_token == "test-auth-token"
+            assert sub.user_id == 1
+
+        # Logout triggers notification_unsubscribe for all session subscriptions
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+        # Verify subscription has been removed from database
+        with self.app.app_context():
+            sub = PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/test-endpoint-123").first()
+            assert sub is None
+
+        # --- Error case: DB error during subscribe (L30-32) ---
+        # Re-login and subscribe once, then subscribe again with a different endpoint
+        # The second subscribe will fail because session_id has a unique constraint
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        rv=self.client.post('/notifications/subscribe', data=json.dumps(subscription_data), content_type='application/json')
+        response=json.loads(rv.data)
+        assert response["status"] == "success"
+
+        subscription_data_duplicate = {
+            "endpoint": "https://fcm.googleapis.com/fcm/send/test-endpoint-456",
+            "keys": {
+                "p256dh": "another-public-key",
+                "auth": "another-auth-token"
+            }
+        }
+        rv=self.client.post('/notifications/subscribe', data=json.dumps(subscription_data_duplicate), content_type='application/json')
+        response=json.loads(rv.data)
+        assert response["status"] == "failure"
+
+        # --- Error case: DB error during unsubscribe (L65-67) ---
+        with patch('cineapp.push.db.session.commit', side_effect=Exception("DB delete error")):
+            rv=self.client.get('/logout', follow_redirects=True)
+            assert "Welcome to CineApp" in str(rv.data)
+
+        # Subscription should still be in DB since delete failed
+        with self.app.app_context():
+            sub = PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/test-endpoint-123").first()
+            assert sub is not None
+
+            # Clean up manually
+            db.session.delete(sub)
+            db.session.commit()
+
+        # --- notification_send: nominal case (L38-48) ---
+        with self.app.app_context():
+            from cineapp.push import notification_send
+            serialized_subs = [subscription_data]
+            with patch('cineapp.push.webpush') as mock_webpush:
+                notification_send(serialized_subs, "/chat", "ptitoliv: Hello !")
+                mock_webpush.assert_called_once()
+
+        # --- notification_send: WebPushException case (L49-52) ---
+        with self.app.app_context():
+            from pywebpush import WebPushException
+            with patch('cineapp.push.webpush', side_effect=WebPushException("Push failed")):
+                notification_send(serialized_subs, "/chat", "ptitoliv: Hello !")
