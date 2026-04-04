@@ -3,12 +3,12 @@
 from future import standard_library
 standard_library.install_aliases()
 import os, sys, json
-from cineapp import create_app, minutes_to_human_duration, date_format
-from cineapp.models import db
+from cineapp import create_app, minutes_to_human_duration, date_format, socketio, slack
+from cineapp.models import db, User, Type, Origin, Mark, Movie, TVShow, VideoGame, FavoriteShow, MarkComment, PushNotification, ChatMessage
 from cineapp.emails import mail
 from cineapp.jinja_testers import is_movie, is_tvshow, is_videogame
-from cineapp import slack
-from cineapp.models import User, Type, Origin, Mark, Movie, TVShow, VideoGame, FavoriteShow, MarkComment, PushNotification
+from cineapp.push import notification_send
+from pywebpush import WebPushException
 from datetime import datetime
 from bcrypt import hashpw, gensalt
 import unittest
@@ -2003,7 +2003,6 @@ class FlaskrTestCase(unittest.TestCase):
 
         # --- notification_send: nominal case (L38-48) ---
         with self.app.app_context():
-            from cineapp.push import notification_send
             serialized_subs = [subscription_data]
             with patch('cineapp.push.webpush') as mock_webpush:
                 notification_send(serialized_subs, "/chat", "ptitoliv: Hello !")
@@ -2011,6 +2010,104 @@ class FlaskrTestCase(unittest.TestCase):
 
         # --- notification_send: WebPushException case (L49-52) ---
         with self.app.app_context():
-            from pywebpush import WebPushException
             with patch('cineapp.push.webpush', side_effect=WebPushException("Push failed")):
                 notification_send(serialized_subs, "/chat", "ptitoliv: Hello !")
+
+    def test_37_chat(self):
+
+        """
+            Test chat features: page access, SocketIO connection, message sending
+        """
+
+        # --- Access chat page (L79) ---
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+
+        rv=self.client.get('/chat')
+        assert rv.status_code == 200
+
+        # --- SocketIO: connect and receive history (L84-99, L25-37) ---
+        socketio_client = socketio.test_client(self.app, flask_test_client=self.client, namespace='/chat_ws')
+        assert socketio_client.is_connected(namespace='/chat_ws')
+        received = socketio_client.get_received(namespace='/chat_ws')
+
+        # --- SocketIO: send a message (L106-130, L40-73) ---
+        socketio_client.emit('chat_message', {"data": "Hello tout le monde !"}, namespace='/chat_ws')
+
+        received = socketio_client.get_received(namespace='/chat_ws')
+        assert len(received) > 0, "No messages received after sending chat message"
+        assert received[0]['name'] == 'message'
+        assert "Hello tout le monde" in received[0]['args']['msg']
+        assert "Aujourd'hui" in received[0]['args']['date']
+
+        # Check message was stored in database
+        with self.app.app_context():
+            msg = ChatMessage.query.filter_by(message="Hello tout le monde !").first()
+            assert msg is not None
+            assert msg.user_id == 1
+
+        # --- SocketIO: send a message with @mention (L57-68) ---
+        socketio_client.emit('chat_message', {"data": "@foo regarde ce film !"}, namespace='/chat_ws')
+
+        received = socketio_client.get_received(namespace='/chat_ws')
+        assert len(received) > 0
+        assert "@foo" in received[0]['args']['msg']
+
+        # --- SocketIO: @mention with exception in notification (L65-66) ---
+        with patch('cineapp.chat.chat_message_notification', side_effect=Exception("SMTP error")):
+            socketio_client.emit('chat_message', {"data": "@foo erreur email !"}, namespace='/chat_ws')
+
+        received = socketio_client.get_received(namespace='/chat_ws')
+        assert len(received) > 0
+        assert "@foo erreur email" in received[0]['args']['msg']
+
+        # --- SocketIO: old message date formatting (L36-37) ---
+        with self.app.app_context():
+            old_msg = ChatMessage(message="Vieux message", posted_when=datetime(2020, 1, 1, 12, 0), user_id=1)
+            db.session.add(old_msg)
+            db.session.commit()
+
+        # Reconnect to trigger history replay with old message
+        socketio_client.disconnect(namespace='/chat_ws')
+        socketio_client = socketio.test_client(self.app, flask_test_client=self.client, namespace='/chat_ws')
+        received = socketio_client.get_received(namespace='/chat_ws')
+        has_old_format = any("01/01/2020" in msg['args']['date'] for msg in received if msg['name'] == 'message')
+        assert has_old_format
+
+        # --- SocketIO: send empty message (L132-134) ---
+        socketio_client.emit('chat_message', {"data": ""}, namespace='/chat_ws')
+        received = socketio_client.get_received(namespace='/chat_ws')
+        assert len(received) == 0
+
+        # --- SocketIO: push notification via Process fork (L50-51) ---
+        with self.app.app_context():
+            sub = PushNotification(endpoint_id="https://fcm.googleapis.com/fcm/send/foo-endpoint", public_key="foo-key", auth_token="foo-auth", session_id="foo-session", user_id=2)
+            db.session.add(sub)
+            db.session.commit()
+
+        socketio_client.get_received(namespace='/chat_ws')
+        with patch('cineapp.chat.Process') as mock_process:
+            socketio_client.emit('chat_message', {"data": "message avec push"}, namespace='/chat_ws')
+            mock_process.return_value.start.assert_called()
+
+        received = socketio_client.get_received(namespace='/chat_ws')
+        assert len(received) > 0
+        assert "message avec push" in received[0]['args']['msg']
+
+        # Clean up subscription
+        with self.app.app_context():
+            PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/foo-endpoint").delete()
+            db.session.commit()
+
+        # --- SocketIO: IntegrityError on commit (L124-127) ---
+        with patch('cineapp.chat.db.session.commit', side_effect=IntegrityError("mock", "mock", Exception("mock"))):
+            socketio_client.emit('chat_message', {"data": "message qui plante"}, namespace='/chat_ws')
+
+        received = socketio_client.get_received(namespace='/chat_ws')
+        assert len(received) == 0
+
+        # Disconnect and logout
+        socketio_client.disconnect(namespace='/chat_ws')
+
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)

@@ -6,7 +6,7 @@ Détail du message
 -----------------
 {{ message.message }}
 
-URL du chat  : {{ url_for('chat', _external=True) }}
+URL du chat  : {{ url_for('chat.chat', _external=True) }}
 
 --
 CineApp

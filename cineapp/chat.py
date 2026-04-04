@@ -11,6 +11,7 @@ from cineapp.push import notification_send
 from cineapp.auth import guest_control
 from datetime import datetime, timedelta
 from sqlalchemy import desc
+from sqlalchemy.exc import IntegrityError
 import re
 from multiprocessing import Process
 
@@ -23,11 +24,6 @@ def transmit_message(message,notify=False):
 	# Fetch the user we have in session
 	# Since we can't use g here
 	logged_user = session.get("user", None)
-
-	# Check if a user is registered in the session
-	if logged_user is None or not isinstance(logged_user, User):
-		app.logger.error("Incorrect user object into the session")
-		return False
 
 	# Format the message adding the day if needed
 	cur_date = datetime.now()
@@ -85,11 +81,6 @@ def chat_connection():
 
 	user = session.get("user", None)
 
-	# Check if a user is registered in the session
-	if user is None or not isinstance(user, User):
-		app.logger.error("Incorrect user object into the session")
-		return False
-
 	# Let's send the last 100 Messages on the socketio
 	chat_messages = ChatMessage.query.order_by(desc(ChatMessage.posted_when)).limit(100).all()
 
@@ -108,11 +99,6 @@ def chat_message(message):
 	# Send message only if it is different from null
 	if message["data"] != '':
 		user = session.get("user", None)
-
-		# Check if a user is registered in the session
-		if user is None or not isinstance(user, User):
-			app.logger.error("Incorrect user object into the session")
-			return False
 
 		# Let's store the message into the database
 		chat_message = ChatMessage(message=message["data"], posted_when=datetime.now(), user_id=user.id)
