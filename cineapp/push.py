@@ -33,28 +33,23 @@ def notification_subscribe():
     
     return jsonify({ "status": "success", "message": u"Endpoint enregistray" })
 
-def notification_send(text,active_subscriptions):
+def notification_send(subscriptions,chat_url,chat_message):
 
-    for cur_active_sub in active_subscriptions:
+    for cur_subscription in subscriptions:
         try:
-            expiration_date = time.mktime((datetime.datetime.now() + datetime.timedelta(hours=12)).timetuple())
-            webpush(cur_active_sub.serialize(),
-            data=json.dumps({ "url":url_for('chat.chat'), "message_title": "Message depuis le chat", "message": text }) ,
+            expiration_date = int(time.mktime((datetime.datetime.now() + datetime.timedelta(hours=12)).timetuple()))
+            webpush(cur_subscription,
+            data=json.dumps({ "url":chat_url, "message_title": "Message depuis le chat", "message": chat_message }) ,
             vapid_private_key=app.config["NOTIF_PRIVATE_KEY_PATH"],
             vapid_claims={
-            "sub": "mailto:ptitoliv@gmail.com",
+            "sub": "mailto:cineapp@ptitoliv.net",
             "exp": expiration_date
             }
         )
         except WebPushException as ex:
-            # If there is an error let's remove the subscription
-            app.logger.error("Subscription for endpoint %s is incorrect ==> Delete it", cur_active_sub)
+            # If there is an error let's log it
             print(traceback.print_exc(file=sys.stdout));
-            
-            # Let's remove the notification
-            notification_unsubscribe(cur_active_sub)
             print(("I'm sorry, Dave, but I can't do that: {}", repr(ex)))
-            print(ex.response.json())
     
 def notification_unsubscribe(sub):
     try:
