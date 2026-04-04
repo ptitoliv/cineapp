@@ -17,6 +17,8 @@ import tempfile
 import shutil
 import io
 from bs4 import BeautifulSoup
+from sqlalchemy.exc import IntegrityError
+from sqlalchemy.orm.exc import FlushError
 from flask_migrate import upgrade
 from sqlalchemy import text
 
@@ -296,6 +298,11 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/movie/add/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
         assert "déjà existant" in rv.data.decode("utf-8")
 
+        # --- Edge case: POST confirm without any form submitted (L379) ---
+        rv=self.client.post('/movie/add/confirm',data=dict(),follow_redirects=True)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Ajout d'un film" == parsed_html.find(id="add_wizard_label").text
+
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
@@ -510,6 +517,29 @@ class FlaskrTestCase(unittest.TestCase):
         # We are logged => mark the movie
         rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note mise" in str(rv.data)
+
+        # --- Edge case: GET mark page for already marked show (L709-710) ---
+        rv=self.client.get('/movie/mark/1',follow_redirects=True)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert "Les Tuche" in parsed_html.find("h1",{"class":"title_position"}).text
+     
+        # --- Edge case: mail notification failure (L678) ---
+        with patch('cineapp.shows.mark_show_notification') as mock_notif:
+            mock_notif.return_value = -1
+            rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1),follow_redirects=True)
+            assert "Impossible d&#39;envoyer la note par mail" in rv.data.decode("utf-8")
+
+        # --- Edge case: IntegrityError on mark commit (L692-695) ---
+        with patch('cineapp.shows.db.session.commit') as mock_commit:
+            mock_commit.side_effect = IntegrityError("", "", Exception())
+            rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1),follow_redirects=True)
+            assert "Impossible de noter le film" in rv.data.decode("utf-8")
+
+        # --- Edge case: FlushError on mark commit (L697-700) ---
+        with patch('cineapp.shows.db.session.commit') as mock_commit:
+            mock_commit.side_effect = FlushError("flush error")
+            rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1),follow_redirects=True)
+            assert "Impossible de noter le film" in rv.data.decode("utf-8")
 
         # --- Edge case: mark form validation failure (missing required fields) ---
         rv=self.client.post('/movie/mark/1',data=dict(submit_mark=1),follow_redirects=True)
@@ -930,6 +960,13 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/tvshow/update',data=dict(),follow_redirects=True)
         assert "Erreur" in rv.data.decode("utf-8")
 
+        # --- Edge case: DB error during tvshow dynamic fields sync (L457-459) ---
+        with patch('cineapp.shows.db.session.commit', side_effect=Exception("DB sync error")):
+            rv=self.client.get('/tvshow/display/4',follow_redirects=True)
+            assert rv.status_code == 200
+            assert "Babylon 5" in rv.data.decode("utf-8")
+            assert "Impossible de synchroniser les données de la série" in rv.data.decode("utf-8")
+
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
@@ -946,7 +983,40 @@ class FlaskrTestCase(unittest.TestCase):
         # We are logged => mark the show
         rv=self.client.post('/tvshow/mark/4',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note mise" in str(rv.data)
-        
+
+        # --- List tvshows and datatable tests ---
+        rv=self.client.get('/tvshow/list', follow_redirects=True)
+        assert "Liste des séries" in rv.data.decode('utf-8')
+
+        args = {'search': {'regex': False, 'value': ''}, 'draw': 1, 'start': 0, 'length': 100, 'order': [{'column': 0, 'dir': 'asc'}], 'columns': [{'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'name', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'director', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'average', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_fav', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_mark', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_when', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.3', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.3', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.3', 'name': '', 'searchable': True}]}
+
+        rv=self.client.post('/tvshow/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        response_args=json.loads(rv.data)["data"]
+        assert len(response_args) > 0
+        assert "Babylon 5" in response_args[0]["name"]
+
+        # --- Filter: origin/type in tvshow mode + sort by my_mark (L776-778) ---
+        rv=self.client.post('/filter',data=dict(submit_filter=True,origin="F",type="C"),follow_redirects=True)
+        assert rv.status_code == 200
+        args_my_mark = dict(args)
+        args_my_mark['order'] = [{'column': 4, 'dir': 'asc'}]
+        rv=self.client.post('/tvshow/json', data=dict(args=json.dumps(args_my_mark)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        response_args=json.loads(rv.data)["data"]
+        assert len(response_args) > 0
+        assert "Babylon 5" in response_args[0]["name"]
+
+        # --- Filter: text search in tvshow mode (L903-904) ---
+        rv=self.client.post('/filter',data=dict(search="Babylon",submit_search=True),follow_redirects=True)
+        assert rv.status_code == 200
+        rv=self.client.post('/tvshow/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        response_args=json.loads(rv.data)["data"]
+        assert len(response_args) > 0
+        assert "Babylon 5" in response_args[0]["name"]
+
+        # --- Reset list ---
+        rv=self.client.get('/reset', follow_redirects=True)
+        assert rv.status_code == 200
+
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
@@ -977,8 +1047,13 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
         
         rv=self.client.get('/tvshow/display/random', follow_redirects=True)
-        assert "Fiche" in str(rv.data) 
-        
+        assert "Fiche" in str(rv.data)
+
+        # Try random on videogame mode on an empty list (no videogame exists yet)
+        rv=self.client.get('/switch/videogame', follow_redirects=True)
+        rv=self.client.get('/videogame/display/random', follow_redirects=True)
+        assert "Pas de contenu disponible" in rv.data.decode('utf-8')
+
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
@@ -1110,6 +1185,15 @@ class FlaskrTestCase(unittest.TestCase):
             rv=self.client.get('/homework/add/1/2',follow_redirects=True)
             assert "Devoir ajouté" in rv.data.decode('utf-8')
             assert "Attribution d'un devoir" in outbox[0].subject
+
+        # Fetch the datatable while the homework exists to cover homework_who_user.nickname (L992)
+        args = {'search': {'regex': False, 'value': ''}, 'draw': 1, 'start': 0, 'length': 100, 'order': [{'column': 0, 'dir': 'asc'}], 'columns': [{'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'name', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'director', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'average', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_fav', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_mark', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_when', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.3', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.3', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.3', 'name': '', 'searchable': True}]}
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+        response_args=json.loads(rv.data)["data"]
+        # Find "Les Tuche" (show_id=1) and check that user 2's homework has been assigned by ptitoliv
+        entry = [e for e in response_args if "Les Tuche" in e["name"]][0]
+        assert entry["other_homework_when"]["2"]["who"] == "ptitoliv"
 
         # Give an homework from user 1 to user 2 for a show already with a mark
         with mail.record_messages() as outbox:
@@ -1411,6 +1495,15 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/videogame/add/select',data=dict(search="Sonic",submit_search=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
 
+        # --- Edge case: navigate to page 2 (L117: has_prev = True) ---
+        rv=self.client.get('/videogame/add/select/2',follow_redirects=True)
+        parsed_html_p2=BeautifulSoup(rv.data,"html.parser")
+        assert "Page 2" in parsed_html_p2.text
+
+        # Go back to page 1
+        rv=self.client.get('/videogame/add/select/1',follow_redirects=True)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+
         # Let's find the game in the list
         list_shows=(parsed_html.table.find_all('label'))
         found=False
@@ -1645,6 +1738,14 @@ class FlaskrTestCase(unittest.TestCase):
         # Switch to videogame mode
         rv=self.client.get('/switch/videogame', follow_redirects=True)
 
+        # --- Set comment to None directly in DB to cover L951 ---
+        with self.app.app_context():
+            videogame = VideoGame.query.filter(VideoGame.name.like('%Sonic%')).first()
+            videogame_id = videogame.id
+            mark = Mark.query.get((1, videogame_id))
+            mark.comment = None
+            db.session.commit()
+
         # We are logged => list videogames
         rv=self.client.get('/videogame/list', follow_redirects=True)
         assert "Liste des jeux" in rv.data.decode('utf-8')
@@ -1655,6 +1756,35 @@ class FlaskrTestCase(unittest.TestCase):
 
         response_args=json.loads(rv.data)["data"]
         assert "Sonic" in response_args[0]["name"]
+
+        # --- Filter: origin/type in videogame mode + sort by my_mark (L779-781) ---
+        rv=self.client.post('/filter',data=dict(submit_filter=True,origin="F",type="ACT"),follow_redirects=True)
+        assert rv.status_code == 200
+        args_my_mark = dict(args)
+        args_my_mark['order'] = [{'column': 4, 'dir': 'asc'}]
+        rv=self.client.post('/videogame/json', data=dict(args=json.dumps(args_my_mark)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        response_args=json.loads(rv.data)["data"]
+        assert len(response_args) > 0
+        assert "Sonic" in response_args[0]["name"]
+
+        # --- Filter: text search in videogame mode (L905-906) ---
+        rv=self.client.post('/filter',data=dict(search="Sonic",submit_search=True),follow_redirects=True)
+        assert rv.status_code == 200
+        rv=self.client.post('/videogame/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        response_args=json.loads(rv.data)["data"]
+        assert len(response_args) > 0
+        assert "Sonic" in response_args[0]["name"]
+
+        # --- Filter: text search + sort by average asc (L912) ---
+        args_avg_asc = dict(args)
+        args_avg_asc['order'] = [{'column': 2, 'dir': 'asc'}]
+        rv=self.client.post('/videogame/json', data=dict(args=json.dumps(args_avg_asc)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        response_args=json.loads(rv.data)["data"]
+        assert len(response_args) > 0
+
+        # --- Reset list ---
+        rv=self.client.get('/reset', follow_redirects=True)
+        assert rv.status_code == 200
 
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)

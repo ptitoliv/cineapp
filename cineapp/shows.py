@@ -421,8 +421,6 @@ def display_show(show_id):
             show = TVShow.query.get_or_404(show_id)
         elif g.show_type == "videogame":
             show = VideoGame.query.get_or_404(show_id)
-        else:
-            abort(404)
 
         # Initialize the dict which will contain the data to be displayed
         mark_users=[]
@@ -455,8 +453,10 @@ def display_show(show_id):
                     db.session.commit()
 
                 except Exception as e:
+                    db.session.rollback()
                     app.logger.error("Impossible de mettre à jour les paramètres de la série: %s" % e)
                     app.logger.error("%s" % traceback.print_exc())
+                    flash("Impossible de synchroniser les données de la série","warning")
 
         # Browse all users
         for cur_user in users:
@@ -621,8 +621,6 @@ def mark_show(show_id_form):
             show = TVShow.query.get_or_404(show_id_form)
         elif g.show_type == "videogame":
             show = VideoGame.query.get_or_404(show_id_form)
-        else:
-            abort(404)
 
         # Let's check if the show has already been marked
         marked_show=Mark.query.get((g.user.id,show_id_form))
@@ -1037,10 +1035,6 @@ def display_show_random():
 
         # Get the random index id
         random_id = randint(0,len(ids_list)-1)
-
-        # Check if the movie exists
-        while Show.query.get(ids_list[random_id].id) is None:
-                random_id = randint(0,len(ids_list))
 
         # Redirect to the movie sheet selected randomly
         return redirect(url_for('show.display_show',show_type=g.show_type,show_id=ids_list[random_id].id))
