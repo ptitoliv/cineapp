@@ -5,7 +5,7 @@ import json, os, time, requests, deepl
 from datetime import datetime
 from igdb.wrapper import IGDBWrapper
 from cineapp.models import VideoGame
-from flask import current_app as app
+from flask import current_app as app, flash
 
 # Wrapper cache
 _wrapper_cache = {
@@ -88,7 +88,7 @@ def _translate(text):
         result = translator.translate_text(text, target_lang=target_lang)
         return result.text, True
     except Exception as e:
-        app.logger.error("Erreur de traduction DeepL: %s", e)
+        app.logger.error("Erreur de traduction DeepL: [%s] %s", type(e).__name__, e)
         return text, False
 
 
@@ -158,14 +158,10 @@ def search_games(query, page=1):
     return games_list
 
 
-def get_game(external_id, fetch_poster=True):
+def get_game(external_id):
     """
         Get full game details from IGDB
     """
-    if external_id is None:
-        app.logger.error("Champ external_id vide")
-        return None
-
     body = 'fields name,summary,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name,url; where id = %s;' % str(external_id)
 
     results = _igdb_request("games", body)
@@ -221,13 +217,10 @@ def get_game(external_id, fetch_poster=True):
         cover_url = game["cover"].get("url")
         if cover_url:
             cover_url = "https:" + cover_url.replace("t_thumb", "t_cover_big")
-            if fetch_poster:
-                if download_poster(cover_url):
-                    poster_path = os.path.basename(cover_url)
-                else:
-                    poster_path = None
+            if download_poster(cover_url):
+                poster_path = os.path.basename(cover_url)
             else:
-                poster_path = cover_url
+                poster_path = None
 
     # Translate overview
     translated_overview, overview_translated = _translate(game.get("summary", ""))
