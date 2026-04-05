@@ -2,7 +2,7 @@
 
 from future import standard_library
 standard_library.install_aliases()
-import os, sys, json
+import os, sys, json, requests
 from cineapp import create_app, minutes_to_human_duration, date_format, socketio, slack
 from cineapp.models import db, User, Type, Origin, Mark, Movie, TVShow, VideoGame, FavoriteShow, MarkComment, PushNotification, ChatMessage
 from cineapp.emails import mail
@@ -1549,6 +1549,130 @@ class FlaskrTestCase(unittest.TestCase):
             assert videogame is not None
             assert videogame.platforms is not None
             assert videogame.external_id is not None
+            assert videogame.overview is not None and videogame.overview != ""
+
+        # --- IGDB: search with missing credentials ---
+        from cineapp.igdb import _wrapper_cache
+        temp_client_id = self.app.config["IGDB_CLIENT_ID"]
+        temp_client_secret = self.app.config["IGDB_CLIENT_SECRET"]
+        self.app.config["IGDB_CLIENT_ID"] = ""
+        self.app.config["IGDB_CLIENT_SECRET"] = ""
+        _wrapper_cache["wrapper"] = None
+        _wrapper_cache["expires_at"] = 0
+
+        rv=self.client.post('/videogame/add/select',data=dict(search="Sonic",submit_search=True),follow_redirects=True)
+        assert u"Aucun résultat" in rv.data.decode("utf-8")
+
+        # --- IGDB: search with bad credentials (L39-40) ---
+        self.app.config["IGDB_CLIENT_ID"] = "bad_client_id"
+        self.app.config["IGDB_CLIENT_SECRET"] = "bad_client_secret"
+
+        rv=self.client.post('/videogame/add/select',data=dict(search="Sonic",submit_search=True),follow_redirects=True)
+        assert u"Aucun résultat" in rv.data.decode("utf-8")
+
+        self.app.config["IGDB_CLIENT_ID"] = temp_client_id
+        self.app.config["IGDB_CLIENT_SECRET"] = temp_client_secret
+        _wrapper_cache["wrapper"] = None
+        _wrapper_cache["expires_at"] = 0
+
+        # --- IGDB: rate limit error 429 (L63-64) ---
+        with patch('cineapp.igdb.IGDBWrapper.api_request', side_effect=requests.HTTPError("429 Too Many Requests")):
+            rv=self.client.post('/videogame/add/select',data=dict(search="Sonic",submit_search=True),follow_redirects=True)
+            assert u"Aucun résultat" in rv.data.decode("utf-8")
+
+        # --- IGDB: generic exception (L66-68) ---
+        with patch('cineapp.igdb.IGDBWrapper.api_request', side_effect=Exception("Connection reset")):
+            rv=self.client.post('/videogame/add/select',data=dict(search="Sonic",submit_search=True),follow_redirects=True)
+            assert u"Aucun résultat" in rv.data.decode("utf-8")
+
+        # --- DeepL: add videogame with missing API key ---
+        temp_deepl_key = self.app.config["DEEPL_API_KEY"]
+        self.app.config["DEEPL_API_KEY"] = ""
+
+        # Search a game different from Sonic
+        rv=self.client.post('/videogame/add/select',data=dict(search="Zelda",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        list_shows=(parsed_html.table.find_all('label'))
+        igdb_id_zelda=None
+        for cur_show in list_shows:
+            if "Zelda" in cur_show.text:
+                radio = cur_show.find_previous('input', {'type': 'radio'})
+                if radio:
+                    igdb_id_zelda = radio['value']
+                break
+        assert igdb_id_zelda is not None
+
+        # Confirm without DeepL => flash warning about translation
+        rv=self.client.post('/videogame/add/confirm',data=dict(show_id=igdb_id_zelda,origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+        assert u"Impossible de traduire le résumé" in rv.data.decode("utf-8")
+
+        self.app.config["DEEPL_API_KEY"] = temp_deepl_key
+
+        # --- download_poster: HTTP error 404 (L262) ---
+        rv=self.client.post('/videogame/add/select',data=dict(search="Mario",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        list_shows=(parsed_html.table.find_all('label'))
+        igdb_id_mario=None
+        for cur_show in list_shows:
+            if "Mario" in cur_show.text:
+                radio = cur_show.find_previous('input', {'type': 'radio'})
+                if radio:
+                    igdb_id_mario = radio['value']
+                break
+        assert igdb_id_mario is not None
+
+        mock_response = type('MockResponse', (), {'status_code': 404})()
+        with patch('cineapp.igdb.requests.get', return_value=mock_response):
+            rv=self.client.post('/videogame/add/confirm',data=dict(show_id=igdb_id_mario,origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+            assert u"Impossible de télécharger le poster" in rv.data.decode("utf-8")
+
+        # --- download_poster: network exception (L269-271) ---
+        rv=self.client.post('/videogame/add/select',data=dict(search="Tetris",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        list_shows=(parsed_html.table.find_all('label'))
+        igdb_id_tetris=None
+        for cur_show in list_shows:
+            if "Tetris" in cur_show.text:
+                radio = cur_show.find_previous('input', {'type': 'radio'})
+                if radio:
+                    igdb_id_tetris = radio['value']
+                break
+        assert igdb_id_tetris is not None
+
+        with patch('cineapp.igdb.requests.get', side_effect=Exception("Connection timeout")):
+            rv=self.client.post('/videogame/add/confirm',data=dict(show_id=igdb_id_tetris,origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+            assert u"Impossible de télécharger le poster" in rv.data.decode("utf-8")
+
+        # --- get_game: invalid date + no developer/publisher (L183-184, L214, L216) ---
+        fake_game = [{
+            "id": 99999,
+            "name": "Fake Game",
+            "first_release_date": -99999999999,
+            "summary": "A fake game"
+        }]
+        with patch('cineapp.igdb._igdb_request', return_value=fake_game):
+            # First do a search to populate the session with the fake game
+            rv=self.client.post('/videogame/add/select',data=dict(search="Fake",submit_search=True))
+            # Then select the game to trigger get_game
+            rv=self.client.post('/videogame/add/confirm',data=dict(show=99999,submit_select=True),follow_redirects=True)
+            assert "Fake Game" in rv.data.decode("utf-8")
+
+        # --- get_game: IGDB API returns no results on confirm (L173-174) ---
+        rv=self.client.post('/videogame/add/select',data=dict(search="Metroid",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        list_shows=(parsed_html.table.find_all('label'))
+        igdb_id_metroid=None
+        for cur_show in list_shows:
+            if "Metroid" in cur_show.text:
+                radio = cur_show.find_previous('input', {'type': 'radio'})
+                if radio:
+                    igdb_id_metroid = radio['value']
+                break
+        assert igdb_id_metroid is not None
+
+        with patch('cineapp.igdb._igdb_request', return_value=None):
+            rv=self.client.post('/videogame/add/confirm',data=dict(show_id=igdb_id_metroid,origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+            assert u"Impossible de récupérer les informations" in rv.data.decode("utf-8")
 
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)

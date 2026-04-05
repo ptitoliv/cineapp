@@ -169,7 +169,7 @@ def confirm_show():
                         # Last step : Set type and origin and add the show
                         # Video games: fetch details from IGDB API / Movies and TV shows: fetch from TMDB API
                         if g.show_type == "videogame":
-                                show_form_tmvdb=igdb_api.get_game(select_form.show.data, True)
+                                show_form_tmvdb=igdb_api.get_game(select_form.show.data)
                         else:
                                 show_form_tmvdb=get_show(select_form.show.data, True, show_type=g.show_type)
 
@@ -228,6 +228,11 @@ def confirm_show():
                                 show_to_create=igdb_api.get_game(confirm_form.show_id.data)
                         else:
                                 show_to_create=get_show(confirm_form.show_id.data,show_type=g.show_type)
+
+                        if show_to_create is None:
+                                flash("Impossible de récupérer les informations","danger")
+                                return redirect(url_for('show.add_show',show_type=g.show_type))
+
                         show_to_create.added_by_user=g.user.id
                         show_to_create.type=confirm_form.type.data.id
                         show_to_create.origin=confirm_form.origin.data.id
@@ -241,6 +246,10 @@ def confirm_show():
                                         flash('Affiche téléchargée','success')
                                 else:
                                         flash('Impossible de télécharger le poster','warning')
+
+                                # Check if the overview has been translated (videogame only, uses DeepL)
+                                if g.show_type == "videogame" and show_to_create.overview_translated == False:
+                                        flash('Impossible de traduire le résumé','warning')
 
                                 db.session.add(show_to_create)
                                 db.session.flush()
@@ -282,7 +291,7 @@ def confirm_show():
                         # All checks are okay => Update the show !
                         # Video games: fetch from IGDB API / Movies and TV shows: fetch from TMDB API
                         if g.show_type == "videogame":
-                                temp_show=igdb_api.get_game(confirm_form.show_id.data,fetch_poster=True)
+                                temp_show=igdb_api.get_game(confirm_form.show_id.data)
                         else:
                                 temp_show=get_show(confirm_form.show_id.data,fetch_poster=True,show_type=g.show_type)
 
