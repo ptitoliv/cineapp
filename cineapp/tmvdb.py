@@ -56,6 +56,9 @@ def search_shows(query,show_type,page=1):
         shows_list=tmvdb_connect(os.path.join(app.config['API_URL'],("search/" + tmvdb_mode[show_type] + "?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.parse.quote(query.encode('utf-8')))) + "&page=" + str(page))
         app.logger.info("URL de recherche: %s" % os.path.join(app.config['API_URL'],("search/" + tmvdb_mode[show_type] + "?api_key=" + app.config['API_KEY'] + "&language=" + cur_language + "&query=" + urllib.parse.quote(query.encode('utf-8')))))
 
+        if shows_list is None:
+            return complete_list
+
         for cur_show in shows_list['results']:
             temp_show=get_show(cur_show['id'],False,show_type=show_type)
 
@@ -69,11 +72,6 @@ def get_show(id,fetch_poster=True,show_type=None):
     """
         Function that fill a show object using TVMDB database
     """
-
-    # Check if there is an id. If not return None
-    if id == None:
-        app.logger.error("Champ id vide")
-        return None
 
     # Fetch the show data
     show=tmvdb_connect(os.path.join(app.config['API_URL'],(tmvdb_mode[show_type] + "/" + str(id) + "?api_key=" + app.config['API_KEY'] + "&append_to_response=credits,details&language=fr")))
@@ -173,9 +171,6 @@ def get_show(id,fetch_poster=True,show_type=None):
             production_status=show['status'],
             overview=show['overview'],
             nb_seasons=show['number_of_seasons'])
-    else:
-        return None
-
     return show_obj
 
 def search_page_number(query,show_type):
@@ -196,14 +191,3 @@ def search_page_number(query,show_type):
         return result["total_pages"]
     else:
         return -1
-
-if __name__ == "__main__":
-    test=search_shows("tuche")
-    for cur_test in test:
-        print(cur_test)
-
-    show=get_show(550)
-    print(show.name)
-    print(show.director)
-    print(show.release_date)
-    print(show.poster_path)

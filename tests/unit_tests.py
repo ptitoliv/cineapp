@@ -2,7 +2,8 @@
 
 from future import standard_library
 standard_library.install_aliases()
-import os, sys, json, requests
+import os, sys, json, requests, urllib.error
+from urllib.request import urlopen
 from cineapp import create_app, minutes_to_human_duration, date_format, socketio, slack
 from cineapp.models import db, User, Type, Origin, Mark, Movie, TVShow, VideoGame, FavoriteShow, MarkComment, PushNotification, ChatMessage
 from cineapp.emails import mail
@@ -220,6 +221,18 @@ class FlaskrTestCase(unittest.TestCase):
         parsed_html=BeautifulSoup(rv.data,"html.parser")
         assert u"Ajout d'un film" == parsed_html.find(id="add_wizard_label").text
 
+        # --- Edge case: tmvdb_connect returns None inside search_shows (L60) ---
+        from cineapp.tmvdb import tmvdb_connect as original_tmvdb_connect
+        calls = [0]
+        def tmvdb_connect_fail_on_search(url):
+            calls[0] += 1
+            if calls[0] <= 1:
+                return original_tmvdb_connect(url)
+            return None
+        with patch('cineapp.tmvdb.tmvdb_connect', side_effect=tmvdb_connect_fail_on_search):
+            rv=self.client.post('/movie/add/select',data=dict(search="Les Tuche",submit_search=True),follow_redirects=True)
+            assert u"Aucun résultat" in rv.data.decode("utf-8")
+
         # Send the form without any title
         rv=self.client.post('/movie/add/select',data=dict(submit_search=True),follow_redirects=True)
         assert u"Veuillez saisir une recherche" in rv.data.decode("utf-8")
@@ -227,7 +240,7 @@ class FlaskrTestCase(unittest.TestCase):
         # Send the form without a incorrect title
         rv=self.client.post('/movie/add/select',data=dict(search="fejsgjsgjsd",submit_search=True),follow_redirects=True)
         assert u"Aucun résultat" in rv.data.decode("utf-8")
-        
+
         # Fill the movie title
         rv=self.client.post('/movie/add/select',data=dict(search="Les Tuche",submit_search=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
@@ -277,6 +290,69 @@ class FlaskrTestCase(unittest.TestCase):
         assert rv.status_code == 200
         rv=self.client.get('/movie/add/select/9999', follow_redirects=True)
         assert "Page de resultat inexistante" in rv.data.decode("utf-8")
+
+        # --- Edge case: tmvdb_connect HTTPError during search (L24-25) ---
+        with patch('cineapp.tmvdb.urlopen', side_effect=urllib.error.HTTPError(None, 500, 'Internal Server Error', {}, None)):
+            rv=self.client.post('/movie/add/select',data=dict(search="Rambo",submit_search=True),follow_redirects=True)
+            assert u"Page de resultat inexistante" in rv.data.decode("utf-8")
+
+        # --- Edge case: download_poster fails during add (L39-40) ---
+        rv=self.client.post('/movie/add/select',data=dict(search="Zorro",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        list_shows=(parsed_html.table.find_all('label'))
+        igdb_id_zorro=None
+        for cur_show in list_shows:
+            if "Zorro" in cur_show.text:
+                radio = cur_show.find_previous('input', {'type': 'radio'})
+                if radio:
+                    igdb_id_zorro = radio['value']
+                break
+        assert igdb_id_zorro is not None
+
+        original_urlopen = urlopen
+        def urlopen_fail_on_poster(url, *args, **kwargs):
+            if 'w185' in str(url):
+                raise Exception("Connection timeout")
+            return original_urlopen(url, *args, **kwargs)
+
+        with patch('cineapp.tmvdb.urlopen', side_effect=urlopen_fail_on_poster):
+            rv=self.client.post('/movie/add/confirm',data=dict(show_id=igdb_id_zorro,origin="F",type="C",submit_confirm=True),follow_redirects=True)
+            assert u"Impossible de télécharger le poster" in rv.data.decode("utf-8")
+
+        # --- Edge case: get_show with invalid TMDB id (L81-82) ---
+        rv=self.client.post('/movie/add/confirm',data=dict(show_id="9999999",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+        assert u"Impossible de récupérer les informations" in rv.data.decode("utf-8")
+
+        # --- Edge case: movie with empty release_date (L119) ---
+        rv=self.client.post('/movie/add/select',data=dict(search="Volte-Face",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        list_shows=(parsed_html.table.find_all('label'))
+        igdb_id_volte=None
+        for cur_show in list_shows:
+            if "Volte" in cur_show.text:
+                radio = cur_show.find_previous('input', {'type': 'radio'})
+                if radio:
+                    igdb_id_volte = radio['value']
+                break
+        assert igdb_id_volte is not None
+
+        from cineapp.tmvdb import tmvdb_connect as orig_tmvdb_connect
+        def tmvdb_connect_empty_date_no_director(url):
+            result = orig_tmvdb_connect(url)
+            if result and 'release_date' in result:
+                result['release_date'] = ''
+            if result and 'credits' in result:
+                result['credits']['crew'] = []
+            return result
+        with patch('cineapp.tmvdb.tmvdb_connect', side_effect=tmvdb_connect_empty_date_no_director):
+            rv=self.client.post('/movie/add/confirm',data=dict(show_id=igdb_id_volte,origin="F",type="C",submit_confirm=True),follow_redirects=True)
+
+        with self.app.app_context():
+            movie_volte = Movie.query.filter(Movie.name.like('%Volte%')).first()
+            assert movie_volte is not None
+            assert "Volte" in movie_volte.name
+            assert movie_volte.release_date is None
+            assert movie_volte.director == "Inconnu"
 
         # --- Edge case: add a movie with poster download failure (line 243) ---
         with patch('cineapp.shows.get_show') as mock_get_show:
@@ -636,7 +712,6 @@ class FlaskrTestCase(unittest.TestCase):
         args = {'search': {'regex': False, 'value': ''}, 'draw': 1, 'start': 0, 'length': 100, 'order': [{'column': 0, 'dir': 'asc'}], 'columns': [{'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'name', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'director', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'average', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_fav', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_mark', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'my_when', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.1', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.2', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_favs.3', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_marks.3', 'name': '', 'searchable': True}, {'orderable': True, 'search': {'regex': False, 'value': ''}, 'data': 'other_when.3', 'name': '', 'searchable': True}]}
         
         rv=self.client.post('/movie/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
-
         response_args=json.loads(rv.data)["data"]
         assert "Les Tuche" in response_args[0]["name"]
 
@@ -890,7 +965,38 @@ class FlaskrTestCase(unittest.TestCase):
             if "Affiche téléchargée" in cur_msg.text:
                 found=True
                 break
-        
+
+        # --- Edge case: tvshow with no showrunner and unknown production status (L155, L160-161) ---
+        rv=self.client.post('/tvshow/add/select',data=dict(search="Westworld",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        list_shows=(parsed_html.table.find_all('label'))
+        igdb_id_westworld=None
+        for cur_show in list_shows:
+            if "Westworld" in cur_show.text:
+                radio = cur_show.find_previous('input', {'type': 'radio'})
+                if radio:
+                    igdb_id_westworld = radio['value']
+                break
+        assert igdb_id_westworld is not None
+
+        from cineapp.tmvdb import tmvdb_connect as orig_tmvdb_connect_tv
+        def tmvdb_connect_no_showrunner(url):
+            result = orig_tmvdb_connect_tv(url)
+            if result and 'created_by' in result:
+                result['created_by'] = []
+            if result and 'status' in result:
+                result['status'] = 'Fake Unknown Status'
+            return result
+        with patch('cineapp.tmvdb.tmvdb_connect', side_effect=tmvdb_connect_no_showrunner):
+            rv=self.client.post('/tvshow/add/confirm',data=dict(show_id=igdb_id_westworld,origin="F",type="C",submit_confirm=True),follow_redirects=True)
+
+        with self.app.app_context():
+            tvshow_ww = TVShow.query.filter(TVShow.name.like('%Westworld%')).first()
+            assert tvshow_ww is not None
+            assert "Westworld" in tvshow_ww.name
+            assert tvshow_ww.director == "Inconnu"
+            assert tvshow_ww.production_status is None
+
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
@@ -908,10 +1014,10 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.get('/switch/tvshow', follow_redirects=True)
 
         # We are logged => load the tvshow to update
-        rv=self.client.get('/tvshow/display/4',follow_redirects=True)
+        rv=self.client.get('/tvshow/display/6',follow_redirects=True)
         assert "Babylon 5" in rv.data.decode("utf-8")
 
-        rv=self.client.post('/tvshow/update',data=dict(show_id=4,submit_update_show=True),follow_redirects=True)
+        rv=self.client.post('/tvshow/update',data=dict(show_id=6,submit_update_show=True),follow_redirects=True)
         parsed_html=BeautifulSoup(rv.data,"html.parser")
         assert u"Mise à jour de la série Babylon 5" in parsed_html.find(id="add_wizard_label").text
 
@@ -963,7 +1069,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # --- Edge case: DB error during tvshow dynamic fields sync (L457-459) ---
         with patch('cineapp.shows.db.session.commit', side_effect=Exception("DB sync error")):
-            rv=self.client.get('/tvshow/display/4',follow_redirects=True)
+            rv=self.client.get('/tvshow/display/6',follow_redirects=True)
             assert rv.status_code == 200
             assert "Babylon 5" in rv.data.decode("utf-8")
             assert "Impossible de synchroniser les données de la série" in rv.data.decode("utf-8")
@@ -978,11 +1084,11 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
 
         # We are logged => mark the show
-        rv=self.client.post('/tvshow/mark/4',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        rv=self.client.post('/tvshow/mark/6',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note ajout" in str(rv.data)
 
         # We are logged => mark the show
-        rv=self.client.post('/tvshow/mark/4',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        rv=self.client.post('/tvshow/mark/6',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note mise" in str(rv.data)
 
         # --- List tvshows and datatable tests ---
@@ -1027,16 +1133,16 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
         
         # We are logged => comment the mark
-        rv=self.client.post('/json/add_mark_comment',data=dict(show_id=4,dest_user=1,comment="plop"),follow_redirects=True)
-        rv=self.client.get('/tvshow/display/4', follow_redirects=True)
+        rv=self.client.post('/json/add_mark_comment',data=dict(show_id=6,dest_user=1,comment="plop"),follow_redirects=True)
+        rv=self.client.get('/tvshow/display/6', follow_redirects=True)
         assert "plop" in str(rv.data)
 
         # --- TVShow dynamic fields sync: force nb_seasons difference to trigger TMDB sync ---
         with self.app.app_context():
-            tvshow = TVShow.query.get(4)
+            tvshow = TVShow.query.get(6)
             tvshow.nb_seasons = 0
             db.session.commit()
-        rv=self.client.get('/tvshow/display/4', follow_redirects=True)
+        rv=self.client.get('/tvshow/display/6', follow_redirects=True)
         assert rv.status_code == 200
 
         rv=self.client.get('/logout', follow_redirects=True)
@@ -1163,13 +1269,13 @@ class FlaskrTestCase(unittest.TestCase):
             # Add additionl data in order to test that we can't remove an homework 
             # given by another user
             movie=Movie(name="Movie",original_name="Original Movie", release_date="2000-01-01", origin="F", director="A guy", duration=142)
-            mark=Mark(user_id=1,show_id=5,homework_who=2,homework_when=datetime.now())
+            mark=Mark(user_id=1,show_id=8,homework_who=2,homework_when=datetime.now())
             db.session.add(movie)
             db.session.add(mark)
             db.session.commit()
 
             # Add a movie already with a mark
-            mark=Mark(user_id=2,show_id=5,homework_who=1,homework_when=datetime.now(),mark=14,seen_where="C",seen_when=datetime.now())
+            mark=Mark(user_id=2,show_id=8,homework_who=1,homework_when=datetime.now(),mark=14,seen_where="C",seen_when=datetime.now())
             db.session.add(movie)
             db.session.add(mark)
             db.session.commit()
@@ -1198,7 +1304,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Give an homework from user 1 to user 2 for a show already with a mark
         with mail.record_messages() as outbox:
-            rv=self.client.get('/homework/add/5/2',follow_redirects=True)
+            rv=self.client.get('/homework/add/8/2',follow_redirects=True)
             assert "Impossible de créer le devoir. Une note existe déjà" in rv.data.decode('utf-8')
 
         # List homeworks
@@ -1212,7 +1318,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Les Tuche" in rv.data.decode('utf-8')
 
         # Give an incorrect homework
-        rv=self.client.get('/homework/add/5/10',follow_redirects=True)
+        rv=self.client.get('/homework/add/8/10',follow_redirects=True)
         assert "Impossible de créer le devoir" in rv.data.decode('utf-8')
 
         # Delete an homework
@@ -1222,16 +1328,16 @@ class FlaskrTestCase(unittest.TestCase):
             assert "Annulation d'un devoir" in outbox[0].subject
 
         # Delete an incorrect homework
-        rv=self.client.get('/homework/delete/5/10',follow_redirects=True)
+        rv=self.client.get('/homework/delete/8/10',follow_redirects=True)
         assert "Ce devoir n&#39;existe pas" in rv.data.decode('utf-8')
 
         # Delete an unauthorized homework
-        rv=self.client.get('/homework/delete/5/1',follow_redirects=True)
+        rv=self.client.get('/homework/delete/8/1',follow_redirects=True)
         assert "Vous n&#39;avez pas le droit de supprimer ce devoir" in rv.data.decode('utf-8')
 
         # Delete an homework already with a mark
         with mail.record_messages() as outbox:
-            rv=self.client.get('/homework/delete/5/2',follow_redirects=True)
+            rv=self.client.get('/homework/delete/8/2',follow_redirects=True)
             assert "Impossible de supprimer le devoir - Une note existe déjà" in rv.data.decode('utf-8')
 
         # Add and remove an homework for a user who doesn't want notification
