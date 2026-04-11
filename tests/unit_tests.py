@@ -221,6 +221,17 @@ class FlaskrTestCase(unittest.TestCase):
         parsed_html=BeautifulSoup(rv.data,"html.parser")
         assert u"Ajout d'un film" == parsed_html.find(id="add_wizard_label").text
 
+        # --- Edge case: movie with invalid release_date format in search results (L102-105) ---
+        from cineapp.tmvdb import tmvdb_connect as orig_tmvdb_connect_date
+        def tmvdb_connect_bad_date(url):
+            result = orig_tmvdb_connect_date(url)
+            if result and 'release_date' in result:
+                result['release_date'] = '2024'
+            return result
+        with patch('cineapp.tmvdb.tmvdb_connect', side_effect=tmvdb_connect_bad_date):
+            rv=self.client.post('/movie/add/select',data=dict(search="Titanic",submit_search=True))
+            assert "2024" in rv.data.decode("utf-8")
+
         # --- Edge case: tmvdb_connect returns None inside search_shows (L60) ---
         from cineapp.tmvdb import tmvdb_connect as original_tmvdb_connect
         calls = [0]
@@ -587,6 +598,14 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
         
+        # --- Edge case: mark with non-numeric value (L74-75) ---
+        rv=self.client.post('/movie/mark/1',data=dict(mark="abc",comment="cool",seen_where="C",submit_mark=1),follow_redirects=True)
+        assert "Pas un chiffre" in rv.data.decode("utf-8")
+
+        # --- Edge case: mark with value > 20 (L77) ---
+        rv=self.client.post('/movie/mark/1',data=dict(mark=25,comment="cool",seen_where="C",submit_mark=1),follow_redirects=True)
+        assert "Note Incorrecte" in rv.data.decode("utf-8")
+
         # We are logged => mark the movie
         rv=self.client.post('/movie/mark/1',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note ajout" in str(rv.data)
