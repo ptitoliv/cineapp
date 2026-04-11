@@ -66,9 +66,6 @@ class SearchButtonWidget(widgets.SubmitInput):
         kwargs.setdefault('type', self.input_type)
         kwargs.setdefault('value', field.label.text)
 
-        if 'value' not in kwargs:
-            kwargs['value'] = field._value()
-
         return Markup('<button %s><i class="glyphicon glyphicon-search"></i></button>' % self.html_params(name=field.name, **kwargs))
 
 # SearchButtonField used for display the previous widget
