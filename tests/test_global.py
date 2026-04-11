@@ -31,7 +31,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Create the appliction considering the factory pattern
         if os.getenv("CI") == "True":
-            cls.app = create_app('configs/settings_tests_ci.cfg')
+            cls.app = create_app('tests/ressources/settings_tests_ci.cfg')
         else:
             cls.app = create_app('configs/settings_tests_local.cfg')
 
