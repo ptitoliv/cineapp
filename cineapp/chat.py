@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
-from cineapp import lm, socketio
+from cineapp import lm
 from flask import Blueprint, render_template, flash, redirect, url_for, g, request, session, current_app as app
 from flask_login import login_user, logout_user, current_user, login_required
 from flask_socketio import SocketIO, emit
@@ -74,47 +74,49 @@ def transmit_message(message,notify=False):
 def chat():
     return render_template('chat.html')
 
-@socketio.on('connect', namespace='/chat_ws')
-@login_required
-def chat_connection():
-	app.logger.info("Connection detected")
+def register_socketio_handlers(socketio):
 
-	user = session.get("user", None)
+	@socketio.on('connect', namespace='/chat_ws')
+	@login_required
+	def chat_connection():
+		app.logger.info("Connection detected")
 
-	# Let's send the last 100 Messages on the socketio
-	chat_messages = ChatMessage.query.order_by(desc(ChatMessage.posted_when)).limit(100).all()
-
-	# Display the message into the chat box from the first to the last
-	# We browse the list in reverse mod for that
-	for cur_message in reversed(chat_messages):
-		transmit_message(cur_message)
-
-
-@socketio.on('chat_message', namespace='/chat_ws')
-@login_required
-def chat_message(message):
-
-	app.logger.info("Message sent detected")
-
-	# Send message only if it is different from null
-	if message["data"] != '':
 		user = session.get("user", None)
 
-		# Let's store the message into the database
-		chat_message = ChatMessage(message=message["data"], posted_when=datetime.now(), user_id=user.id)
+		# Let's send the last 100 Messages on the socketio
+		chat_messages = ChatMessage.query.order_by(desc(ChatMessage.posted_when)).limit(100).all()
 
-		try:
-			db.session.add(chat_message)
-			db.session.commit()
+		# Display the message into the chat box from the first to the last
+		# We browse the list in reverse mod for that
+		for cur_message in reversed(chat_messages):
+			transmit_message(cur_message)
 
-		except IntegrityError:
-			db.session.rollback()
-			app.logger.error("Impossible d'enregistrer le message en base")
-			return False
 
-		# Transmit the message
-		transmit_message(chat_message,notify=True)
+	@socketio.on('chat_message', namespace='/chat_ws')
+	@login_required
+	def chat_message(message):
 
-	else:
-		# Let's log a warning message
-		app.logger.warning("An empty message as been sent")	
+		app.logger.info("Message sent detected")
+
+		# Send message only if it is different from null
+		if message["data"] != '':
+			user = session.get("user", None)
+
+			# Let's store the message into the database
+			chat_message = ChatMessage(message=message["data"], posted_when=datetime.now(), user_id=user.id)
+
+			try:
+				db.session.add(chat_message)
+				db.session.commit()
+
+			except IntegrityError:
+				db.session.rollback()
+				app.logger.error("Impossible d'enregistrer le message en base")
+				return False
+
+			# Transmit the message
+			transmit_message(chat_message,notify=True)
+
+		else:
+			# Let's log a warning message
+			app.logger.warning("An empty message as been sent")	

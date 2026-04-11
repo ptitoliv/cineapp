@@ -179,7 +179,9 @@ def create_app(config_path=None):
     
     # SocketIO subsystem (For Chat feature)
     socketio.init_app(app)
-    
+    from cineapp.chat import register_socketio_handlers
+    register_socketio_handlers(socketio)
+
     ##################
     # Logging system #
     ##################
