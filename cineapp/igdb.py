@@ -77,10 +77,6 @@ def _translate(text):
         return text, False
 
     api_key = app.config.get("DEEPL_API_KEY", "")
-    if not api_key:
-        app.logger.warning("DEEPL_API_KEY non configurée, pas de traduction")
-        return text, False
-
     target_lang = app.config.get("DEEPL_TARGET_LANG", "FR")
 
     try:
