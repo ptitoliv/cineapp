@@ -114,12 +114,24 @@ class FlaskrTestCase(unittest.TestCase):
         # Test functions guessing object type
         new_movie = Movie()
         new_tvshow = TVShow()
+        new_videogame = VideoGame()
         assert is_movie(new_movie) == True
         assert is_movie(new_tvshow) == False
         assert is_tvshow(new_tvshow) == True
         assert is_tvshow(new_movie) == False
         assert is_movie(None) == False
         assert is_tvshow(None) == False
+        assert is_videogame(new_videogame) == True
+        assert is_videogame(new_movie) == False
+        assert is_videogame(None) == False
+
+        # Model dunder / property coverage
+        u = User()
+        u.nickname = "repr_user"
+        assert u.is_anonymous == False
+        assert "repr_user" in repr(u)
+        new_movie.name = "repr_show"
+        assert "repr_show" in repr(new_movie)
 
     def test_01_populateUsers(self):
         with self.app.app_context():
@@ -574,6 +586,25 @@ class FlaskrTestCase(unittest.TestCase):
                 assert "Informations mises à jour" in rv.data.decode("utf-8")
             assert message in rv.data.decode("utf-8")
 
+        # Force os.rename to fail after the PNG was saved so that the
+        # cleanup branch in resize_avatar (os.remove of the temp .png) runs.
+        avatar_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ressources/test_avatar.png")
+        with open(avatar_path, 'rb') as img1:
+            img1BytesIO = io.BytesIO(img1.read())
+        with patch('cineapp.utils.os.rename', side_effect=OSError("rename failed")):
+            rv=self.client.post('/my/profile',
+                                content_type='multipart/form-data',
+                                data=dict(email="ptitoliv+test@ptitoliv.net",upload_avatar=(img1BytesIO, "test_avatar.png"),
+                                notif_own_activity=u.notifications["notif_own_activity"],
+                                notif_show_add=u.notifications["notif_show_add"],
+                                notif_homework_add=u.notifications["notif_homework_add"],
+                                notif_mark_add=u.notifications["notif_mark_add"],
+                                notif_comment_add=u.notifications["notif_comment_add"],
+                                notif_favorite_update=u.notifications["notif_favorite_update"],
+                                notif_chat_message=u.notifications["notif_chat_message"],
+                                notif_slack=u.notifications["notif_slack"]), follow_redirects=True)
+            assert "Impossible de redimensionner l&#39;image" in rv.data.decode("utf-8")
+
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
@@ -692,17 +723,29 @@ class FlaskrTestCase(unittest.TestCase):
     def test_07_comment_mark(self):
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
 
         # Try to send an empty comment
         rv=self.client.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment=""),follow_redirects=True)
         response_args=json.loads(rv.data)
         assert response_args["error"] == "Vous ne pouvez pas insérer un commentaire vide"
-        
+
         # Comment the movie
         rv=self.client.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment="plop"),follow_redirects=True)
         rv=self.client.get('/movie/display/1', follow_redirects=True)
-        assert "plop" in str(rv.data) 
+        assert "plop" in str(rv.data)
+
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Welcome to CineApp" in str(rv.data)
+
+        # User "foo" comments on ptitoliv's mark so commenter != mark owner
+        # (covers emails.py own_mark_user=False branch).
+        rv=self.client.post('/login',data=dict(username="foo",password="toto1234"), follow_redirects=True)
+        assert "Welcome <strong>foo</strong>" in str(rv.data)
+
+        rv=self.client.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment="commented by foo"),follow_redirects=True)
+        rv=self.client.get('/movie/display/1', follow_redirects=True)
+        assert "commented by foo" in str(rv.data)
 
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
@@ -1273,6 +1316,13 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.get('/movie/add', follow_redirects=True)
         assert "Accès interdit pour les invités" in rv.data.decode('utf-8')
 
+        # Guest switching show_type redirects to the shows list (views.py:109)
+        rv=self.client.get('/switch/tvshow', follow_redirects=True)
+        assert "Liste des séries" in rv.data.decode('utf-8')
+        # Switch back to movie so we don't leak state to later tests
+        rv=self.client.get('/switch/movie', follow_redirects=True)
+        assert "Liste des films" in rv.data.decode('utf-8')
+
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
@@ -1476,6 +1526,12 @@ class FlaskrTestCase(unittest.TestCase):
         response_args=json.loads(rv.data)["data"]
         assert len(response_args) > 0
 
+        # length == -1 -> default length (covers views.py:226)
+        args_no_pagination = dict(args)
+        args_no_pagination["length"] = -1
+        rv=self.client.post('/activity/update', data=dict(args=json.dumps(args_no_pagination)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
@@ -1511,6 +1567,12 @@ class FlaskrTestCase(unittest.TestCase):
             rv=self.client.get(endpoint)
             assert rv.status_code == 200, "Endpoint %s returned %d" % (endpoint, rv.status_code)
             assert expected_title in rv.data.decode('utf-8'), "Title '%s' not found for endpoint %s" % (expected_title, endpoint)
+
+        # Dashboard JSON graph by year/month
+        rv=self.client.post('/graph/json/graph_by_year', data=dict(year=2023, user=1), follow_redirects=True)
+        assert rv.status_code == 200
+        data=json.loads(rv.data)
+        assert "theaters" in data and "others" in data and len(data["others"]) > 0
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
@@ -1712,7 +1774,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # --- DeepL: add videogame with missing API key ---
         temp_deepl_key = self.app.config["DEEPL_API_KEY"]
-        self.app.config["DEEPL_API_KEY"] = ""
+        self.app.config["DEEPL_API_KEY"] = "incorrect-key"
 
         # Search a game different from Sonic
         rv=self.client.post('/videogame/add/select',data=dict(search="Zelda",submit_search=True))

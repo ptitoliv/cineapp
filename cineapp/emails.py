@@ -86,10 +86,9 @@ def mark_show_notification(mark,notif_type):
                 elif notif_type == "homework":
                     send_email('[Cineapp] - Devoir rempli' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
                     render_template('mark_show_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
-                return 0
             except Exception as e: # pragma: no cover
                 app.logger.error("Impossible d'envoyer le mail: %s",e)
-                return 1
+                continue
 
     # Everything has been done correctly ==> return 0
     return 0

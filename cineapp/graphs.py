@@ -60,11 +60,7 @@ def show_graphs():
                                 while graph_list[temp_index_graph-1][g.show_type]==False:
                                     temp_index_graph=temp_index_graph-1
 
-                                # If we reach the begenning of the list then set the prev_graph to none
-                                if temp_index_graph-1 >= 0:
-                                    prev_graph=graph_list[temp_index_graph-1]
-                                else:
-                                    prev_graph=None
+                                prev_graph=graph_list[temp_index_graph-1]
                         else:
                                 prev_graph=None
 
@@ -78,11 +74,7 @@ def show_graphs():
                                 while graph_list[temp_index_graph+1][g.show_type]==False:
                                     temp_index_graph=temp_index_graph+1
 
-                                # If we reach the begenning of the list then set the prev_graph to none
-                                if temp_index_graph+1 <= len(graph_list):
-                                    next_graph=graph_list[temp_index_graph+1]
-                                else:
-                                    next_graph=None
+                                next_graph=graph_list[temp_index_graph+1]
                         else:
                                 next_graph=None
 
@@ -308,3 +300,25 @@ def show_graphs():
 
         return render_template('show_graphs.html',graph_title=graph_title,graph_type=graph_type,labels=labels,data=data,prev_graph=prev_graph,next_graph=next_graph)
 
+
+@graph_bp.route('/json/graph_by_year', methods=['POST'])
+@login_required
+@guest_control
+def graph_shows_by_year():
+
+        # Fetch the year in the post data
+        year=request.form.get("year")
+        user=request.form.get("user")
+
+        # Create data dictionary containing shows seen for the logged user
+        # in theaters and in others places
+        data={"theaters": [], "others": []}
+
+        # Fill the dictionnary for each month
+        for cur_month in range(1,13,1):
+                if g.show_type=="movie":
+                    data["theaters"].append(Mark.query.join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==user,Mark.user_id==user,Mark.seen_where=="C",db.func.month(Mark.seen_when)==cur_month,db.func.year(Mark.seen_when)==year).count())
+                data["others"].append(Mark.query.join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==user,Mark.user_id==user,Mark.seen_where=="M",db.func.month(Mark.seen_when)==cur_month,db.func.year(Mark.seen_when)==year).count())
+
+        # Send the dictionnary to the client side
+        return json.dumps(data)

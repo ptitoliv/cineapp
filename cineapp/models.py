@@ -40,10 +40,7 @@ class User(db.Model):
         return self.guest
 
     def get_id(self):
-        try:
-            return str(self.id) # Python 2
-        except NameError:
-            return str(self.id) # Python 3
+        return str(self.id)
 
     def __repr__(self):
         return '<User %r>' % (self.nickname)
@@ -285,15 +282,6 @@ class FavoriteShow(db.Model):
     star_type = db.Column(db.String(100),db.ForeignKey('favorite_types.star_type', name='favorite_shows_ibfk_2'))
     added_when = db.Column(db.DateTime())
     deleted_when = db.Column(db.DateTime())
-
-    def serialize(self):
-        return {
-            "show_id": self.show_id,
-            "user_id": self.user_id,
-            "star_type": self.star_type,
-            "added_when": self.added_when,
-            "deleted_when": self.deleted_when
-        }
 
 class FavoriteType(db.Model):
     __tablename__ = "favorite_types"

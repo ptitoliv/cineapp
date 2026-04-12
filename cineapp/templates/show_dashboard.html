@@ -166,7 +166,7 @@ function draw_graph(canvas) {
 
     // Le code a exécuter !
     $.post(
-		"{{ url_for('main.graph_shows_by_year') }}",
+		"{{ url_for('graphs.graph_shows_by_year') }}",
 		{
 			year: $('#graph_cur_year_' + canvas).text(),
 			user: $('#user_list_' + canvas).val()
