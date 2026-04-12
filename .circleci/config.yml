@@ -64,7 +64,7 @@ jobs:
             . venv/bin/activate
             sudo bash -c 'echo fr_FR.UTF-8 UTF-8 > /etc/locale.gen'
             sudo dpkg-reconfigure locales
-            cd /home/circleci/cine_app/ && CI=True LC_ALL=fr_FR.UTF-8 PYTHONPATH=. coverage run --omit=migrations/* --omit=tests/* -m nose2 tests
+            cd /home/circleci/cine_app/ && CI=True LC_ALL=fr_FR.UTF-8 coverage run --omit=migrations/*,tests/* -m nose2 tests
             coveralls
 
 #      - save_cache:
