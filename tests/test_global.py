@@ -1145,6 +1145,14 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
         assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
 
+        # Re-enable notif_slack (disabled at the end of test_06)
+        rv=self.client.post('/my/profile',data=dict(
+            email="ptitoliv@ptitoliv.net",
+            notif_slack=True,
+            submit_user=True
+        ),follow_redirects=True)
+        assert rv.status_code == 200
+
         # We are logged => mark the show
         rv=self.client.post('/tvshow/mark/6',data=dict(mark=10,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note ajout" in str(rv.data)
