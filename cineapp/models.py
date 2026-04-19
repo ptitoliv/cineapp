@@ -187,6 +187,9 @@ class VideoGame(Show):
         id = db.Column(db.Integer, db.ForeignKey('shows.id', name='videogames_ibfk_1'), primary_key=True)
         platforms = db.Column(db.String(500))
         publisher = db.Column(db.String(500))
+        release_platform = db.Column(db.String(200))
+        release_region_id = db.Column(db.Integer, db.ForeignKey('regions.id', name='videogames_ibfk_2'), nullable=True)
+        release_region = db.relationship('Region', backref='videogames', lazy='joined')
 
         __mapper_args__ = {
                 'polymorphic_identity':'videogame'
@@ -297,6 +300,16 @@ class FavoriteType(db.Model):
             "star_type": self.star_type,
             "star_message": self.star_message,
         }
+
+class Region(db.Model):
+    __tablename__ = "regions"
+    __table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
+
+    id = db.Column(db.Integer, primary_key=True)
+    region_name = db.Column(db.String(50), nullable=False)
+    region_translated_name = db.Column(db.String(50), nullable=False)
+    flag_code = db.Column(db.String(10), nullable=False)
+    priority = db.Column(db.Integer, nullable=False, default=0)
 
 class PushNotification(db.Model):
     __tablename__ = "push_notifications"

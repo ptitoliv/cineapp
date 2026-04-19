@@ -21,12 +21,19 @@
 			<div class="col-md-10">
 				<table class="table table-striped">
 					<tr class="text-left">
-                                                <td class="col-md-2">{{ g.messages["label_director"] }}</td>
-					 <td>{{ show.director }}</td>
+                    	<td class="col-md-2">{{ g.messages["label_director"] }}</td>
+					 	<td>{{ show.director }}</td>
 					</tr>
 					<tr class="text-left">
-                                                <td class="col-md-2">{{ g.messages["label_release_date"] }}</td>
-					 <td>{{ show.release_date|date_format("%d/%m/%Y") }}</td>
+                    	<td class="col-md-2" style="vertical-align: middle">{{ g.messages["label_release_date"] }}</td>
+						<td style="vertical-align: middle">
+	 					{% if g.show_type == "videogame" and show.release_region %}
+						<span class="fi fi-{{ show.release_region.flag_code }}" style="margin-right: 0.5em"></span>
+						{{ show.release_date|date_format("%d/%m/%Y") }} <em>({{ show.release_platform }})</em>
+						{% else %}
+						{{ show.release_date|date_format("%d/%m/%Y") }}
+						{% endif %}
+						</td>
 					</tr>
 					<tr class="text-left">
 					 <td class="col-md-2">Fiche:</td>
@@ -63,7 +70,7 @@
 					</tr>
 					 {% endif %}
 					<tr class="text-left">
-					 <td class="col-md-2">Résumé:</td>
+					 <td class="col-md-2">Résumé:{% if show.overview_translated %}<br><small><i>(Traduction via DeepL)</i></small>{% endif %}</td>
 					 {% if show.overview %}
 					 <td>{{ show.overview }}</td>
 					 {% else %}
