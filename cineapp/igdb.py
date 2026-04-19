@@ -4,7 +4,8 @@ from builtins import str
 import json, os, time, requests, deepl
 from datetime import datetime
 from igdb.wrapper import IGDBWrapper
-from cineapp.models import VideoGame
+from sqlalchemy.orm.attributes import set_committed_value
+from cineapp.models import VideoGame, Region
 from flask import current_app as app, flash
 
 # Wrapper cache
@@ -91,9 +92,11 @@ def _translate(text):
 IGDB_PAGE_SIZE = 20
 
 def search_games(query, page=1):
+
     """
         Search games on IGDB, return a list of VideoGame objects
     """
+
     offset = (page - 1) * IGDB_PAGE_SIZE
     body = 'search "%s"; fields name,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name; limit %d; offset %d;' % (query.replace('"', '\\"'), IGDB_PAGE_SIZE, offset)
 
@@ -130,6 +133,7 @@ def search_games(query, page=1):
                     if isinstance(company, dict) and "name" in company:
                         devs.append(company["name"])
             developer = " / ".join(devs) if devs else "Inconnu"
+
         if not developer:
             developer = "Inconnu"
 
@@ -158,24 +162,57 @@ def get_game(external_id):
     """
         Get full game details from IGDB
     """
-    body = 'fields name,summary,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name,url; where id = %s;' % str(external_id)
+
+    body = 'fields name,summary,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name,url,alternative_names.name,alternative_names.comment,release_dates.date,release_dates.region,release_dates.release_region.region,release_dates.platform.name,game_localizations.cover.url,game_localizations.region; where id = %s;' % str(external_id)
 
     results = _igdb_request("games", body)
     if not results or len(results) == 0:
         app.logger.error("Pas de réponse de l'API IGDB pour l'id %s", external_id)
         return None
-
+    
     game = results[0]
 
-    # Extract release date
+    # Get the first release date and add additionnal details related to this first release date (Country and Platforms)
+    first_ts = game.get("first_release_date")
     release_date = None
-    if "first_release_date" in game and game["first_release_date"]:
+    if first_ts:
         try:
-            release_date = datetime.utcfromtimestamp(game["first_release_date"]).strftime("%Y-%m-%d")
+            release_date = datetime.utcfromtimestamp(first_ts).strftime("%Y-%m-%d")
         except (ValueError, OSError):
             pass
 
-    # Extract platforms
+    # First, let's find regions that have the same release date than the first release date
+    matching_region_ids=[]
+    for rd in game.get("release_dates", []) or []:
+        if rd.get("date") == first_ts:
+            matching_region_ids.append(rd)
+        
+    # Identify the region we're going to store in database with the attached platforms
+    selected_release_region = None
+    selected_region_obj = None
+    release_platform_string = ""
+    if matching_region_ids:
+
+        # Let's fetch the region by higher priorities
+        regions_list = Region.query.order_by(Region.priority.desc()).all()
+
+        for cur_region in regions_list:
+            for cur_matching_region in matching_region_ids:
+                if cur_region.id == cur_matching_region.get("release_region").get("id"):
+
+                    # We found the region for which one we're going to fetch details
+                    selected_release_region = cur_region.id
+                    selected_region_obj = cur_region
+
+        # Now we have a region defined by the priority, find the platforms linked to that date and region 
+        release_platform_list = []
+        for cur_matching_region in matching_region_ids:
+            if selected_release_region == cur_matching_region.get("release_region").get("id"):
+                release_platform_list.append(cur_matching_region.get("platform").get("name"))
+
+        release_platform_string = ", ".join(release_platform_list)
+                       
+    # Fill the platform lists for which the game has been released on
     platforms = ""
     if "platforms" in game and game["platforms"]:
         platform_names = []
@@ -184,7 +221,7 @@ def get_game(external_id):
                 platform_names.append(p["name"])
         platforms = ", ".join(platform_names)
 
-    # Extract developer and publisher
+    # Populate developer and publisher fields
     developer = ""
     publisher = ""
     if "involved_companies" in game and game["involved_companies"]:
@@ -207,16 +244,36 @@ def get_game(external_id):
     if not publisher:
         publisher = "Inconnu"
 
-    # Handle cover/poster
-    poster_path = None
-    if "cover" in game and game["cover"] and isinstance(game["cover"], dict):
+    cover_url = None
+
+    # Let's fetch the region by higher priorities
+    regions_list = Region.query.order_by(Region.priority.desc()).all()
+
+    for cur_cover in game.get("game_localizations", []) or []:
+        for cur_region in regions_list:
+                if cover_url == None and cur_region.id == cur_cover.get("region"):
+                    cover_url=cur_cover.get("cover").get("url")
+                    break
+        if cover_url != None:
+            break
+
+    if not cover_url and isinstance(game.get("cover"), dict):
         cover_url = game["cover"].get("url")
-        if cover_url:
-            cover_url = "https:" + cover_url.replace("t_thumb", "t_cover_big")
-            if download_poster(cover_url):
-                poster_path = os.path.basename(cover_url)
-            else:
-                poster_path = None
+
+    poster_path = None
+    if cover_url:
+        cover_url = "https:" + cover_url.replace("t_thumb", "t_cover_big")
+        if download_poster(cover_url):
+            poster_path = os.path.basename(cover_url)
+
+    # Look for a French alternative title
+    original_name = game.get("name")
+    display_name = original_name
+    for alt in game.get("alternative_names", []) or []:
+        comment = (alt.get("comment") or "").lower()
+        if "french" in comment or "france" in comment or "français" in comment or comment.strip() == "fr":
+            display_name = alt.get("name") or display_name
+            break
 
     # Translate overview
     translated_overview, overview_translated = _translate(game.get("summary", ""))
@@ -225,9 +282,9 @@ def get_game(external_id):
     url = game.get("url")
 
     game_obj = VideoGame(
-        name=game.get("name", "Inconnu"),
+        name=display_name,
         release_date=release_date,
-        original_name=game.get("name"),
+        original_name=original_name,
         url=url,
         external_id=external_id,
         poster_path=poster_path,
@@ -235,8 +292,14 @@ def get_game(external_id):
         overview=translated_overview,
         overview_translated=overview_translated,
         platforms=platforms,
-        publisher=publisher
+        publisher=publisher,
+        release_region_id=selected_release_region,
+        release_platform=release_platform_string
     )
+
+    # Bind the Region on this transient preview without firing the backref
+    # event (would dirty Region.videogames and trigger SAWarning on next autoflush).
+    set_committed_value(game_obj, 'release_region', selected_region_obj)
 
     return game_obj
 

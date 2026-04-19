@@ -332,8 +332,12 @@ def confirm_show():
                                 elif type(show) is VideoGame:
                                     notification_data["old"]["platforms"]=show.platforms
                                     notification_data["old"]["publisher"]=show.publisher
+                                    notification_data["old"]["region"]=show.release_region.region_translated_name if show.release_region else None
+                                    notification_data["old"]["release_platform"]=show.release_platform
                                     show.platforms=temp_show.platforms
                                     show.publisher=temp_show.publisher
+                                    show.release_region_id=temp_show.release_region_id
+                                    show.release_platform=temp_show.release_platform
 
                                 db.session.add(show)
                                 db.session.flush()
@@ -367,6 +371,8 @@ def confirm_show():
                                 elif type(show) is VideoGame:
                                     notification_data["new"]["platforms"]=show.platforms
                                     notification_data["new"]["publisher"]=show.publisher
+                                    notification_data["new"]["region"]=show.release_region.region_translated_name if show.release_region else None
+                                    notification_data["new"]["release_platform"]=show.release_platform
 
                                 # Show has been updated => Send notifications
                                 update_show_notification(notification_data)
