@@ -412,6 +412,11 @@ footer {
 	color:blue;
 }
 
+.fi {
+	box-shadow: 0 0 1px rgba(0, 0, 0, 0.3);
+	font-size: 1.5em;
+}
+
 .form-inline {
 	padding-bottom:20px;
 }
