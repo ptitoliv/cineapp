@@ -252,13 +252,18 @@ def get_game(external_id):
     for cur_cover in game.get("game_localizations", []) or []:
         for cur_region in regions_list:
                 if cover_url == None and cur_region.id == cur_cover.get("region"):
-                    cover_url=cur_cover.get("cover").get("url")
-                    break
+                    try:
+                        cover_url=cur_cover.get("cover").get("url")
+                        break
+                    except AttributeError as ae:
+                        app.logger.error("No cover available for that region")
+                        pass
+                    
         if cover_url != None:
             break
 
     if not cover_url and isinstance(game.get("cover"), dict):
-        cover_url = game["cover"].get("url")
+        cover_url = game.get("cover").get("url")
 
     poster_path = None
     if cover_url:
