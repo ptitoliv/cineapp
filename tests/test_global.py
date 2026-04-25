@@ -320,17 +320,17 @@ class FlaskrTestCase(unittest.TestCase):
             assert u"Page de resultat inexistante" in rv.data.decode("utf-8")
 
         # --- Edge case: download_poster fails during add (L39-40) ---
-        rv=self.client.post('/movie/add/select',data=dict(search="Zorro",submit_search=True))
+        rv=self.client.post('/movie/add/select',data=dict(search="Piège de cristal",submit_search=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
         list_shows=(parsed_html.table.find_all('label'))
-        igdb_id_zorro=None
+        igdb_id_piege=None
         for cur_show in list_shows:
-            if "Zorro" in cur_show.text:
+            if "Piège" in cur_show.text:
                 radio = cur_show.find_previous('input', {'type': 'radio'})
                 if radio:
-                    igdb_id_zorro = radio['value']
+                    igdb_id_piege = radio['value']
                 break
-        assert igdb_id_zorro is not None
+        assert igdb_id_piege is not None
 
         original_urlopen = urlopen
         def urlopen_fail_on_poster(url, *args, **kwargs):
@@ -339,7 +339,7 @@ class FlaskrTestCase(unittest.TestCase):
             return original_urlopen(url, *args, **kwargs)
 
         with patch('cineapp.tmvdb.urlopen', side_effect=urlopen_fail_on_poster):
-            rv=self.client.post('/movie/add/confirm',data=dict(show_id=igdb_id_zorro,origin="F",type="C",submit_confirm=True),follow_redirects=True)
+            rv=self.client.post('/movie/add/confirm',data=dict(show_id=igdb_id_piege,origin="F",type="C",submit_confirm=True),follow_redirects=True)
             assert u"Impossible de télécharger le poster" in rv.data.decode("utf-8")
 
         # --- Edge case: get_show with invalid TMDB id (L81-82) ---
@@ -1869,6 +1869,28 @@ class FlaskrTestCase(unittest.TestCase):
             rv=self.client.post('/videogame/add/confirm',data=dict(show_id=igdb_id_metroid,origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
             assert u"Impossible de récupérer les informations" in rv.data.decode("utf-8")
 
+        # --- get_game: localization without cover => fallback to global cover ---
+        # 13 Sentinels: Aegis Rim has IGDB localizations missing the cover field for some regions
+        rv=self.client.post('/videogame/add/select',data=dict(search="13 Sentinels",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        list_shows=(parsed_html.table.find_all('label'))
+        igdb_id_sentinels=None
+        for cur_show in list_shows:
+            if "13 Sentinels" in cur_show.text:
+                radio = cur_show.find_previous('input', {'type': 'radio'})
+                if radio:
+                    igdb_id_sentinels = radio['value']
+                break
+        assert igdb_id_sentinels is not None
+
+        rv=self.client.post('/videogame/add/confirm',data=dict(show_id=igdb_id_sentinels,origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+        assert u"Jeu vidéo ajouté" in rv.data.decode("utf-8")
+
+        with self.app.app_context():
+            videogame = VideoGame.query.filter(VideoGame.name.like('%13 Sentinels%')).first()
+            assert videogame is not None
+            assert videogame.poster_path is not None
+
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Welcome to CineApp" in str(rv.data)
 
@@ -2075,7 +2097,7 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/videogame/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
 
         response_args=json.loads(rv.data)["data"]
-        assert "Sonic" in response_args[0]["name"]
+        assert "13 Sentinels" in response_args[0]["name"]
 
         # --- Filter: origin/type in videogame mode + sort by my_mark (L779-781) ---
         rv=self.client.post('/filter',data=dict(submit_filter=True,origin="F",type="ACT"),follow_redirects=True)
