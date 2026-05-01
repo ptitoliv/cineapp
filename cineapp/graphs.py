@@ -8,6 +8,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 from flask_wtf import Form
 from cineapp import lm
 from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow, VideoGame
+from cineapp.forms import get_types
 from cineapp.utils import frange, get_activity_list, resize_avatar
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
@@ -166,8 +167,8 @@ def show_graphs():
                 # Distributed types graph
                 graph_type="bar"
 
-                # Fill the types_array with all the types stored into the database
-                types = Type.query.all();
+                # Fill the types_array with the types matching the current show_type
+                types = get_types()
                 for cur_type in types:
                         labels.append(cur_type.type)
 
@@ -199,8 +200,8 @@ def show_graphs():
                 # Average by type
                 graph_type="radar"
 
-                # Fill the types array with all the types stored into the database
-                types = Type.query.all();
+                # Fill the types array with the types matching the current show_type
+                types = get_types()
                 for cur_type in types:
                         labels.append(cur_type.type)
 

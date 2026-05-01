@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container">	
+	<h1 class="text-center">{{ graph_title }}</h1>
+<nav>
+	<ul class="pager">
+{% if prev_graph %}
+		<li class="previous">
+			<a href="{{ url_for(prev_graph["graph_endpoint"]) }}"><span aria-hidden="true">&larr;</span> {{ prev_graph["graph_label"] }}</a>
+		</li>
+{% endif %}
+{% if next_graph %}
+		<li class="next">
+			<a href="{{ url_for(next_graph["graph_endpoint"]) }}">{{ next_graph["graph_label"] }} <span aria-hidden="true">&rarr;</span></a>
+		</li>
+{% endif %}
+	</ul>
+</nav>
+</div>
+<div class="container">
+	<div class="row">
+		<div class="panel panel-default">
+			  <div class="panel-body">
+				<canvas id="canvas" width="200" height="100"></canvas>
+			  </div>
+		</div>
+	</div>
+</div>
+<script>
+// Context initialization
+var ctx = document.getElementById("canvas").getContext("2d");
+
+// Data structure
+var data= {
+	labels : [ {% for cur_label in labels %} {{ cur_label|tojson }}, {% endfor %} ],
+	datasets : [ {% for cur_user in data %}
+		{
+			fill: false,
+			label: {{ cur_user|tojson }},
+			borderColor : "#{{data[cur_user]['color']}}",
+			backgroundColor : "#{{data[cur_user]['color']}}",
+			data: [ {% for data in data[cur_user]['data'] %} {{ data }}, {% endfor %}]
+		},
+		{% endfor %}
+
+		]
+	}
+
+// Draw graph
+var graph=new Chart(ctx, {
+	type: "{{ graph_type }}",
+	data: data,
+	options: {
+		scales: {
+			xAxes: [{
+				ticks: {
+					autoSkip: false,
+					maxRotation: 90,
+					minRotation: 45
+				}
+			}]
+		}
+	}
+	}
+);
+
+</script>
+{% endblock %}
