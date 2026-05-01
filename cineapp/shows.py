@@ -169,7 +169,9 @@ def confirm_show():
                         # Last step : Set type and origin and add the show
                         # Video games: fetch details from IGDB API / Movies and TV shows: fetch from TMDB API
                         if g.show_type == "videogame":
-                                show_form_tmvdb=igdb_api.get_game(select_form.show.data)
+                                show_form_tmvdb, igdb_release_dates = igdb_api.get_game(select_form.show.data)
+                                if show_form_tmvdb is not None:
+                                        show_form_tmvdb.release_dates = igdb_release_dates
                         else:
                                 show_form_tmvdb=get_show(select_form.show.data, True, show_type=g.show_type)
 
@@ -224,14 +226,18 @@ def confirm_show():
 
                         # Form is okay => We can add the show
                         # Video games: fetch from IGDB API / Movies and TV shows: fetch from TMDB API
+                        new_release_dates = []
                         if g.show_type == "videogame":
-                                show_to_create=igdb_api.get_game(confirm_form.show_id.data)
+                                show_to_create, new_release_dates = igdb_api.get_game(confirm_form.show_id.data)
                         else:
                                 show_to_create=get_show(confirm_form.show_id.data,show_type=g.show_type)
 
                         if show_to_create is None:
                                 flash("Impossible de récupérer les informations","danger")
                                 return redirect(url_for('show.add_show',show_type=g.show_type))
+
+                        if g.show_type == "videogame":
+                                show_to_create.release_dates = new_release_dates
 
                         show_to_create.added_by_user=g.user.id
                         show_to_create.type=confirm_form.type.data.id
@@ -290,8 +296,9 @@ def confirm_show():
 
                         # All checks are okay => Update the show !
                         # Video games: fetch from IGDB API / Movies and TV shows: fetch from TMDB API
+                        new_release_dates = []
                         if g.show_type == "videogame":
-                                temp_show=igdb_api.get_game(confirm_form.show_id.data)
+                                temp_show, new_release_dates = igdb_api.get_game(confirm_form.show_id.data)
                         else:
                                 temp_show=get_show(confirm_form.show_id.data,fetch_poster=True,show_type=g.show_type)
 
@@ -332,12 +339,25 @@ def confirm_show():
                                 elif type(show) is VideoGame:
                                     notification_data["old"]["platforms"]=show.platforms
                                     notification_data["old"]["publisher"]=show.publisher
-                                    notification_data["old"]["region"]=show.release_region.region_translated_name if show.release_region else None
-                                    notification_data["old"]["release_platform"]=show.release_platform
+                                    notification_data["old"]["release_dates"]=[
+                                        {
+                                            "region": rd.region.region_translated_name if rd.region else None,
+                                            "flag_code": rd.region.flag_code if rd.region else None,
+                                            "priority": rd.region.priority if rd.region else 0,
+                                            "release_date": rd.release_date,
+                                            "release_platform": rd.release_platform,
+                                        }
+                                        for rd in show.release_dates
+                                    ]
                                     show.platforms=temp_show.platforms
                                     show.publisher=temp_show.publisher
-                                    show.release_region_id=temp_show.release_region_id
-                                    show.release_platform=temp_show.release_platform
+
+                                    # Purge existing release dates then attach the fresh ones from
+                                    # IGDB. Flush in between so the DELETEs hit the DB before the
+                                    # INSERTs (avoids a duplicate-PK collision on the same flush).
+                                    show.release_dates = []
+                                    db.session.flush()
+                                    show.release_dates = new_release_dates
 
                                 db.session.add(show)
                                 db.session.flush()
@@ -371,8 +391,16 @@ def confirm_show():
                                 elif type(show) is VideoGame:
                                     notification_data["new"]["platforms"]=show.platforms
                                     notification_data["new"]["publisher"]=show.publisher
-                                    notification_data["new"]["region"]=show.release_region.region_translated_name if show.release_region else None
-                                    notification_data["new"]["release_platform"]=show.release_platform
+                                    notification_data["new"]["release_dates"]=[
+                                        {
+                                            "region": rd.region.region_translated_name if rd.region else None,
+                                            "flag_code": rd.region.flag_code if rd.region else None,
+                                            "priority": rd.region.priority if rd.region else 0,
+                                            "release_date": rd.release_date,
+                                            "release_platform": rd.release_platform,
+                                        }
+                                        for rd in show.release_dates
+                                    ]
 
                                 # Show has been updated => Send notifications
                                 update_show_notification(notification_data)
@@ -386,6 +414,7 @@ def confirm_show():
                                 return redirect(url_for('show.display_show',show_type=g.show_type,show_id=show.id))
 
                         except IntegrityError as e:
+                                print(e)
                                 db.session.rollback()
                                 flash('%s déjà existant' % g.messages['label_show_type'],'danger')
                                 return redirect(url_for('show.display_show',show_type=g.show_type,show_id=show.id))

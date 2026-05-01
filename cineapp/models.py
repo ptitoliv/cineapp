@@ -187,13 +187,31 @@ class VideoGame(Show):
         id = db.Column(db.Integer, db.ForeignKey('shows.id', name='videogames_ibfk_1'), primary_key=True)
         platforms = db.Column(db.String(500))
         publisher = db.Column(db.String(500))
-        release_platform = db.Column(db.String(200))
-        release_region_id = db.Column(db.Integer, db.ForeignKey('regions.id', name='videogames_ibfk_2'), nullable=True)
-        release_region = db.relationship('Region', backref='videogames', lazy='joined')
+        release_dates = db.relationship('VideoGameReleaseDate',backref='videogame',lazy='subquery',cascade='all, delete-orphan',passive_deletes=True)
 
         __mapper_args__ = {
                 'polymorphic_identity':'videogame'
         }
+
+        def release_date_for(self, region_id):
+            for rd in self.release_dates:
+                if rd.region_id == region_id:
+                    return rd
+            return None
+
+        @property
+        def primary_release_date(self):
+            """
+                Get the highest priority release date (Region.priority desc)
+                Need to feel the global field Show.Release date for datatables sort
+            """
+            best = None
+            for rd in self.release_dates:
+                if rd.release_date is None or rd.region is None:
+                    continue
+                if best is None or rd.region.priority > best.region.priority:
+                    best = rd
+            return best
 
         def __next__(self):
             """
@@ -208,6 +226,31 @@ class VideoGame(Show):
                 Let's consider alphabetical order
             """
             return db.session.query(VideoGame).filter(tuple_(VideoGame.name,VideoGame.release_date) < tuple_(self.name,self.release_date)).order_by(desc(VideoGame.name),desc(VideoGame.release_date)).first()
+
+class VideoGameReleaseDate(db.Model):
+
+    __tablename__ = "videogame_release_dates"
+    __table_args__ = {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
+
+    videogame_id = db.Column(
+        db.Integer,
+        db.ForeignKey('videogames.id', name='videogame_release_dates_ibfk_1', ondelete='CASCADE'),
+        primary_key=True,
+    )
+    region_id = db.Column(
+        db.Integer,
+        db.ForeignKey('regions.id', name='videogame_release_dates_ibfk_2'),
+        primary_key=True,
+    )
+    release_date = db.Column(db.Date, index=True, primary_key=True)
+    release_platform = db.Column(db.String(200))
+
+    region = db.relationship('Region', lazy='joined')
+
+    def __repr__(self):
+        return '<VideoGameReleaseDate vg=%r region=%r date=%r release_platform=%s>' % (
+            self.videogame_id, self.region_id, self.release_date, self.release_platform
+        )
 
 class ProductionStatus(db.Model):
 

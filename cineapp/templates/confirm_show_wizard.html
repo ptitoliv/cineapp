@@ -27,9 +27,27 @@
 					<tr class="text-left">
                     	<td class="col-md-2" style="vertical-align: middle">{{ g.messages["label_release_date"] }}</td>
 						<td style="vertical-align: middle">
-	 					{% if g.show_type == "videogame" and show.release_region %}
-						<span class="fi fi-{{ show.release_region.flag_code }}" style="margin-right: 0.5em"></span>
-						{{ show.release_date|date_format("%d/%m/%Y") }} <em>({{ show.release_platform }})</em>
+	 					{% if g.show_type == "videogame" %}
+							{% if show.release_dates %}
+							<ul class="list-unstyled" style="margin-bottom: 0">
+								{% for rd in show.release_dates|sort(attribute='release_date')|sort(attribute='region.priority', reverse=true) %}
+								<li>
+									<span style="display: inline-block; width: 13em;">
+										{% if loop.changed(rd.region.id) %}
+										<span class="fi fi-{{ rd.region.flag_code }}" style="margin-right: 0.5em"></span>
+										{{ rd.region.region_translated_name }}
+										{% endif %}
+									</span>
+									<span>
+										{{ rd.release_date|date_format("%d/%m/%Y") or "Date inconnue" }}
+										{% if rd.release_platform %}<em>({{ rd.release_platform }})</em>{% endif %}
+									</span>
+								</li>
+								{% endfor %}
+							</ul>
+							{% else %}
+							<em>Aucune date de sortie connue</em>
+							{% endif %}
 						{% else %}
 						{{ show.release_date|date_format("%d/%m/%Y") }}
 						{% endif %}
