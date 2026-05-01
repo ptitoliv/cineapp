@@ -1,4 +1,4 @@
-"""Add regions table
+"""Add regions table and videogame regional release dates
 
 Revision ID: a1b2c3d4e5f6
 Revises: c7e3f1a2b456
@@ -27,7 +27,7 @@ def upgrade():
     )
 
     # Populate with IGDB regions and lipis flag-icons codes
-    # priority: 1=highest, NULL=no priority
+    # priority: higher = preferred when picking the canonical Show.release_date
     op.execute("INSERT INTO regions (id, region_name, region_translated_name, flag_code, priority) VALUES (1, 'europe', 'Europe', 'eu', 4)")
     op.execute("INSERT INTO regions (id, region_name, region_translated_name, flag_code, priority) VALUES (2, 'north_america', 'Amérique du Nord', 'us', 1)")
     op.execute("INSERT INTO regions (id, region_name, region_translated_name, flag_code, priority) VALUES (3, 'australia', 'Australie', 'au', 0)")
@@ -39,14 +39,22 @@ def upgrade():
     op.execute("INSERT INTO regions (id, region_name, region_translated_name, flag_code, priority) VALUES (9, 'korea', 'Corée', 'kr', 0)")
     op.execute("INSERT INTO regions (id, region_name, region_translated_name, flag_code, priority) VALUES (10, 'brazil', 'Brésil', 'br', 0)")
 
-    # Add release_region_id FK column and release_platform column to videogames
-    op.add_column('videogames', sa.Column('release_region_id', sa.Integer(), nullable=True))
-    op.create_foreign_key('videogames_ibfk_2', 'videogames', 'regions', ['release_region_id'], ['id'])
-    op.add_column('videogames', sa.Column('release_platform', sa.String(length=200), nullable=True))
+    # Per-region release dates for videogames (association table)
+    op.create_table('videogame_release_dates',
+        sa.Column('videogame_id', sa.Integer(), nullable=False),
+        sa.Column('region_id', sa.Integer(), nullable=False),
+        sa.Column('release_date', sa.Date(), nullable=False),
+        sa.Column('release_platform', sa.String(length=200), nullable=True),
+        sa.ForeignKeyConstraint(['videogame_id'], ['videogames.id'],
+            name='videogame_release_dates_ibfk_1', ondelete='CASCADE'),
+        sa.ForeignKeyConstraint(['region_id'], ['regions.id'],
+            name='videogame_release_dates_ibfk_2'),
+        sa.PrimaryKeyConstraint('videogame_id', 'region_id', 'release_date'),
+        mysql_charset='utf8',
+        mysql_collate='utf8_general_ci',
+    )
 
 
 def downgrade():
-    op.drop_column('videogames', 'release_platform')
-    op.drop_constraint('videogames_ibfk_2', 'videogames', type_='foreignkey')
-    op.drop_column('videogames', 'release_region_id')
+    op.drop_table('videogame_release_dates')
     op.drop_table('regions')

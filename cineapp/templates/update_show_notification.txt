@@ -9,7 +9,17 @@ Anciennes informations
 Nom {{ g.messages["label_generic_possessive"] }}: {{ notif["old"]["name"] }}
 Nom original: {{ notif["old"]["original_name"] }}
 {{ g.messages["label_director"] }}: {{ notif["old"]["director"] }}
-{{ g.messages["label_release_date"] }}: {{ notif["old"]["release_date"]|date_format("%d/%m/%Y") }}{% if g.show_type=="videogame" %} ({{ notif["old"]["region"] or "Inconnue" }}{% if notif["old"]["release_platform"] %} — {{ notif["old"]["release_platform"] }}{% endif %}){% endif %}
+{%- if g.show_type=="videogame" %}
+{{ g.messages["label_release_date"] }}:
+{%- if notif["old"]["release_dates"] %}
+{% for rd in notif["old"]["release_dates"]|sort(attribute='release_date')|sort(attribute='priority', reverse=true) %}{% if loop.changed(rd["region"]) %}  - {{ rd["region"] or "Inconnue" }}:
+{% endif %}      {{ rd["release_date"]|date_format("%d/%m/%Y") or "Inconnue" }}{% if rd["release_platform"] %} — {{ rd["release_platform"] }}{% endif %}
+{% endfor %}
+{%- else %} Aucune
+{% endif %}
+{%- else %}
+{{ g.messages["label_release_date"] }}: {{ notif["old"]["release_date"]|date_format("%d/%m/%Y") }}
+{%- endif %}
 Genre: {{ notif["old"]["type"] }}
 Origine: {{ notif["old"]["origin"] }}
 {%- if g.show_type=="movie" %}
@@ -28,7 +38,17 @@ Nouvelles Informations
 Nom {{ g.messages["label_generic_possessive"] }}: {{ notif["new"]["name"] }}
 Nom original: {{ notif["new"]["original_name"] }}
 {{ g.messages["label_director"] }}: {{ notif["new"]["director"] }}
-{{ g.messages["label_release_date"] }}: {{ notif["new"]["release_date"]|date_format("%d/%m/%Y") }}{% if g.show_type=="videogame" %} ({{ notif["new"]["region"] or "Inconnue" }}{% if notif["new"]["release_platform"] %} — {{ notif["new"]["release_platform"] }}{% endif %}){% endif %}
+{%- if g.show_type=="videogame" %}
+{{ g.messages["label_release_date"] }}:
+{%- if notif["new"]["release_dates"] %}
+{% for rd in notif["new"]["release_dates"]|sort(attribute='release_date')|sort(attribute='priority', reverse=true) %}{% if loop.changed(rd["region"]) %}  - {{ rd["region"] or "Inconnue" }}:
+{% endif %}      {{ rd["release_date"]|date_format("%d/%m/%Y") or "Inconnue" }}{% if rd["release_platform"] %} — {{ rd["release_platform"] }}{% endif %}
+{% endfor %}
+{%- else %} Aucune
+{% endif %}
+{%- else %}
+{{ g.messages["label_release_date"] }}: {{ notif["new"]["release_date"]|date_format("%d/%m/%Y") }}
+{%- endif %}
 Genre: {{ notif["new"]["type"] }}
 Origine: {{ notif["new"]["origin"] }}
 {%- if g.show_type=="movie" %}

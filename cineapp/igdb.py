@@ -5,7 +5,7 @@ import json, os, time, requests, deepl
 from datetime import datetime
 from igdb.wrapper import IGDBWrapper
 from sqlalchemy.orm.attributes import set_committed_value
-from cineapp.models import VideoGame, Region
+from cineapp.models import VideoGame, VideoGameReleaseDate, Region
 from flask import current_app as app, flash
 
 # Wrapper cache
@@ -168,8 +168,8 @@ def get_game(external_id):
     results = _igdb_request("games", body)
     if not results or len(results) == 0:
         app.logger.error("Pas de réponse de l'API IGDB pour l'id %s", external_id)
-        return None
-    
+        return None, []
+
     game = results[0]
 
     # Get the first release date and add additionnal details related to this first release date (Country and Platforms)
@@ -181,37 +181,41 @@ def get_game(external_id):
         except (ValueError, OSError):
             pass
 
-    # First, let's find regions that have the same release date than the first release date
-    matching_region_ids=[]
+    # Let's fetch the region by higher enabled priorities (Value >0)
+    regions_list = Region.query.filter(Region.priority != 0).order_by(Region.priority.desc()).all()
+    regions_by_id = {r.id: r for r in regions_list}
+    release_platform_string = {}
+    region_release_dates = []
+
+    # The objective is for each different release date, we check if it is for a region we want to import
+    # If yes, we collect all the platforms for which the game has been released on that date for this region
     for rd in game.get("release_dates", []) or []:
-        if rd.get("date") == first_ts:
-            matching_region_ids.append(rd)
-        
-    # Identify the region we're going to store in database with the attached platforms
-    selected_release_region = None
-    selected_region_obj = None
-    release_platform_string = ""
-    if matching_region_ids:
-
-        # Let's fetch the region by higher priorities
-        regions_list = Region.query.order_by(Region.priority.desc()).all()
-
+        release_platform_list = {}
         for cur_region in regions_list:
-            for cur_matching_region in matching_region_ids:
-                if cur_region.id == cur_matching_region.get("release_region").get("id"):
 
-                    # We found the region for which one we're going to fetch details
-                    selected_release_region = cur_region.id
-                    selected_region_obj = cur_region
+            # Fill the platform list for the current release date
+            if rd.get("release_region").get("id") == cur_region.id:
+                if cur_region.id not in release_platform_list:
+                    release_platform_list[cur_region.id] = []
+                release_platform_list[cur_region.id].append(rd.get("platform").get("name"))
 
-        # Now we have a region defined by the priority, find the platforms linked to that date and region 
-        release_platform_list = []
-        for cur_matching_region in matching_region_ids:
-            if selected_release_region == cur_matching_region.get("release_region").get("id"):
-                release_platform_list.append(cur_matching_region.get("platform").get("name"))
+        # Convert the release date into the good format
+        try:
+            rd_date = datetime.utcfromtimestamp(rd.get("date")).date()
+        except (ValueError, OSError, TypeError):
+            rd_date = None
 
-        release_platform_string = ", ".join(release_platform_list)
-                       
+        # VideoGameReleaseDate objet creation
+        # region_release_date contains tuple with region/release_date/list of platforms for that release date
+        for cur_region in release_platform_list:
+            release_platform_string[cur_region] = (',').join(release_platform_list[cur_region])
+            region_release_dates.append(VideoGameReleaseDate(
+                                        region_id=cur_region,
+                                        region=regions_by_id.get(cur_region),
+                                        release_date=rd_date,
+                                        release_platform=release_platform_string[cur_region])
+            )
+                                          
     # Fill the platform lists for which the game has been released on
     platforms = ""
     if "platforms" in game and game["platforms"]:
@@ -244,20 +248,17 @@ def get_game(external_id):
     if not publisher:
         publisher = "Inconnu"
 
+    # Find a cover linked to the most preferred region (Using region priority)
     cover_url = None
-
-    # Let's fetch the region by higher priorities
-    regions_list = Region.query.order_by(Region.priority.desc()).all()
-
-    for cur_cover in game.get("game_localizations", []) or []:
-        for cur_region in regions_list:
-                if cover_url == None and cur_region.id == cur_cover.get("region"):
-                    try:
-                        cover_url=cur_cover.get("cover").get("url")
-                        break
-                    except AttributeError as ae:
-                        app.logger.error("No cover available for that region")
-                        pass
+    for cur_region in regions_list:
+        for cur_cover in game.get("game_localizations", []) or []:
+            if cover_url == None and cur_region.id == cur_cover.get("region"):
+                try:
+                    cover_url=cur_cover.get("cover").get("url")
+                    break
+                except AttributeError as ae:
+                    app.logger.error("No cover available for that region")
+                    pass
                     
         if cover_url != None:
             break
@@ -298,16 +299,11 @@ def get_game(external_id):
         overview_translated=overview_translated,
         platforms=platforms,
         publisher=publisher,
-        release_region_id=selected_release_region,
-        release_platform=release_platform_string
     )
 
-    # Bind the Region on this transient preview without firing the backref
-    # event (would dirty Region.videogames and trigger SAWarning on next autoflush).
-    set_committed_value(game_obj, 'release_region', selected_region_obj)
-
-    return game_obj
-
+    # Return the VideoGame objet and region_release_dates list seprately
+    # The preparation for insertion or update in database is done on the add/update code from shows.py
+    return game_obj, region_release_dates
 
 def download_poster(url):
     """
