@@ -163,7 +163,7 @@ def get_game(external_id):
         Get full game details from IGDB
     """
 
-    body = 'fields name,summary,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name,url,alternative_names.name,alternative_names.comment,release_dates.date,release_dates.region,release_dates.release_region.region,release_dates.platform.name,game_localizations.cover.url,game_localizations.region; where id = %s;' % str(external_id)
+    body = 'fields name,summary,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name,url,alternative_names.name,alternative_names.comment,release_dates.date,release_dates.region,release_dates.release_region.region,release_dates.platform.name,game_localizations.cover.url,game_localizations.region.name,game_localizations.region.identifier; where id = %s;' % str(external_id)
 
     results = _igdb_request("games", body)
     if not results or len(results) == 0:
@@ -248,20 +248,13 @@ def get_game(external_id):
     if not publisher:
         publisher = "Inconnu"
 
-    # Find a cover linked to the most preferred region (Using region priority)
+    # Let's find a European cover. If not, let's fall back to the main one
     cover_url = None
-    for cur_region in regions_list:
-        for cur_cover in game.get("game_localizations", []) or []:
-            if cover_url == None and cur_region.id == cur_cover.get("region"):
-                try:
-                    cover_url=cur_cover.get("cover").get("url")
-                    break
-                except AttributeError as ae:
-                    app.logger.error("No cover available for that region")
-                    pass
-                    
-        if cover_url != None:
-            break
+    for cur_cover in game.get("game_localizations", []) or []:
+        if cur_cover.get("region").get("id") == 4: # Europe has id 4 in IGDB
+                cover_url=cur_cover.get("cover").get("url")
+                break
+
 
     if not cover_url and isinstance(game.get("cover"), dict):
         cover_url = game.get("cover").get("url")
