@@ -149,6 +149,7 @@ def search_games(query, page=1):
             release_date=release_date,
             director=developer,
             external_id=game.get("id"),
+            external_source="igdb",
             platforms=platforms,
             poster_path=poster_path
         )
@@ -286,6 +287,7 @@ def get_game(external_id):
         original_name=original_name,
         url=url,
         external_id=external_id,
+        external_source="igdb",
         poster_path=poster_path,
         director=developer,
         overview=translated_overview,

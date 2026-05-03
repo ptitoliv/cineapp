@@ -1744,7 +1744,35 @@ class FlaskrTestCase(unittest.TestCase):
             assert videogame is not None
             assert videogame.platforms is not None
             assert videogame.external_id is not None
+            assert videogame.external_source == "igdb"
             assert videogame.overview is not None and videogame.overview != ""
+
+        # --- Composite UNIQUE (external_source, external_id): a videogame may share external_id with a movie ---
+        # Les Tuche (TMDB id 66129, external_source='tmvdb') was added in test_03; mock IGDB so the videogame
+        # add route receives a game with the same external_id but external_source='igdb'.
+        with patch('cineapp.shows.igdb_api.get_game') as mock_get_game:
+            fake_vg = VideoGame()
+            fake_vg.name = "Fake game sharing id 66129 with Les Tuche"
+            fake_vg.original_name = fake_vg.name
+            fake_vg.external_id = 66129
+            fake_vg.external_source = "igdb"
+            fake_vg.url = "https://igdb.com/games/fake-66129"
+            fake_vg.director = "Test Studio"
+            fake_vg.overview = "Fake overview"
+            fake_vg.overview_translated = True
+            fake_vg.poster_path = "fake_poster.jpg"
+            fake_vg.platforms = "PC"
+            fake_vg.publisher = "Test"
+            mock_get_game.return_value = (fake_vg, [])
+
+            rv = self.client.post('/videogame/add/confirm',
+                data=dict(show_id="66129", origin="F", type="ACT", submit_confirm=True),
+                follow_redirects=True)
+            assert "Jeu vidéo ajouté" in rv.data.decode("utf-8")
+
+        with self.app.app_context():
+            assert Movie.query.filter_by(external_id=66129, external_source="tmvdb").first() is not None
+            assert VideoGame.query.filter_by(external_id=66129, external_source="igdb").first() is not None
 
         # --- IGDB: search with missing credentials ---
         from cineapp.igdb import _wrapper_cache
@@ -1964,6 +1992,62 @@ class FlaskrTestCase(unittest.TestCase):
                 found=True
                 break
         assert found==True
+
+        # --- Composite UNIQUE on UPDATE: a videogame can be updated to share external_id with a movie ---
+        # Add a fake movie via mocked TMDB with a fresh external_id, then update a videogame via mocked
+        # IGDB to that same external_id. Different external_source values must allow the pair to coexist.
+        rv = self.client.get('/switch/movie', follow_redirects=True)
+        with patch('cineapp.shows.get_show') as mock_get_show:
+            fake_movie = Movie()
+            fake_movie.name = "Fake movie sharing id 77777"
+            fake_movie.original_name = fake_movie.name
+            fake_movie.director = "Test"
+            fake_movie.release_date = datetime(2020, 1, 1)
+            fake_movie.overview = "Fake"
+            fake_movie.duration = 120
+            fake_movie.external_id = 77777
+            fake_movie.external_source = "tmvdb"
+            fake_movie.poster_path = "fake.jpg"
+            fake_movie.url = "https://themoviedb.org/movie/77777"
+            mock_get_show.return_value = fake_movie
+
+            rv = self.client.post('/movie/add/confirm',
+                data=dict(show_id="77777", origin="F", type="C", submit_confirm=True),
+                follow_redirects=True)
+            assert "Film ajouté" in rv.data.decode("utf-8")
+
+        rv = self.client.get('/switch/videogame', follow_redirects=True)
+
+        with patch('cineapp.shows.igdb_api.get_game') as mock_get_game:
+            fake_vg = VideoGame()
+            fake_vg.name = "Sonic remapped to id 77777"
+            fake_vg.original_name = fake_vg.name
+            fake_vg.external_id = 77777
+            fake_vg.external_source = "igdb"
+            fake_vg.url = "https://igdb.com/games/77777"
+            fake_vg.director = "Sega"
+            fake_vg.overview = "Updated"
+            fake_vg.overview_translated = True
+            fake_vg.poster_path = "fake.jpg"
+            fake_vg.platforms = "PC"
+            fake_vg.publisher = "Sega"
+            mock_get_game.return_value = (fake_vg, [])
+
+            with self.client.session_transaction() as sess:
+                sess['show_id'] = videogame_id
+                sess['show'] = '77777'
+                sess['query_show'] = 'Sonic'
+
+            rv = self.client.post('/videogame/update/confirm',
+                data=dict(show_id="77777", origin="F", type="ACT", submit_confirm=True),
+                follow_redirects=True)
+            assert "Jeu vidéo correctement mis à jour" in rv.data.decode("utf-8")
+
+        with self.app.app_context():
+            assert Movie.query.filter_by(external_id=77777, external_source="tmvdb").first() is not None
+            updated_vg = VideoGame.query.filter_by(external_id=77777, external_source="igdb").first()
+            assert updated_vg is not None
+            assert updated_vg.id == videogame_id
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)

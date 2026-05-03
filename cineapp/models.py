@@ -100,7 +100,11 @@ class Origin(db.Model):
 class Show(db.Model):
 
     __tablename__ = "shows"
-    __table_args__ = (db.Index('idx_show_fulltext_search','name','original_name','director', mysql_prefix="FULLTEXT"), {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'} )
+    __table_args__ = (
+        db.Index('idx_show_fulltext_search','name','original_name','director', mysql_prefix="FULLTEXT"),
+        db.UniqueConstraint('external_source', 'external_id', name='uq_shows_external'),
+        {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
+    )
 
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100),index=True)
@@ -113,7 +117,8 @@ class Show(db.Model):
     overview = db.Column(db.String(2000))
     overview_translated = db.Column(db.Boolean, default=False)
     poster_path = db.Column(db.String(255))
-    external_id = db.Column(db.Integer, index=True, unique=True)
+    external_source = db.Column(db.String(20))
+    external_id = db.Column(db.Integer, index=True)
     added_when = db.Column(db.DateTime())
     added_by_user = db.Column(db.Integer, db.ForeignKey('users.id', name='shows_ibfk_1'))
 
