@@ -414,7 +414,6 @@ def confirm_show():
                                 return redirect(url_for('show.display_show',show_type=g.show_type,show_id=show.id))
 
                         except IntegrityError as e:
-                                print(e)
                                 db.session.rollback()
                                 flash('%s déjà existant' % g.messages['label_show_type'],'danger')
                                 return redirect(url_for('show.display_show',show_type=g.show_type,show_id=show.id))
