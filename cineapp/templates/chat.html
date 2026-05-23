@@ -1,60 +1,106 @@
 {% extends "base.html" %}
 
+{# ===========================================================================
+   chat.html — the Trollbox : one global real-time room
+
+   Consumes the chat blueprint : the /chat_ws SocketIO namespace, its
+   `message` event ({ user, date, avatar, msg }) and the `chat_message` emit.
+   Messages are grouped by author and split by day entirely client-side.
+   Per-user colours are derived from the nickname (the event carries none).
+   Static styles : styles.css [CHAT].
+   =========================================================================== #}
+
 {% block content %}
-	<div id="chat_box">
-		<div class="panel panel-default">
-			 <div class="panel-heading">Trollbox</div>
-			 <div class="panel-body overlay" id="chat_messages">
-			    <div id="spinner"></div>
-			    <ul class="chat" id="chat_window">
-			    </ul>
-			 </div>
-			 <div class="panel-footer">
-				<div class="input-group">
-					<input id="chat_field" type="text" class="form-control input-sm" placeholder="Saisir le message ici..." />
-					<span class="input-group-btn">
-					    <button class="btn btn-warning btn-sm" id="btn-chat">
-						Envoyer
-					</button>
-					</span>
-				</div>
-			 </div>
-		 </div>
-	</div>
-	<script>
-	$(document).ready(function(){
-	    var socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port + '/chat_ws',{'sync disconnect on unload': true });
+<section class="chat-wrap">
+  <div class="card chat-card">
+    <header class="chat-head">Trollbox</header>
+    <div class="chat-stream" id="chat-stream">
+      <p class="chat-empty" id="chat-empty">Chargement de la Trollbox…</p>
+    </div>
+    <form class="chat-composer" id="chat-composer">
+      <label class="composer-field">
+        <input type="text" id="chat-input" autocomplete="off"
+               placeholder="Écrire dans la Trollbox…  ·  @ pour mentionner">
+      </label>
+      <button class="send" type="submit" aria-label="Envoyer">&rarr;</button>
+    </form>
+  </div>
+</section>
 
-	    // Function that send message using WebSocket
-	    function send_message() {
-		socket.emit('chat_message', { data: $('#chat_field').val() });
-		$('#chat_field').val('')
-      	    }
+<script>
+$(document).ready(function () {
+  var CURRENT_USER = {{ g.user.nickname|tojson }};
+  var AVATARS_URL  = {{ config.AVATARS_URL|tojson }};
 
-	    // Message reception
-            socket.on('message', function(data) {
+  var $stream = $('#chat-stream');
+  var lastUser = null;     // author of the current message group
+  var lastDay  = null;     // day label of the last rendered message
+  var $lastGroup = null;   // current group element, for fast consecutive appends
 
-		// Remove the spinner
-		$("#spinner").remove()
+  function escapeHtml(s) {
+    if (s === undefined || s === null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
 
-		$("#chat_window").append('<li tabindex="1" class="right clearfix"><div class="media"><div class="chat-img media-left"><img src="/static/avatars/' + data.avatar + '" alt="User Avatar" class="img-circle" height="40" width="40" /></div><div class="media-body clearfix"><div class="header"><strong class="primary-font">' + data.user + '</strong> <small class="text-muted"><span class="glyphicon glyphicon-time"></span>' + data.date + '</small></div><p>' + data.msg +'</p></div></div></li>');
+  // The route formats date as "Aujourd'hui - HH:MM" or "DD/MM/YYYY - HH:MM".
+  function renderMessage(data) {
+    var parts  = (data.date || '').split(' - ');
+    var day    = parts[0] || '';
+    var time   = parts[1] || '';
+    var mine   = (data.user === CURRENT_USER);
+    var colour = data.color || '#9a8fa1';   // theme_color from the server (DB)
 
-		$('li').last().addClass('active-li').focus();
-		$('#chat_field').focus();
-		$('#chat_messages').removeClass("overlay")
-            });
+    if (day && day !== lastDay) {
+      $stream.append('<div class="day-divider"><span>' + escapeHtml(day) + '</span></div>');
+      lastDay = day;
+      lastUser = null;   // a divider always starts a fresh group
+    }
 
-	    // Message send from the input field when enter key is pressed
-	    $('#chat_field').on('keypress', function (e) {
-	         if(e.which === 13){
-			send_message()
-         	}
-            }); 
+    var bubble = '<div class="msg-bubble">'
+               + escapeHtml(data.msg).replace(/@\w+/g, '<span class="mention">$&</span>')
+               + '</div>';
 
-	    // Message send from the input field when send button is lciked
-	    $('#btn-chat').on('click', function (e) {
-			send_message()
-            }); 
-	});
-	</script>
+    if (data.user === lastUser && $lastGroup) {
+      $lastGroup.find('.msg-stack').append(bubble);
+    } else {
+      var avatar = '';
+      if (!mine) {
+        var initial = escapeHtml((data.user || '?').charAt(0).toUpperCase());
+        var img = data.avatar
+          ? '<img src="' + escapeHtml(AVATARS_URL + data.avatar) + '" alt="" onerror="this.remove()">'
+          : '';
+        avatar = '<span class="msg-avatar" style="background:' + colour + '">' + initial + img + '</span>';
+      }
+      var meta = '<div class="msg-meta">'
+               + (mine ? '' : '<span class="msg-name" style="color:' + colour + '">' + escapeHtml(data.user) + '</span>')
+               + '<span class="msg-time">' + escapeHtml(time) + '</span></div>';
+      $lastGroup = $('<div class="msg-group' + (mine ? ' is-you' : '') + '">'
+                   + avatar + '<div class="msg-stack">' + meta + bubble + '</div></div>');
+      $stream.append($lastGroup);
+      lastUser = data.user;
+    }
+    $stream.scrollTop($stream[0].scrollHeight);
+  }
+
+  var socket = io.connect(
+    location.protocol + '//' + document.domain + ':' + location.port + '/chat_ws',
+    { 'sync disconnect on unload': true });
+
+  socket.on('message', function (data) {
+    $('#chat-empty').remove();
+    renderMessage(data);
+  });
+
+  function sendMessage() {
+    var $field = $('#chat-input');
+    var value = $field.val().trim();
+    if (value === '') return;
+    socket.emit('chat_message', { data: value });
+    $field.val('').focus();
+  }
+  $('#chat-composer').on('submit', function (e) { e.preventDefault(); sendMessage(); });
+});
+</script>
 {% endblock %}

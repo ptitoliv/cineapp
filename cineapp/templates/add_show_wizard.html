@@ -1,36 +1,48 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
 {% block content %}
-	<div class="container">
-		<div class="text-center">
-                        <h1 id="add_wizard_label">{{ header_text }}</h1>
-		</div>
-		{%from "_formhelpers.html" import render_field %}
-		<form action="{{ url_for( 'show.select_' + endpoint + '_show',show_type=g.show_type) }}" method="post" name="searchshow">
-			{{ search_form.hidden_tag() }}
-	        <div class="input-group">
-                        {{ render_field(search_form.search,label_visible=false,message=False,placeholder=g.messages["field_search"]) }} 
-		    <div class="input-group-btn">
-			{{ search_form.submit_search(class="btn btn-success center-block") }}	
-		    </div>
-		</div>
-			
-		</form>
-		<div id="container_overlay">
-			<div id="spinner" class="spinner"/>
-		</div>
-        </div>
-	<script type="text/javascript">
-		$(document).ready(function(){
-		    $("form input[type=submit]").click(function() {
-   		    	$("#search").prop("readonly", true);
-   		    	$("#submit_search").prop("disabled", true);
-		        $('#container_overlay').show();	
-			$(this).parents('form').submit()
-		    });
-		
-		// Force submit button enabling
- 	    	$("#submit_search").prop("disabled", false);
 
-		});
-	</script>
+<header class="page-head">
+  <div>
+    <h1 id="add_wizard_label">{{ header_text }}</h1>
+  </div>
+</header>
+
+<main class="wizard-stage">
+
+  <p class="wizard-lead">Tape le titre {{ g.messages["label_generic_possessive"] }} à rechercher. La recherche est insensible à la casse.</p>
+
+  <form action="{{ url_for( 'show.select_' + endpoint + '_show', show_type=g.show_type) }}" method="post" name="searchshow" class="wizard-form">
+    {{ search_form.hidden_tag() }}
+    <div class="wizard-search">
+      {{ search_form.search(class_="wizard-search-input", placeholder=g.messages["field_search"], autofocus=True, autocomplete="off") }}
+    </div>
+    <div class="wizard-hint">
+      <span><span class="accent">Astuce</span> · appuie sur <kbd>Entrée</kbd> pour lancer la recherche</span>
+    </div>
+    <div class="wizard-submit-row">
+      <button type="submit" name="submit_search" value="y" class="btn wizard-submit">
+        Lancer la recherche <span class="arrow">→</span>
+      </button>
+    </div>
+  </form>
+
+  <div id="container_overlay">
+    <div id="spinner" class="spinner"></div>
+  </div>
+
+</main>
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    // Show the spinner on the form's submit event — fires only AFTER HTML5
+    // validation passes, so an empty/invalid form no longer leaves the overlay
+    // stuck over the page. The submit button's name/value is still included.
+    $(".wizard-form").on('submit', function() {
+      $('#container_overlay').show();
+    });
+    // Hide the spinner if the page is restored from the bfcache (browser back).
+    $(window).on('pageshow', function() { $('#container_overlay').hide(); });
+  });
+</script>
+
 {% endblock %}

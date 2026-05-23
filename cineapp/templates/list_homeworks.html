@@ -1,54 +1,137 @@
 {% extends "base.html" %}
+
+{# ===========================================================================
+   list_homeworks.html — homework list
+   A homework is a directional assignment: one user hands a show to another,
+   who then has to rate it. Rows are grouped: "À voir" (unrated) then "Notés".
+   =========================================================================== #}
+
+{% macro hw_row(hw) %}
+{% set show = hw.show %}
+{% set giver = hw.homework_who_user %}
+{% set receiver = hw.user %}
+{% set is_mine = receiver.id == g.user.id and hw.mark is none %}
+{% set can_cancel = hw.homework_who == g.user.id and hw.mark is none %}
+<article class="hw-row{% if is_mine %} is-mine{% endif %}">
+  <a class="hw-poster" href="{{ url_for('show.display_show', show_id=show.id, show_type=g.show_type) }}">
+    <span class="poster-placeholder sm" aria-hidden="true">
+      {% if g.show_type == "tvshow" %}<i class="fa-solid fa-tv"></i>
+      {% elif g.show_type == "videogame" %}<i class="fa-solid fa-gamepad"></i>
+      {% else %}<i class="fa-solid fa-film"></i>{% endif %}
+    </span>
+    {% if show.poster_path %}
+    <img src="{{ config.POSTERS_URL }}{{ show.poster_path }}" alt="" onerror="this.remove()">
+    {% endif %}
+  </a>
+
+  <div class="hw-body">
+    <div class="hw-head">
+      <a class="hw-title" href="{{ url_for('show.display_show', show_id=show.id, show_type=g.show_type) }}">{{ show.name }}</a>
+      {% if show.director %}<span class="hw-director">{{ show.director }}</span>{% endif %}
+    </div>
+    <div class="hw-transfer">
+      <span class="hw-party">
+        <span class="hw-ava user-{{ giver.id }}">{{ giver.nickname[0]|upper }}{% if giver.avatar %}<img src="{{ config.AVATARS_URL }}{{ giver.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
+        <span class="hw-name">{{ giver.nickname }}</span>
+      </span>
+      <span class="hw-arrow" aria-hidden="true"></span>
+      <span class="hw-party">
+        <span class="hw-ava user-{{ receiver.id }}">{{ receiver.nickname[0]|upper }}{% if receiver.avatar %}<img src="{{ config.AVATARS_URL }}{{ receiver.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
+        <span class="hw-name">{{ receiver.nickname }}</span>
+      </span>
+    </div>
+  </div>
+
+  <div class="hw-status">
+    {% if hw.mark is none %}
+      {% if receiver.id == g.user.id %}
+      <a class="btn btn-solid" href="{{ url_for('show.mark_show', show_id_form=show.id, show_type=g.show_type) }}">Noter <span class="arrow">→</span></a>
+      {% else %}
+      <span class="hw-pending">En cours</span>
+      {% endif %}
+    {% else %}
+    <span class="hw-mark">{{ hw.mark|int if hw.mark % 1 == 0 else hw.mark }}</span>
+    {% endif %}
+  </div>
+
+  {% if can_cancel %}
+  <a class="hw-cancel" href="{{ url_for('homework.delete_homework', show_id=show.id, user_id=receiver.id) }}" title="Annuler le devoir" aria-label="Annuler le devoir">✕</a>
+  {% endif %}
+</article>
+{% endmacro %}
+
+{% set ns = namespace(users=[]) %}
+{% for hw in homeworks %}
+  {% set _ = ns.users.append(hw.homework_who_user) %}
+  {% set _ = ns.users.append(hw.user) %}
+{% endfor %}
+{% set pending = homeworks|selectattr("mark", "none")|list %}
+{% set done = homeworks|rejectattr("mark", "none")|list %}
+
 {% block content %}
-	<div class="container">
-		<h1 class="text-center">Liste des devoirs</h1>
-		<!-- My Homeworks filter form -->
-		<div style="width:100%;">
-			<form style="width:100%;" class="form-inline text-center" method="post" role="form" action={{ url_for('homework.list_homeworks') }}>
-				{{ homework_filter_form.hidden_tag() }}
-				{{ render_field(homework_filter_form.from_user_filter) }}	
-				{{ render_field(homework_filter_form.to_user_filter) }}	
-				{{ render_field(homework_filter_form.submit_homework,label_visible=false,class="btn btn-success") }}
-			</form>
-		</div>
-		<div>
-                        {%if homeworks|length > 0 %}
-			<table class="table table-striped" id="homeworks_list">
-			<tr class="text-center">
-                                <th class="text-center" style="width:25%;">Titre {{ g.messages["label_generic_possessive"] }}</th>
-				<th class="text-center">{{ g.messages["label_director"] }}</th>
-				<th class="text-center">De:</th>
-				<th class="text-center">A:</th>
-				<th class="text-center">Note</th>
-				<th class="text-center"></th>
-				<th class="text-center"></th>
-			</tr>
-			{% for cur_homework in homeworks %}
-			<tr class="text-center">
-				<td><a href="{{ url_for('show.display_show',show_id=cur_homework.show_id,show_type=g.show_type) }}">{{ cur_homework.show.name }}</a></td>
-				<td>{{ cur_homework.show.director }}</td>
-				<td>{{ cur_homework.homework_who_user.nickname }}</td>
-				<td>{{ cur_homework.user.nickname }}</td>
-				{% if cur_homework.mark == None %}
-					{% if cur_homework.user.id == g.user.id %}
-						<td><a class="btn btn-primary btn-xs" href="{{ url_for('show.mark_show',show_id_form=cur_homework.show.id,show_type=g.show_type) }}">Noter</a>
-					{% else %}
-						 <td><a class="disabled btn btn-warning btn-xs">En cours</a>
-					{% endif %}
-				{% else %}
-					<td><strong>{{ cur_homework.mark }}</strong></td>
-				{% endif %}
-				<td>
-					{% if cur_homework.homework_who == g.user.id and cur_homework.mark == None %}
-						<a href="{{ url_for("homework.delete_homework", user_id=cur_homework.user.id,show_id=cur_homework.show.id) }}"<i class="fa fa-times fa-1x" id="redcross"/></a>
-					{% endif %}
-				</td>
-			</tr>
-			{% endfor %}
-			</table>
-                        {% else %}
-		                <h2 class="text-center">Aucun devoir disponible</h2>
-                        {% endif %}
-		</div>
-	</div>
+<style>
+/* per-user avatar colors — depend on User.id, can't live in the static sheet */
+{% for u in ns.users|unique(attribute='id') %}
+.hw-ava.user-{{ u.id }} { background: {{ u.theme_color }}; }
+{% endfor %}
+</style>
+
+<header class="page-head">
+  <div>
+    <h1>Liste des devoirs</h1>
+  </div>
+</header>
+
+<section class="filter-strip">
+  {% from "_formhelpers.html" import render_field %}
+  <form class="filter-bar" method="post" role="form" action="{{ url_for('homework.list_homeworks') }}">
+    {{ homework_filter_form.hidden_tag() }}
+    <span class="lbl">Filtrer</span>
+    {{ render_field(homework_filter_form.from_user_filter) }}
+    {{ render_field(homework_filter_form.to_user_filter) }}
+    <span class="spacer"></span>
+    {{ render_field(homework_filter_form.submit_homework, label_visible=false, parse_class=false, group=false, div=false, class_="btn btn-solid") }}
+  </form>
+</section>
+
+<section class="hw-wrap">
+  {% if homeworks|length == 0 %}
+  <div class="hw-empty">
+    <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
+    <p>Aucun devoir disponible</p>
+  </div>
+  {% else %}
+  <div class="hw-columns">
+    <div class="hw-col">
+      <div class="hw-section-head">
+        <span class="hw-section-title"><span class="accent">▸</span> À voir</span>
+        <span class="hw-section-rule"></span>
+        <span class="hw-section-count">{{ pending|length }}</span>
+      </div>
+      {% if pending %}
+      <div class="hw-list">
+        {% for cur_homework in pending %}{{ hw_row(cur_homework) }}{% endfor %}
+      </div>
+      {% else %}
+      <p class="hw-col-empty">Aucun devoir à voir</p>
+      {% endif %}
+    </div>
+
+    <div class="hw-col">
+      <div class="hw-section-head">
+        <span class="hw-section-title"><span class="accent">▸</span> Notés</span>
+        <span class="hw-section-rule"></span>
+        <span class="hw-section-count">{{ done|length }}</span>
+      </div>
+      {% if done %}
+      <div class="hw-list">
+        {% for cur_homework in done %}{{ hw_row(cur_homework) }}{% endfor %}
+      </div>
+      {% else %}
+      <p class="hw-col-empty">Aucun devoir noté</p>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+</section>
 {% endblock %}

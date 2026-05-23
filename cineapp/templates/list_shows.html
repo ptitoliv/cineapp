@@ -1,211 +1,350 @@
-{% extends "base.html" %} 
-{% block content %}
-	<style>
-		{% for cur_user in users %}
-			.color_{{cur_user.id}} { text-align:center; background-color: #{{cur_user.graph_color}} }
-		{% endfor %}
-	</style>
-	<script>
-	$(document).ready(function() {
-	    {% if clear_table == True %}
-	    var table = $('#showslist').DataTable();
-            table.state.clear();
-	    table.destroy();
-	    {% endif %}
-	    var table = $('#showslist').DataTable(
-			{ "searching":false,
-			  "ordering":true,
-			  "stateSave": true,
-			  "processing": true,
-			  "serverSide": true,
-			  "displayLength": 100,
-			  "ajax": {
-				"url": "{{ url_for('show.update_datatable',show_type=g.show_type) }}",
-				"type" : "POST",
-				"data": function(args) {
-				      return { "args": JSON.stringify( args ) };
-				}
-			  },
-			  "columns" : [
-				{ "data": "name",
-				  "render": function(data,type,row) {
-					return $("<div>").append($("<a/>").attr("href", row.DT_RowData.link).text(data)).html();
-					}
-			        },
-				{ "data": "director"},
-			  	{ "data": "average", "orderable" : true },
-				{% if not g.user.is_guest %}
-				{ "data": "my_fav", "orderable": true,
-				  "className": "color_{{g.user.id}}",
-				  "render": function(data,type,row) {
-						if (row.my_fav == null)  {
-  							return '-' 
-						} else {
-  							return '<i class="fa fa-star fa-2x ' + row.my_fav + '"></i>'
-						}
-					}
-				},
-				{ "data": "my_mark",
-				  "className": "color_{{g.user.id}}",
-				  "render": function(data,type,row) {
-						if (row.my_mark == null)  {
-  							return '<a class=\"btn btn-primary btn-xs\" href=' + row.DT_RowData.mark_link + '>Noter</a>'
-						} else {
-							return '<span title="' + row.name +'" data-html="true" data-toggle="popover" data-placement="left" data-trigger="hover" data-content="' + row.my_comment + '">' + row.my_mark + "</span>"
-						}
-					
-					}
-				 },
-				 { "data": "my_when",
-				  "className": "color_{{g.user.id}}",
-				   "render": function(data,type,row) {
-						if (row.my_where == 'C')  {
-							return '<span class="seen_in_theaters">' + row.my_when + "</span>"
-						} else {
-							return '<span>' + row.my_when + '</span>'
-						}
-					}
-				 },
-			  	 {% endif %}
-			{% for cur_user in users %}
-				{% if g.user.id != cur_user.id %}
-				 { "data": "other_favs.{{ cur_user.id }}", "orderable": true,
-				  "className": "color_{{cur_user.id}}",
-				  "render": function(data,type,row) {
-						if (row.other_favs[{{cur_user.id}}]  == null)  {
-  							return '-' 
-						} else {
-  							return '<i class="fa fa-star fa-2x ' + row.other_favs[{{cur_user.id}}] + '"></i>'
-						}
-					}
-				},
-				 { "data": "other_marks.{{ cur_user.id }}",
-				  "className": "color_{{cur_user.id}}",
-			           "render": function(data,type,row) {
-					if (row.other_marks[{{cur_user.id}}]  == null)  {
-						if (row.DT_RowData.homework_link[{{cur_user.id}}]["when"] == null) {
-							return '-';
-						} else {
-							return '<a disabled="true" title="Devoir donne par" data-html="true" data-toggle="popover" data-placement="left" data-trigger="hover" data-content="' + row.DT_RowData.homework_link[{{cur_user.id}}]["who"] +'" class="btn btn-warning btn-xs">Devoir</button>'
-						}
-					} else {
-							return '<span title="' + row.name + '" data-html="true" data-toggle="popover" data-placement="left" data-trigger="hover" data-content="' + row.other_comments[{{cur_user.id}}] + '">' + row.other_marks[{{cur_user.id}}] + "</span>"
-					}
-				   }
-				 },
-				 { "data": "other_when.{{ cur_user.id }}",
-				  "className": "color_{{cur_user.id}}",
-				   "render" : function(data,type,row) {
-						if (row.other_where[{{cur_user.id}}]  == 'C')  {
-							return '<span class="seen_in_theaters">' + row.other_when[{{cur_user.id}}] + "</span>"
-						} else {
-							return '<span>' + row.other_when[{{cur_user.id}}] + "</span>"
-						}
-					},
-				  },
-				{%endif%}
-			{% endfor %}
-			  ],
-			  "columnDefs": [
-				{"className": "dt-center", "targets": "_all"}
-			  ],
-			  "language": {
-					"info": "Page _PAGE_ sur _PAGES_",
-                                                  "lengthMenu": "Afficher _MENU_ {{ g.messages["label_show_type_lowercase_plural"] }}",
-					"paginate" : {
-						"first": "Première page",
-						"last": "Dernière  page",
-						"next": "Suivant",
-						"previous": "Précédent"
-					 }
-				},
-			}
-		);
+{% extends "base.html" %}
 
-		// Enable popover on table redraw	
-		table.on( 'draw', function () {
-	                    $('[data-toggle="popover"]').popover();
-		} );
-	} );
-	</script> 
-	<div class="container">
-		{% if session['search_type'] == 'filter' %}
-		<h1 class="text-center">Recherche Personnalisée: {{ session['query'] }}</h1>
-		{% elif session['search_type'] == 'filter_origin_type' %}
-		<h1 class="text-center">Recherche par filtre</h1>
-		{% else %}
-                <h1 class="text-center">{{ g.messages["label_list"] }}</h1>
-		{% endif %}
-	</div>
-	<div class="container">
-		<div class="row">
-		        {%from "_formhelpers.html" import render_field %}
-			<!-- Filter Form -->
-			<div>
-				<form class="form-inline text-center" method="post" role="form" action={{ url_for('main.filter_form') }}>
-					{{ render_field(filter_form.origin) }}	
-					{{ render_field(filter_form.type) }}	
-                                        {% if g.show_type == "movie" %}
-					{{ render_field(filter_form.where) }}
-                                        {% endif %}
-					{{ render_field(filter_form.favorite) }}
-					{{ render_field(filter_form.submit_filter,label_visible=false,class="btn btn-success") }}
-				</form>
-				
-			</div>
-		</div>
-		<div class="row text-center">
-			<a class="btn btn-success" href="{{ url_for("main.reset_list") }}">Réinitialiser la liste</a>
-		</div>
-	</div>
-	<div class="container" style="width:70%;">
-		<div class="table-responsive">
-			<table class="table table-striped" width="100%" id="showslist">
-			<!-- Display the users name -->
-			<thead>
-				<tr>
-					<th class="text-center" style="border:0;width:35%;" data-dt-order="disable"></th>
-					<th class="text-center" style="border:0;width:25%;" data-dt-order="disable"></th>
-					<th class="text-center" style="border:0;" data-dt-order="disable"</th>
-					{% if not g.user.is_guest %}
-					<th class="text-center" colspan="3" data-dt-order="disable">
-						<div class="text-center">
-							<img src="{{ config.AVATARS_URL }}{{ g.user.avatar }}" height="50" width="50" class="avatar img-circle" alt="avatar">
-						<br/>
-						<strong>Mes Notes</strong>
-						</div>
-					</th>
-					{% endif %}
-						{% for cur_user in users %}
-							{% if g.user.id != cur_user.id %}
-							<th colspan="3" class="text-center hidden-xs" data-dt-order="disable">
-							<div class="text-center">
-								<img src="{{ config.AVATARS_URL }}{{ cur_user.avatar }}" height="50" width="50" class="avatar img-circle" alt="avatar">
-							<br/>
-							<strong>{{ cur_user.nickname }}</strong></th>
-							</div>
-							{% endif %}
-						{% endfor %}
-				</tr>
-				<tr>
-					<th class="text-center" style="border:0;width:35%;">Titre</th>
-					<th class="text-center" style="border:0;width:35%;">{{ g.messages["label_director"] }}</th>
-					<th class="text-center" style="border:0;width:15%">Moyenne</th>
-					{% if not g.user.is_guest %}
-					<th class="text-center" style="border:0;">Favori</th>
-					<th class="text-center" style="border:0;">Note</th>
-					<th class="text-center" style="border:0;">Date</th>
-					{% endif %}
-					{% for cur_user in users %}
-						{% if g.user.id != cur_user.id %}
-						<th class="text-center" style="border:0;">Favori</th>
-						<th class="text-center" style="border:0;"><strong>Note</strong></th>
-						<th class="text-center" style="border:0;"><strong>Date</strong></th>
-						{% endif %}
-					{% endfor %}
-				</tr>
-			</thead>
-			</table>
-		</div>
-	</div>
+{# Per-user colours come from User.theme_color (DB) — see the <style> block. #}
+{% set ns = namespace(others=[]) %}
+{% for cu in users %}{% if cu.id != g.user.id %}{% set _ = ns.others.append(cu) %}{% endif %}{% endfor %}
+
+{% block content %}
+<style>
+/* ==========================================================================
+   list_shows.html — runtime per-user color rules
+   The static styles for this page live in static/css/styles.css
+   under the [LIST_SHOWS] section. Only the rules that depend on User.id
+   (and therefore can't be in a static stylesheet) are emitted here.
+   ========================================================================== */
+{% for cu in users %}
+{% set color = cu.theme_color %}
+.cell-mark-val.user-{{ cu.id }},
+.list thead .users th.user-{{ cu.id }} .uname,
+.list tbody td.cell-fav.user-{{ cu.id }}::before,
+.mob-sort-row.user-{{ cu.id }} .mob-sort-rowlabel { color: {{ color }}; }
+.list thead .users th.user-{{ cu.id }} .ava,
+.sort-pill.user-{{ cu.id }} .ava,
+.mob-sort-row.user-{{ cu.id }} .ava { background: {{ color }}; }
+.sort-pill.is-active.user-{{ cu.id }} { background: {{ color }}; border-color: {{ color }}; color: var(--paper-card); }
+{% endfor %}
+</style>
+
+<header class="page-head">
+  <div>
+    <h1>
+      {%- if session['search_type'] == 'filter' -%}
+        Recherche Personnalisée: {{ session['query'] }}
+      {%- elif session['search_type'] == 'filter_origin_type' -%}
+        Recherche par filtre
+      {%- else -%}
+        {{ g.messages["label_list"] }}
+      {%- endif -%}
+    </h1>
+  </div>
+</header>
+
+<section class="filter-strip">
+  {% from "_formhelpers.html" import render_field %}
+  <form class="filter-bar" method="post" role="form" action="{{ url_for('main.filter_form') }}">
+    {{ filter_form.hidden_tag() }}
+    <span class="lbl">Filtrer</span>
+    {{ render_field(filter_form.origin) }}
+    {{ render_field(filter_form.type) }}
+    {% if g.show_type == "movie" %}
+      {{ render_field(filter_form.where) }}
+    {% endif %}
+    {{ render_field(filter_form.favorite) }}
+    <span class="spacer"></span>
+    <a class="btn btn-ghost" href="{{ url_for('main.reset_list') }}">↺ Réinitialiser</a>
+    {{ render_field(filter_form.submit_filter, label_visible=false, parse_class=false, group=false, div=false, class_="btn btn-solid") }}
+  </form>
+</section>
+
+<section class="mob-sort" aria-label="Trier la liste">
+  <div class="mob-sort-label">Trier par</div>
+
+  <div class="mob-sort-row mob-sort-row-general">
+    <button type="button" class="sort-pill is-active" data-col="0" data-dir="asc">Titre <span class="dir">↑</span></button>
+    <button type="button" class="sort-pill" data-col="1" data-dir="desc">Moyenne <span class="dir">↓</span></button>
+  </div>
+
+  {% if not g.user.is_guest %}
+  <div class="mob-sort-row user-{{ g.user.id }}">
+    <span class="mob-sort-rowlabel">
+      <span class="ava">{{ g.user.nickname[0]|upper }}{% if g.user.avatar %}<img src="{{ config.AVATARS_URL }}{{ g.user.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
+      Mes notes
+    </span>
+    <button type="button" class="sort-pill user-{{ g.user.id }}" data-col="2" data-dir="desc">Fav <span class="dir">↓</span></button>
+    <button type="button" class="sort-pill user-{{ g.user.id }}" data-col="3" data-dir="desc">Note <span class="dir">↓</span></button>
+    <button type="button" class="sort-pill user-{{ g.user.id }}" data-col="4" data-dir="desc">Date <span class="dir">↓</span></button>
+  </div>
+  {% endif %}
+  {% set start_col = 5 if not g.user.is_guest else 2 %}
+  {% set ns2 = namespace(idx=start_col) %}
+  {% for cur_user in users %}
+    {% if g.user.id != cur_user.id %}
+    <div class="mob-sort-row user-{{ cur_user.id }}">
+      <span class="mob-sort-rowlabel">
+        <span class="ava">{{ cur_user.nickname[0]|upper }}{% if cur_user.avatar %}<img src="{{ config.AVATARS_URL }}{{ cur_user.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
+        {{ cur_user.nickname }}
+      </span>
+      <button type="button" class="sort-pill user-{{ cur_user.id }}" data-col="{{ ns2.idx }}" data-dir="desc">Fav <span class="dir">↓</span></button>
+      <button type="button" class="sort-pill user-{{ cur_user.id }}" data-col="{{ ns2.idx + 1 }}" data-dir="desc">Note <span class="dir">↓</span></button>
+      <button type="button" class="sort-pill user-{{ cur_user.id }}" data-col="{{ ns2.idx + 2 }}" data-dir="desc">Date <span class="dir">↓</span></button>
+    </div>
+    {% set ns2.idx = ns2.idx + 3 %}
+    {% endif %}
+  {% endfor %}
+</section>
+
+<section class="list-wrap">
+    <table class="list" id="showslist" width="100%">
+      <thead>
+        <tr class="users">
+          <th colspan="2" data-dt-order="disable"></th>
+          {% if not g.user.is_guest %}
+          <th colspan="3" class="user-{{ g.user.id }}" data-dt-order="disable">
+            <div class="ulabel">
+              <span class="ava">{{ g.user.nickname[0]|upper }}{% if g.user.avatar %}<img src="{{ config.AVATARS_URL }}{{ g.user.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
+              <span class="uname">Mes notes</span>
+            </div>
+          </th>
+          {% endif %}
+          {% for cur_user in users %}{% if g.user.id != cur_user.id %}
+          <th colspan="3" class="user-{{ cur_user.id }}" data-dt-order="disable">
+            <div class="ulabel">
+              <span class="ava">{{ cur_user.nickname[0]|upper }}{% if cur_user.avatar %}<img src="{{ config.AVATARS_URL }}{{ cur_user.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
+              <span class="uname">{{ cur_user.nickname }}</span>
+            </div>
+          </th>
+          {% endif %}{% endfor %}
+        </tr>
+        <tr class="cols">
+          <th>Titre<span class="sort"><i class="up">▲</i><i class="dn">▼</i></span></th>
+          <th>Moy.<span class="sort"><i class="up">▲</i><i class="dn">▼</i></span></th>
+          {% if not g.user.is_guest %}
+          <th class="my-col">Fav<span class="sort"><i class="up">▲</i><i class="dn">▼</i></span></th>
+          <th class="my-col">Note<span class="sort"><i class="up">▲</i><i class="dn">▼</i></span></th>
+          <th class="my-col">Date<span class="sort"><i class="up">▲</i><i class="dn">▼</i></span></th>
+          {% endif %}
+          {% for cur_user in users %}{% if g.user.id != cur_user.id %}
+          <th>Fav<span class="sort"><i class="up">▲</i><i class="dn">▼</i></span></th>
+          <th>Note<span class="sort"><i class="up">▲</i><i class="dn">▼</i></span></th>
+          <th>Date<span class="sort"><i class="up">▲</i><i class="dn">▼</i></span></th>
+          {% endif %}{% endfor %}
+        </tr>
+      </thead>
+    </table>
+</section>
+
+{# ===========================================================================
+   DataTables init — server-side AJAX identique au legacy.
+   Les renderers HTML produisent le markup éditorial (.cell-title, .cell-fav-icon,
+   .cell-mark-val avec bubble, .btn-rate, .btn-homework, .cell-when-val).
+   =========================================================================== #}
+<script>
+$(document).ready(function() {
+  {% if clear_table == True %}
+  var __t = $('#showslist').DataTable();
+  __t.state.clear();
+  __t.destroy();
+  {% endif %}
+
+  // poster URL prefix exposed by Flask config
+  var POSTERS_URL = {{ config.POSTERS_URL | tojson }};
+  var SHOW_TYPE = {{ g.show_type | tojson }};
+  var POSTER_ICON = SHOW_TYPE === "tvshow" ? "fa-tv"
+                  : SHOW_TYPE === "videogame" ? "fa-gamepad"
+                  : "fa-film";
+
+  // each user's color class is just `user-<id>` — actual color is set in CSS above
+  function userClass(uid) { return 'user-' + uid; }
+
+  function escapeHtml(s) {
+    if (s == null) return '';
+    return String(s)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+
+  function renderTitle(data, type, row) {
+    var placeholder = '<span class="poster-placeholder sm" aria-hidden="true"><i class="fa-solid ' + POSTER_ICON + '"></i></span>';
+    var poster = row.poster_path
+      ? '<img src="' + POSTERS_URL + escapeHtml(row.poster_path) + '" alt="" onerror="this.remove()">'
+      : '';
+    return '<div class="cell-title">' +
+             '<span class="poster">' + placeholder + poster + '</span>' +
+             '<div class="ttx">' +
+               '<a class="tname" href="' + row.DT_RowData.link + '">' + escapeHtml(data) + '</a>' +
+               '<span class="tdir">' + escapeHtml(row.director || '') + '</span>' +
+             '</div>' +
+           '</div>';
+  }
+
+  function renderAvg(data) {
+    if (data == null || data === '') {
+      return '<div class="cell-avg empty">—</div>';
+    }
+    return '<div class="cell-avg">' + escapeHtml(data) + '</div>';
+  }
+
+  function renderFavStar(starType) {
+    if (starType == null) {
+      return '<span class="cell-fav-icon off">★</span>';
+    }
+    return '<span class="cell-fav-icon on" data-star-type="' + escapeHtml(starType) + '">★</span>';
+  }
+
+  function renderMyMark(data, type, row) {
+    if (row.my_mark == null) {
+      return '<a class="btn btn-rate" href="' + row.DT_RowData.mark_link + '">Noter</a>';
+    }
+    // my_comment is already CKEditor-sanitized HTML — inject as-is (matches legacy popover).
+    var bubble = row.my_comment
+      ? '<span class="bubble"><span class="b-title">' + escapeHtml(row.name) + '</span><span class="b-body">' + row.my_comment + '</span></span>'
+      : '';
+    var hasComment = row.my_comment ? ' has-comment' : '';
+    return '<span class="cell-mark-val user-mine ' + userClass({{ g.user.id }}) + hasComment + '">' + escapeHtml(row.my_mark) + bubble + '</span>';
+  }
+
+  function isEmptyDate(v) { return v == null || v === '-' || v === ''; }
+
+  function renderMyWhen(data, type, row) {
+    if (isEmptyDate(row.my_when)) {
+      return '<span class="cell-when-val"><span class="empty">—</span></span>';
+    }
+    var cinema = row.my_where == 'C' ? ' cinema' : '';
+    return '<span class="cell-when-val' + cinema + '">' + escapeHtml(row.my_when) + '</span>';
+  }
+
+  function renderOtherMark(uid, userClass) {
+    return function (data, type, row) {
+      var mark = row.other_marks[uid];
+      var comment = row.other_comments && row.other_comments[uid];
+      var homework = row.DT_RowData.homework_link && row.DT_RowData.homework_link[uid];
+      if (mark == null) {
+        if (homework && homework['when'] != null) {
+          var who = escapeHtml(homework['who'] || '');
+          return '<a class="btn btn-homework" title="Devoir donné par ' + who + '">Devoir</a>';
+        }
+        return '<span class="cell-mark-val"><span class="empty">—</span></span>';
+      }
+      var bubble = comment
+        ? '<span class="bubble"><span class="b-title">' + escapeHtml(row.name) + '</span><span class="b-body">' + comment + '</span></span>'
+        : '';
+      var hasComment = comment ? ' has-comment' : '';
+      return '<span class="cell-mark-val ' + userClass + hasComment + '">' + escapeHtml(mark) + bubble + '</span>';
+    };
+  }
+
+  function renderOtherWhen(uid) {
+    return function (data, type, row) {
+      var when = row.other_when[uid];
+      if (isEmptyDate(when)) {
+        return '<span class="cell-when-val"><span class="empty">—</span></span>';
+      }
+      var cinema = row.other_where[uid] == 'C' ? ' cinema' : '';
+      return '<span class="cell-when-val' + cinema + '">' + escapeHtml(when) + '</span>';
+    };
+  }
+
+  function renderOtherFav(uid) {
+    return function (data, type, row) {
+      return renderFavStar(row.other_favs[uid]);
+    };
+  }
+
+  // Build the columns config dynamically — same data shape as legacy.
+  // Director is shown inside the title cell (.tdir) so we don't render a separate column.
+  var columns = [
+    { data: 'name', className: 't-title', width: '36%', render: renderTitle },
+    { data: 'average', className: 't-avg', width: '8%', orderable: true, render: renderAvg },
+    {% if not g.user.is_guest %}
+    { data: 'my_fav', className: 'cell-fav my-col user-mine user-{{ g.user.id }}', width: '4%', orderable: true,
+      render: function (data, type, row) { return renderFavStar(row.my_fav); },
+      createdCell: function (td) { td.setAttribute('data-user', 'Mes notes'); }
+    },
+    { data: 'my_mark', className: 'cell-mark my-col', width: '5%', render: renderMyMark },
+    { data: 'my_when', className: 'cell-when my-col', width: '5%', render: renderMyWhen },
+    {% endif %}
+    {% for cur_user in users %}{% if g.user.id != cur_user.id %}
+    { data: 'other_favs.{{ cur_user.id }}', className: 'cell-fav user-{{ cur_user.id }}', width: '4%', orderable: true,
+      render: renderOtherFav({{ cur_user.id }}),
+      createdCell: function (td) { td.setAttribute('data-user', {{ cur_user.nickname | tojson }}); }
+    },
+    { data: 'other_marks.{{ cur_user.id }}', className: 'cell-mark', width: '5%',
+      render: renderOtherMark({{ cur_user.id }}, userClass({{ cur_user.id }}))
+    },
+    { data: 'other_when.{{ cur_user.id }}', className: 'cell-when', width: '5%',
+      render: renderOtherWhen({{ cur_user.id }})
+    },
+    {% endif %}{% endfor %}
+  ];
+
+  var table = $('#showslist').DataTable({
+    searching: false,
+    ordering: true,
+    stateSave: true,
+    processing: true,
+    serverSide: true,
+    autoWidth: false,
+    displayLength: 100,
+    pagingType: 'simple_numbers',
+    layout: {
+      topStart: 'pageLength',
+      topEnd: 'info',
+      bottomStart: 'info',
+      bottomEnd: 'paging'
+    },
+    ajax: {
+      url: "{{ url_for('show.update_datatable', show_type=g.show_type) }}",
+      type: 'POST',
+      data: function (args) { return { args: JSON.stringify(args) }; }
+    },
+    columns: columns,
+    columnDefs: [{ className: 'dt-center', targets: '_all' }],
+    language: {
+      info: 'Page _PAGE_ sur _PAGES_ · _TOTAL_ {{ g.messages["label_show_type_lowercase_plural"] }} au total',
+      infoEmpty: 'Aucun {{ g.messages["label_show_type_lowercase"] }} à afficher',
+      infoFiltered: '',
+      lengthMenu: 'Afficher _MENU_ {{ g.messages["label_show_type_lowercase_plural"] }} par page',
+      paginate: {
+        next: 'Suivant ›',
+        previous: '‹ Précédent'
+      }
+    }
+  });
+
+  // Mobile sort: delegate to DataTables for the asc/desc cycle (each pill click
+  // triggers the corresponding column header's native click), and only handle
+  // the 3rd-state transition ourselves (already-desc → clear sort).
+  // The pills' visual state is kept in sync via DT's order.dt event.
+  function syncPillsToOrder() {
+    var ord = table.order();  // [[col, dir], ...]
+    $('.mob-sort .sort-pill').each(function () {
+      var $p = $(this);
+      var col = parseInt($p.data('col'), 10);
+      var match = ord.find(function (o) { return o[0] === col; });
+      var $dir = $p.find('.dir');
+      if (match) {
+        $p.addClass('is-active');
+        $dir.text(match[1] === 'asc' ? '↑' : '↓');
+      } else {
+        $p.removeClass('is-active');
+        $dir.text('');
+      }
+    });
+  }
+  table.on('order.dt', syncPillsToOrder);
+  syncPillsToOrder();
+
+  $('.mob-sort .sort-pill').on('click', function () {
+    var col = parseInt($(this).data('col'), 10);
+    var current = table.order().find(function (o) { return o[0] === col; });
+    if (current && current[1] === 'desc') {
+      // 3rd click on the same pill → clear ordering, back to title asc.
+      table.order([0, 'asc']).draw();
+    } else {
+      // Let DataTables run its native asc/desc cycle on this column.
+      $(table.column(col).header()).trigger('click');
+    }
+  });
+});
+</script>
 {% endblock %}

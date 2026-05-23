@@ -1,68 +1,162 @@
 {% extends "base.html" %}
+
+{# ===========================================================================
+   show_graphs.html — stats graphs
+
+   One graph per page ; the navigator over GRAPH_LIST jumps to any graph.
+   Consumes the graphs.show_graphs context (graph_title, graph_type, labels,
+   data) ; each data[nick] carries the user's theme_color (DB) in .color.
+   Static styles in styles.css [SHOW_GRAPHS].
+   =========================================================================== #}
+
 {% block content %}
-<div class="container">	
-	<h1 class="text-center">{{ graph_title }}</h1>
-<nav>
-	<ul class="pager">
-{% if prev_graph %}
-		<li class="previous">
-			<a href="{{ url_for(prev_graph["graph_endpoint"]) }}"><span aria-hidden="true">&larr;</span> {{ prev_graph["graph_label"] }}</a>
-		</li>
-{% endif %}
-{% if next_graph %}
-		<li class="next">
-			<a href="{{ url_for(next_graph["graph_endpoint"]) }}">{{ next_graph["graph_label"] }} <span aria-hidden="true">&rarr;</span></a>
-		</li>
-{% endif %}
-	</ul>
-</nav>
-</div>
-<div class="container">
-	<div class="row">
-		<div class="panel panel-default">
-			  <div class="panel-body">
-				<canvas id="canvas" width="200" height="100"></canvas>
-			  </div>
-		</div>
-	</div>
-</div>
+{# Per-user colour comes from User.theme_color (DB), carried in data[nick].color
+   by the graphs route — no palette is hard-coded here. #}
+
+<header class="page-head">
+  <div><h1>{{ graph_title }}</h1></div>
+</header>
+
+<section class="graph-nav-wrap">
+  <div class="graph-nav-label">Choisir un graphique</div>
+  <div class="graph-nav">
+    {% set gn = namespace(n=0) %}
+    {% for gr in g.graph_list %}{% if gr[g.show_type] %}
+    {% set gn.n = gn.n + 1 %}
+    <a class="gpill{% if gr.graph_endpoint == request.endpoint %} is-active{% endif %}" href="{{ url_for(gr.graph_endpoint) }}">
+      <span class="num">{{ '%02d'|format(gn.n) }}</span>
+      <span class="gpill-label">{{ gr.graph_label }}</span>
+    </a>
+    {% endif %}{% endfor %}
+  </div>
+</section>
+
+<section class="graph-wrap">
+  <div class="card graph-card">
+    <div class="graph-toolbar">
+      <div class="graph-legend">
+        {% for nick in data %}
+        <span class="glegend" data-series="{{ loop.index0 }}">
+          <span class="lava" style="background:{{ data[nick]['color'] }}">{{ nick[0]|upper }}</span>
+          <span class="lname" style="color:{{ data[nick]['color'] }}">{{ nick }}</span>
+        </span>
+        {% endfor %}
+      </div>
+      {% if graph_type == 'line' %}
+      <div class="graph-mode" role="tablist">
+        <button type="button" data-mode="line" class="is-active">Lignes</button>
+        <button type="button" data-mode="area">Aires</button>
+        <button type="button" data-mode="points">Points</button>
+      </div>
+      {% endif %}
+    </div>
+    <div class="graph-body">
+      <div class="canvas-wrap"><canvas id="statChart"></canvas></div>
+    </div>
+  </div>
+</section>
+
 <script>
-// Context initialization
-var ctx = document.getElementById("canvas").getContext("2d");
+$(document).ready(function () {
+  var GRAPH_TYPE = {{ graph_type|tojson }};
+  var labels = [{% for l in labels %}{{ l|tojson }}, {% endfor %}];
+  // values injected raw : numbers stay numbers, and the route's "null"
+  // placeholder (missing average) must reach JS as the null literal — tojson
+  // would quote it.
+  var series = [
+    {% for nick in data %}
+    { label: {{ nick|tojson }}, color: {{ data[nick]['color']|tojson }},
+      values: [{% for v in data[nick]['data'] %}{{ v }}, {% endfor %}] },
+    {% endfor %}
+  ];
 
-// Data structure
-var data= {
-	labels : [ {% for cur_label in labels %} {{ cur_label|tojson }}, {% endfor %} ],
-	datasets : [ {% for cur_user in data %}
-		{
-			fill: false,
-			label: {{ cur_user|tojson }},
-			borderColor : "#{{data[cur_user]['color']}}",
-			backgroundColor : "#{{data[cur_user]['color']}}",
-			data: [ {% for data in data[cur_user]['data'] %} {{ data }}, {% endfor %}]
-		},
-		{% endfor %}
+  // Initial Chart.js datasets ; line graphs start in line mode and the toggle
+  // below mutates fill / showLine / pointRadius in place.
+  function buildDatasets() {
+    return series.map(function (s) {
+      var ds = { label: s.label, data: s.values, borderColor: s.color };
+      if (GRAPH_TYPE === 'bar') {
+        ds.backgroundColor = s.color;
+        ds.borderWidth = 0;
+        ds.borderRadius = 4;
+      } else if (GRAPH_TYPE === 'radar') {
+        ds.backgroundColor = s.color + '22';
+        ds.borderWidth = 2;
+        ds.pointRadius = 3;
+        ds.pointBackgroundColor = s.color;
+      } else {
+        ds.backgroundColor = s.color + '22';
+        ds.borderWidth = 2.4;
+        ds.tension = 0.35;
+        ds.fill = false;
+        ds.showLine = true;
+        ds.pointRadius = 0;
+        ds.pointHoverRadius = 4;
+        ds.pointBackgroundColor = s.color;
+      }
+      return ds;
+    });
+  }
 
-		]
-	}
+  var axisFont = { family: 'Outfit', size: 11 };
+  var scales;
+  if (GRAPH_TYPE === 'radar') {
+    scales = { r: {
+      grid: { color: '#e8e2ec' }, angleLines: { color: '#e8e2ec' },
+      pointLabels: { font: axisFont, color: '#5d5460' },
+      ticks: { font: axisFont, color: '#9a8fa1', backdropColor: 'transparent' }
+    } };
+  } else {
+    scales = {
+      x: { grid: { color: '#e8e2ec' }, ticks: { font: axisFont, color: '#9a8fa1', autoSkip: true, maxRotation: 0 } },
+      y: { grid: { color: '#e8e2ec' }, ticks: { font: axisFont, color: '#9a8fa1' }, beginAtZero: true }
+    };
+  }
 
-// Draw graph
-var graph=new Chart(ctx, {
-	type: "{{ graph_type }}",
-	data: data,
-	options: {
-		scales: {
-			xAxes: [{
-				ticks: {
-					autoSkip: false,
-					maxRotation: 90,
-					minRotation: 45
-				}
-			}]
-		}
-	}
-	}
-);
+  var chart = new Chart(document.getElementById('statChart'), {
+    type: GRAPH_TYPE,
+    data: { labels: labels, datasets: buildDatasets() },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: '#1c1820',
+          titleFont: { family: 'Outfit', weight: '900', size: 11 },
+          bodyFont: { family: 'Inter', size: 12 },
+          padding: 10, cornerRadius: 8
+        }
+      },
+      scales: scales
+    }
+  });
 
+  // Legend entry click — mute / unmute the matching series.
+  $('.graph-legend .glegend').on('click', function () {
+    var $e = $(this);
+    var i = +$e.data('series');
+    var visible = chart.isDatasetVisible(i);
+    chart.setDatasetVisibility(i, !visible);
+    $e.toggleClass('is-muted', visible);
+    chart.update();
+  });
+
+  // Mode toggle, line graphs only — mutates the datasets in place so a series
+  // muted via the legend stays muted across a line / area / points switch.
+  var $modeBtns = $('.graph-mode button');
+  $modeBtns.on('click', function () {
+    var $btn = $(this);
+    if ($btn.hasClass('is-active')) return;
+    $modeBtns.removeClass('is-active');
+    $btn.addClass('is-active');
+    var mode = $btn.data('mode');
+    chart.data.datasets.forEach(function (ds) {
+      ds.fill = (mode === 'area');
+      ds.showLine = (mode !== 'points');
+      ds.pointRadius = (mode === 'points') ? 3.5 : 0;
+    });
+    chart.update();
+  });
+});
 </script>
 {% endblock %}

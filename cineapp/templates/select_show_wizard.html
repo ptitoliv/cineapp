@@ -1,57 +1,93 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
 {% block content %}
-	<div class="container">
-		<div class="row text-center col-md-offset-1 col-md-10">	
-                        <h1>{{g.messages["label_select"] }} (Page {{ cur_page }} / {{ total_pages }})</h1>
-			<ul class="pager">
-				{% if has_prev %}
-				<li class="previous">
-					<a id="prev" href="{{ url_for('show.select_' + endpoint + '_show', show_type=g.show_type,page=cur_page - 1) }}"><span aria-hidden="true">&larr;</span> Page {{ cur_page - 1 }}</a>
-				</li>
-				{% endif %}
-				{% if has_next %}
-				<li class="next">
-					<a id="next" href="{{ url_for('show.select_' + endpoint + '_show', show_type=g.show_type,page=cur_page + 1) }}"> Page {{ cur_page + 1 }} <span aria-hidden="true">&rarr;</span></a>
-				</li>
-				{% endif %}
-			</ul>
-		</div>
-		<form action="{{ url_for('show.confirm_' + endpoint + '_show',show_type=g.show_type) }}" method="post" name="selectshow">
-		{{ select_form.hidden_tag() }}
-		<div class="row col-md-offset-1 col-md-10">
-			<table class="table table-hover">
-				<thead>
-					<tr>
-						<th class="text-center">Sélection</th>
-                                                <th>{{ g.messages["label_show_type"] }}</th>
-					</tr>
-				</thead>
-				<tbody>
-					{% for option in select_form.show %}
-					<tr>
-						<td class="text-center">{{ option }}</td>
-						<td>{{ option.label(class_="radio_label") }}</td>
-					</tr>
-					{% endfor %}
-				</tbody>
-			</table>
-		</div>
-		<div class="row text-center col-md-offset-1 col-md-10">	
-			{{ select_form.submit_select(class="btn btn-success center-block") }}	
-		</div>
-		</form>
-		<div id="container_overlay">
-			<div id="spinner" class="spinner"/>
-		</div>
-	</div>
-	<script type="text/javascript">
-		$(document).ready(function(){
-		    $("#prev").click(function() {
-		        $('#container_overlay').show();	
-		    });
-		    $("#next").click(function() {
-		        $('#container_overlay').show();	
-		    });
-		});
-	</script>
+
+<header class="page-head">
+  <div>
+    <h1>{{ g.messages["label_select"] }}<span class="wizard-h1-query"> {{ query_show }}</span></h1>
+  </div>
+</header>
+
+<main class="wizard-stage wizard-stage-wide">
+
+  <p class="wizard-page-indicator">Sélection · Page {{ cur_page }} sur {{ total_pages }}</p>
+
+  <form action="{{ url_for('show.confirm_' + endpoint + '_show', show_type=g.show_type) }}" method="post" name="selectshow" class="wizard-form">
+    {{ select_form.hidden_tag() }}
+
+    <div class="wizard-results">
+      {% for cur_show in shows_list %}
+      <label class="wizard-result" style="--i: {{ loop.index0 }}">
+        <input type="radio" name="show" value="{{ cur_show.external_id }}">
+        <span class="check" aria-hidden="true">✓</span>
+        <span class="poster">
+          <span class="poster-placeholder" aria-hidden="true">
+            {% if g.show_type == "movie" %}<i class="fa-solid fa-film"></i>
+            {% elif g.show_type == "tvshow" %}<i class="fa-solid fa-tv"></i>
+            {% elif g.show_type == "videogame" %}<i class="fa-solid fa-gamepad"></i>
+            {% endif %}
+          </span>
+          {% if cur_show.poster_path %}
+          <img src="{{ cur_show.poster_path }}" alt="" onerror="this.remove()">
+          {% endif %}
+        </span>
+        <span class="meta">
+          <span class="title">{{ cur_show.name }}</span>
+          {% if cur_show.director %}<span class="director">de {{ cur_show.director }}</span>{% endif %}
+          {% if cur_show.release_date %}<span class="year">{{ cur_show.release_date[:4] }}</span>{% endif %}
+        </span>
+      </label>
+      {% endfor %}
+    </div>
+
+    <div class="wizard-actions">
+      <nav class="wizard-pager">
+        {% if has_prev %}
+        <a id="prev" class="wizard-pager-link previous" href="{{ url_for('show.select_' + endpoint + '_show', show_type=g.show_type, page=cur_page - 1) }}">‹ Précédent</a>
+        {% else %}
+        <span class="wizard-pager-link previous is-disabled" aria-hidden="true">‹ Précédent</span>
+        {% endif %}
+
+        {% for p in range(1, total_pages + 1) %}
+          {% if p == cur_page %}
+          <span class="wizard-pager-link is-active">{{ p }}</span>
+          {% else %}
+          <a class="wizard-pager-link" href="{{ url_for('show.select_' + endpoint + '_show', show_type=g.show_type, page=p) }}">{{ p }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if has_next %}
+        <a id="next" class="wizard-pager-link next" href="{{ url_for('show.select_' + endpoint + '_show', show_type=g.show_type, page=cur_page + 1) }}">Suivant ›</a>
+        {% else %}
+        <span class="wizard-pager-link next is-disabled" aria-hidden="true">Suivant ›</span>
+        {% endif %}
+      </nav>
+
+      <div class="wizard-submit-row">
+        <button type="submit" name="submit_select" value="y" class="btn wizard-submit">
+          Continuer <span class="arrow">→</span>
+        </button>
+      </div>
+    </div>
+  </form>
+
+  <div id="container_overlay">
+    <div id="spinner" class="spinner"></div>
+  </div>
+
+</main>
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    $("#prev, #next").click(function() { $('#container_overlay').show(); });
+    // Show the spinner on the form's submit event — fires only AFTER HTML5
+    // validation passes (e.g. a show must be selected), so an invalid submit no
+    // longer leaves the overlay stuck. The submit button's name/value is kept.
+    $(".wizard-form").on('submit', function() {
+      $('#container_overlay').show();
+    });
+    // Hide the spinner if the page is restored from the bfcache (browser back).
+    $(window).on('pageshow', function() { $('#container_overlay').hide(); });
+  });
+</script>
+
 {% endblock %}

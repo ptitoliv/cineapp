@@ -1,649 +1,641 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
+
+{# Per-user halo color mapping, mirrored from list_shows.html.
+   Current user → violet ; others cycle through rose/teal/sage/warm. #}
+{% set ns = namespace(all_users=[]) %}
+{% if mark_users %}
+  {% for cm in mark_users %}{% set _ = ns.all_users.append(cm["user"]) %}{% endfor %}
+{% endif %}
+
 {% block content %}
-	{% if not mark %}
-	<div class="container" id="show_navbar">	
-	<nav>
-		<ul class="pager">
-        {% if show_prev %}
-			<li class="previous">
-			<a href="{{ url_for('show.display_show', show_id=show_prev.id, show_type=g.show_type) }}"><span
-aria-hidden="true">&larr;</span> {{ show_prev.name }}</a>
-			</li>
-	{% endif %}
-			<li>
-				<a href="{{ url_for('show.display_show_random',show_type=g.show_type) }}">Sélection aléatoire</a>
-			</li>
-        {% if show_next %}
-			<li class="next">
-			<a href="{{ url_for('show.display_show', show_id=show_next.id,show_type=g.show_type) }}"> {{ show_next.name }} <span
-aria-hidden="true">&rarr;</span></a>
-			</li>
-	 {% endif %}
-		</ul>
-	</nav>
-	</div>
-	{% endif %}
-	<div class="container">
-	<div class="centered text-center">
-		<h1 class="title_position">{{ show.name }}</h1>
-		{% if show.original_name != None %}
-		<h3 class="title_position"><em>({{ show.original_name }})</em></h3>
-		{% endif %}
-	</div>
-	<div class="row">
-		<div class="col-md-2">
-			{% if show.poster_path != None %}
-			<img src="{{ config['POSTERS_URL'] }}/{{ show.poster_path }}" class="img-responsive"/>
-			{% else %}
-			<div class="jumbotron text-center">Pas d'affiche</div>
-			{% endif %}
-			{% if not mark %}
-			<div class="dropdown text-center">
-				{% if show.favorite_users|selectattr("user_id","equalto",g.user.id)|list|length > 0 and (show.favorite_users|selectattr("user_id","equalto",g.user.id)|list)[0].star_type != None %}
-				<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><h1><i id="star_icon" class="fa fa-2x fa-star {{ (show.favorite_users|selectattr("user_id","equalto",g.user.id)|list)[0].star_type }}" aria-hidden="true"></i></h1></a><span id="star_label" class="{{ (show.favorite_users|selectattr("user_id","equalto",g.user.id)|list)[0].star_type }}">{{ (show.favorite_users|selectattr("user_id","equalto",g.user.id)|list)[0].star_type_obj.star_message }}</span>
-				{% else %}
-				<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false"><h1><i id="star_icon" class="fa fa-2x fa-star-o nofavorite_star" aria-hidden="true"></i></h1></a><span id="star_label" class="nofavorite_star">Pas de favori</span>
-				{% endif %}
-				<ul class="dropdown-menu">
-					<li class="text-center nofavorite_star"><h1><a href="#" class="list_star" id="empty_star"><i class="fa fa-2x fa-star-o nofavorite_star" aria-hidden="true"></i></a></h1>Pas de favori</li>
-					{% for cur_favorite_type in favorite_type_list %}
-					<li class="text-center  {{ cur_favorite_type.star_type }}" ><h1><a href="#" class="list_star" id="{{ cur_favorite_type.star_type }}"><i class="fa fa-2x fa-star {{ cur_favorite_type.star_type }}" aria-hidden="true"></i></a></h1>{{ cur_favorite_type.star_message }}</li>
-					{% endfor %}
-				</ul>
-			</div>
-			{% endif %}
+<style>
+/* ==========================================================================
+   runtime per-user halo + accent rules
+   The static styles for this page live in main stylesheet under
+   the [DISPLAY_SHOW] section.
+   ========================================================================== */
+{% if g.user.is_authenticated %}
+.composer .ava { background: {{ g.user.theme_color }}; }
+{% endif %}
 
-		</div>
-		<div class="col-md-10">
-			<table class="table table-striped">
-				<tr class="text-left">
-                  <td class="col-md-1">{{ g.messages["label_director"] }}</td>
-				  <td>{{ show.director }}</td>
-				</tr>
-				<tr class="text-left">
-                 	<td class="col-md-2" style="vertical-align: middle">{{ g.messages["label_release_date"] }}</td>
-					<td>
-				 	{% if g.show_type == "videogame" %}
-						{% if show.release_dates %}
-						<ul class="list-unstyled" style="margin-bottom: 0">
-							{% for rd in show.release_dates|sort(attribute='release_date')|sort(attribute='region.priority', reverse=true) %}
-							<li>
-								<span style="display: inline-block; width: 13em;">
-									{% if loop.changed(rd.region.id) %}
-									<span class="fi fi-{{ rd.region.flag_code }}" style="margin-right: 0.5em"></span>
-									{{ rd.region.region_translated_name }}
-									{% endif %}
-								</span>
-								<span>
-									{{ rd.release_date|date_format("%d/%m/%Y") or "Date inconnue" }}
-									{% if rd.release_platform %}<em>({{ rd.release_platform }})</em>{% endif %}
-								</span>
-							</li>
-							{% endfor %}
-						</ul>
-						{% else %}
-						<em>Aucune date de sortie connue</em>
-						{% endif %}
-					{% else %}
-					{{ show.release_date|date_format("%d/%m/%Y") }}
-					{% endif %}
-					</td>
-				</tr>
-				<tr class="text-left">
-				 <td class="col-md-2">Type:</td>
-				<td> {{ show.type_object.type }} </td>
-				</tr>
-				<tr class="text-left">
-				 <td class="col-md-2">Fiche:</td>
-                                 <td><a href="{{show.url}}">{{show.url}}</a></td>
-				</tr>
-                {% if show is movie %}
-				<tr class="text-left">
-                   <td class="col-md-2">Durée:</td>
-                   {% if show.duration %}
-                   <td>{{ show.duration|minutes_to_human_duration }}</td>
-                   {% endif %}
-				</tr>
-                {% elif show is tvshow %}
-				<tr class="text-left">
-                   <td class="col-md-2">Production:</td>
-                   <td><label class="btn-{{ show.production_status_obj.style }} btn-sm disabled">{{ show.production_status_obj.translated_status }}</label></td>
-                </tr>
-				<tr class="text-left">
-                   <td class="col-md-2">Nombre de saisons:</td>
-                   <td>{{ show.nb_seasons }}</td>
-				</tr>
-                {% elif show is videogame %}
-				<tr class="text-left">
-                   <td class="col-md-2">Plateformes:</td>
-                   <td>{{ show.platforms }}</td>
-				</tr>
-				<tr class="text-left">
-                   <td class="col-md-2">Éditeur:</td>
-                   <td>{{ show.publisher }}</td>
-				</tr>
-				 {% endif %}
-				<tr class="text-left">
-				 <td class="col-md-2">Origine:</td>
-				 <td>{{ show.origin_object.origin }}</td>
-				</tr>
-				<tr class="text-left">
-				 <td class="col-md-2">Résumé:{% if show.overview and show.overview_translated %}<br><small><i>(Traduction via DeepL)</i></small>{% endif %}</td>
-				 {% if show.overview %}
-				 <td>{{ show.overview }}</td>
-				 {% else %}
-				 <td>Néant</td>
-				 {% endif %}
-				</tr>
-			</table>
-		</div>
-	</div>
-		{% if not g.user.is_guest and not mark %}
-		<div class="text-center">
-			<form method="post" action="{{url_for('show.update_show',show_type=g.show_type) }}" name="updateshow" style="display:inline;">
-				{{ update_show_form.hidden_tag() }}
-				{{ update_show_form.show_id}}
-				{{ update_show_form.submit_update_show(class="btn btn-primary center-block",style="display:inline;") }}
-			</form>
-			{% if marked_flag %}
-			<a href="{{ url_for('show.mark_show',show_type=g.show_type,show_id_form=show.id) }}" class="btn btn-primary">Mettre à jour la note</a>
-			{% else %}
-            <a href="{{ url_for('show.mark_show',show_type=g.show_type,show_id_form=show.id) }}" class="btn btn-primary">{%if show is movie%}Noter ce film{%elif show is tvshow %}Noter cette série{%elif show is videogame%}Noter ce jeu vidéo{%endif%}</a>
-			{% endif %}
-			{% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE==True and g.user.notifications["notif_slack"] == True%}
-			<a href="{{ url_for('show.publish_mark',show_type=g.show_type,show_id=show.id) }}" class="btn btn-primary">Publier sur Slack</a>
-			{% endif %}
-		</div>
-		{% endif %}
-	<div class="container" id="mark_container">
-	{% if mark %}
-		{%from "_formhelpers.html" import render_field %}
-		<form method="post" action="" name="markshow">
-			{{ form.hidden_tag() }}
-			{{ render_field(form.mark,message=True) }}
-			{{ render_field(form.comment,message=True,parse_class=False) }}
-			{{ render_field(form.seen_when,message=True) }}
-            {% if show is movie %}
-                    {{ form.seen_where.label }}	
-                    {% for option in form.seen_where %}
-                    <div class="radio">
-                    <label>{{ option }}
-                    {{ option.label }}
-                    </label>
-                    </div>
-			        {% endfor %}
+{% for u in ns.all_users %}
+{% set color = u.theme_color %}
+{% set rgb_r = color[1:3] | int(base=16) %}
+{% set rgb_g = color[3:5] | int(base=16) %}
+{% set rgb_b = color[5:7] | int(base=16) %}
+.review.user-{{ u.id }} { --halo: rgba({{ rgb_r }},{{ rgb_g }},{{ rgb_b }}, .14); }
+.avatar-large.user-{{ u.id }},
+.subcomment.user-{{ u.id }} .ava { background: {{ color }}; }
+.subcomment.user-{{ u.id }} .body { border-left: 3px solid {{ color }}; }
+{% endfor %}
+</style>
+
+{% if not mark %}
+{# ----- Display mode only : navigation between fiches ----- #}
+<nav class="show-nav" aria-label="Navigation entre fiches">
+  <span>
+    {% if show_prev %}
+    <a href="{{ url_for('show.display_show', show_id=show_prev.id, show_type=g.show_type) }}">‹ {{ show_prev.name }}</a>
+    {% endif %}
+  </span>
+  <a class="random" href="{{ url_for('show.display_show_random', show_type=g.show_type) }}">↻ Sélection aléatoire</a>
+  <span>
+    {% if show_next %}
+    <a href="{{ url_for('show.display_show', show_id=show_next.id, show_type=g.show_type) }}">{{ show_next.name }} ›</a>
+    {% endif %}
+  </span>
+</nav>
+{% endif %}
+
+<section class="hero show-detail">
+  {# ----- Left column: poster ----- #}
+  <div class="poster-wrap">
+    <div class="poster">
+      <div class="poster-placeholder lg" aria-hidden="true">
+        {% if show.show_type == "movie" %}<i class="fa-solid fa-film"></i>
+        {% elif show.show_type == "tvshow" %}<i class="fa-solid fa-tv"></i>
+        {% elif show.show_type == "videogame" %}<i class="fa-solid fa-gamepad"></i>
+        {% endif %}
+      </div>
+      {% if show.poster_path %}
+      <img class="poster-image" src="{{ config.POSTERS_URL }}{{ show.poster_path }}" alt="{{ show.name }}" onerror="this.style.display='none'">
+      {% endif %}
+    </div>
+  </div>
+
+  {# ----- Right column: title + meta + synopsis ----- #}
+  <div>
+    <div class="eyebrow">
+      <span class="accent">▸</span>&nbsp;{{ g.messages["label_show_type"] }}
+      {% if show.type_object %}&nbsp;·&nbsp;<span class="accent">{{ show.type_object.type }}</span>{% endif %}
+    </div>
+
+    <div class="title-row">
+      <h1 class="title">{{ show.name }}</h1>
+      {% if not mark and not g.user.is_guest %}
+      {% set my_fav_list = show.favorite_users|selectattr("user_id","equalto",g.user.id)|list %}
+      {% set my_fav = my_fav_list[0] if my_fav_list and my_fav_list[0].star_type else None %}
+      <div class="fav-btn{% if not my_fav %} is-empty{% endif %}" id="fav-btn" data-star-type="{{ my_fav.star_type if my_fav else '' }}">
+        <button type="button" class="fav-trigger"
+                title="{% if my_fav %}{{ my_fav.star_type_obj.star_message }}{% else %}Ajouter aux favoris{% endif %}">
+          <span class="fav-icon" id="fav-icon">★</span>
+          <span class="fav-tag" id="fav-tag">{% if my_fav %}{{ my_fav.star_type_obj.star_message }}{% else %}Pas de favori{% endif %}</span>
+        </button>
+        <div class="fav-menu" id="fav-menu">
+          <a class="empty" data-star=""><span class="star">★</span>Aucun</a>
+          {% for ft in favorite_type_list %}
+          <a data-star="{{ ft.star_type }}"><span class="star">★</span>{{ ft.star_message }}</a>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    {% if show.original_name %}
+    <p class="original">{{ show.original_name }}</p>
+    {% endif %}
+
+    {# ----- byline (metadata) ----- #}
+    <div class="byline">
+      {% if show.director %}
+      <div>
+        <label>{{ g.messages["label_director"] }}</label>
+        <value>{{ show.director }}</value>
+      </div>
+      {% endif %}
+
+      {% if show is movie or show is tvshow %}
+      <div>
+        <label>{{ g.messages["label_release_date"] }}</label>
+        <value>{{ show.release_date|date_format("%d/%m/%Y") if show.release_date else '—' }}</value>
+      </div>
+      {% endif %}
+
+      {% if show is movie and show.duration %}
+      <div>
+        <label>Durée</label>
+        <value>{{ show.duration|minutes_to_human_duration }}</value>
+      </div>
+      {% endif %}
+
+      {% if show is tvshow and show.production_status_obj %}
+      <div>
+        <label>Production</label>
+        <value><span class="pill-status {{ show.production_status_obj.style }}">{{ show.production_status_obj.translated_status }}</span></value>
+      </div>
+      <div>
+        <label>Saisons</label>
+        <value>{{ show.nb_seasons or '—' }}</value>
+      </div>
+      {% endif %}
+
+      {% if show is videogame %}
+      {% if show.platforms %}
+      <div>
+        <label>Plateformes</label>
+        <value>{{ show.platforms }}</value>
+      </div>
+      {% endif %}
+      {% if show.publisher %}
+      <div>
+        <label>Éditeur</label>
+        <value>{{ show.publisher }}</value>
+      </div>
+      {% endif %}
+      {% endif %}
+
+      {% if show.origin_object %}
+      <div>
+        <label>Origine</label>
+        <value>{{ show.origin_object.origin }}</value>
+      </div>
+      {% endif %}
+
+      <div>
+        <label>Fiche externe</label>
+        <value>{% if show.url %}<a href="{{ show.url }}" target="_blank" rel="noopener">→ ouvrir</a>{% else %}—{% endif %}</value>
+      </div>
+    </div>
+
+    {# ----- Videogame: per-region release dates ----- #}
+    {% if show.release_dates %}
+    <div class="releases">
+      <div class="releases-head">
+        <h3>Sorties par région</h3>
+        <span class="releases-meta">{{ show.release_dates|length }} sortie{{ 's' if show.release_dates|length > 1 else '' }}</span>
+      </div>
+      {% set premiere = show.release_dates|sort(attribute='release_date')|first %}
+      <div class="releases-premiere">
+        <span class="premiere-eyebrow">★ Première mondiale</span>
+        <span class="premiere-date">{{ premiere.release_date|date_format("%d %B %Y") if premiere.release_date else 'Date inconnue' }}</span>
+      </div>
+      <table class="releases-table">
+        <thead>
+          <tr><th>Date</th><th>Région</th><th>Plateformes</th></tr>
+        </thead>
+        <tbody>
+          {% for rd in show.release_dates|sort(attribute='release_date') %}
+          <tr>
+            <td class="rt-date">{{ rd.release_date|date_format("%d %b %Y") if rd.release_date else 'Date inconnue' }}</td>
+            <td class="rt-region">{% if rd.region.flag_code %}<span class="fi fi-{{ rd.region.flag_code }}"></span>{% endif %}{{ rd.region.region_translated_name }}</td>
+            <td class="rt-platforms">{{ rd.release_platform|replace(',', ', ') if rd.release_platform else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {# ----- Synopsis ----- #}
+    {% if show.overview %}
+    {% if show.overview_translated %}
+    <div class="synopsis-translated">Traduction via DeepL</div>
+    {% endif %}
+    <p class="synopsis">{{ show.overview }}</p>
+    {% endif %}
+
+    {# ----- Action buttons (only in display mode) ----- #}
+    {% if not mark and not g.user.is_guest %}
+    <div class="show-actions">
+      <form method="post" action="{{ url_for('show.update_show', show_type=g.show_type) }}" name="updateshow" style="display:inline;">
+        {{ update_show_form.hidden_tag() }}
+        {{ update_show_form.show_id }}
+        {{ update_show_form.submit_update_show(class_="btn") }}
+      </form>
+      <a class="btn" href="{{ url_for('show.mark_show', show_type=g.show_type, show_id_form=show.id) }}">
+        {% if marked_flag %}Mettre à jour la note{% else %}{% if show is movie %}Noter ce film{% elif show is tvshow %}Noter cette série{% elif show is videogame %}Noter ce jeu vidéo{% endif %}{% endif %}
+      </a>
+      {% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE and g.user.notifications["notif_slack"] %}
+      <a class="btn" href="{{ url_for('show.publish_mark', show_type=g.show_type, show_id=show.id) }}">↑ Publier sur Slack</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</section>
+
+{# ===========================================================================
+   Mark form (mark mode) OR Reviews section (display mode)
+   =========================================================================== #}
+{% if mark %}
+<section class="mark-studio">
+  <header class="mark-studio-head">
+    <span class="reviews-title">{% if marked_flag %}Mettre à jour la note{% else %}Noter {% if show is movie %}ce film{% elif show is tvshow %}cette série{% elif show is videogame %}ce jeu vidéo{% endif %}{% endif %}</span>
+  </header>
+
+  {# ----- Form (Jinja & render_field preserved) — compact 2-column card ----- #}
+  {% from "_formhelpers.html" import render_field %}
+  <form method="post" action="" name="markshow" class="card mark-form">
+    {{ form.hidden_tag() }}
+
+    <div class="mark-grid">
+      {# left — score en vedette : chiffre live + slider 0-20 #}
+      <div class="mark-score{% if form.mark.errors %} has-error{% endif %}">
+        <label class="mark-score-eyebrow" for="mark">Votre note</label>
+        <span class="mark-score-num" id="mark-live">{{ form.mark.data if form.mark.data is not none else '—' }}</span>
+        <span class="mark-score-max">sur 20</span>
+        {{ form.mark(type='range', min='0', max='20', step='0.5', id='mark', class_='mark-slider') }}
+        <div class="mark-slider-ticks" aria-hidden="true">
+          <span>0</span><span>5</span><span>10</span><span>15</span><span>20</span>
+        </div>
+        {% for e in form.mark.errors %}<p class="help-block">{{ e }}</p>{% endfor %}
+      </div>
+
+      {# right — la critique #}
+      <div class="mark-critique">
+        {{ render_field(form.comment, message=True, parse_class=False) }}
+      </div>
+    </div>
+
+    {# footer — méta (date / lieu) + actions #}
+    <div class="mark-foot">
+      <div class="mark-foot-meta">
+        <div class="mark-field">
+          {{ render_field(form.seen_when, message=True) }}
+        </div>
+        {% if show is movie %}
+        <div class="mark-field mark-where">
+          <label class="control-label">{{ form.seen_where.label.text }}</label>
+          <div class="mark-where-radios">
+            {% for option in form.seen_where %}
+            <label class="radio-pill">{{ option }} <span>{{ option.label.text }}</span></label>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+      <div class="mark-foot-actions">
+        {% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE and g.user.notifications["notif_slack"] %}
+        {{ render_field(form.submit_mark_only, group=false, label_visible=false, div=false, parse_class=False, class_="btn") }}
+        {{ render_field(form.submit_mark_slack, group=false, label_visible=false, div=false, parse_class=False, class_="btn") }}
+        {% else %}
+        {{ render_field(form.submit_mark, group=false, label_visible=false, div=false, parse_class=False, class_="btn") }}
+        {% endif %}
+      </div>
+    </div>
+  </form>
+</section>
+
+<script>
+// Live-update the giant score display + paint the slider's filled portion
+// (violet up to thumb, rule after) via a --val CSS custom property.
+(function () {
+  var slider = document.getElementById('mark');
+  var live   = document.getElementById('mark-live');
+  if (!slider || !live) return;
+  function refresh() {
+    var v = parseFloat(slider.value);
+    var min = 0, max = 20;
+    if (isNaN(v)) { live.textContent = '—'; slider.style.setProperty('--val', '0%'); return; }
+    live.textContent = v % 1 === 0 ? v.toFixed(0) : v.toFixed(1);
+    slider.style.setProperty('--val', ((v - min) / (max - min) * 100) + '%');
+  }
+  slider.addEventListener('input', refresh);
+  slider.addEventListener('change', refresh);
+  refresh();
+})();
+</script>
+{% else %}
+
+<section class="reviews">
+  <div class="reviews-head">
+    <div>
+      <span class="reviews-title">Toutes les notes</span>
+      <span class="reviews-count" style="margin-left: 14px;">
+        {% set rated_count = mark_users|selectattr("mark","ne",None)|selectattr("mark","ne","homework_in_progress")|list|length %}
+        {{ rated_count }} sur {{ mark_users|length }}
+      </span>
+    </div>
+    <button type="button" class="reviews-toggle" id="display_all_button">+ Montrer tout</button>
+  </div>
+
+  {% for cur_mark in mark_users %}
+  {% set u = cur_mark["user"] %}
+  {% set u_fav_list = show.favorite_users|selectattr("user_id","equalto",u.id)|list %}
+  {% set u_fav = u_fav_list[0] if u_fav_list and u_fav_list[0].star_type else None %}
+  {% set comments = cur_mark["mark_comments"] or [] %}
+  {% set can_comment = cur_mark["mark"] is not none and cur_mark["mark"] != "homework_in_progress" and not g.user.is_guest %}
+  <article class="review user-{{ u.id }} is-collapsed" id="review_{{ u.id }}" data-user-id="{{ u.id }}">
+    <header class="review-header">
+      <div class="avatar-large user-{{ u.id }}">{{ u.nickname[0]|upper }}{% if u.avatar %}<img src="{{ config.AVATARS_URL }}{{ u.avatar }}" alt="" onerror="this.remove()">{% endif %}</div>
+
+      <div class="review-body">
+        <div class="review-meta">
+          <span class="review-name">{{ u.nickname }}</span>
+          {% if cur_mark["seen_when"] %}<span class="review-when">{{ cur_mark["seen_when"] }}</span>{% endif %}
+          {% if cur_mark["seen_where"] %}<span class="review-where">{{ cur_mark["seen_where"] }}</span>{% endif %}
+          {% if u_fav %}<span class="review-favstar" data-star-type="{{ u_fav.star_type }}" title="{{ u_fav.star_type_obj.star_message }}">★</span>{% endif %}
+          {% if cur_mark["mark"] == "homework_in_progress" %}
+            <span class="review-homework">📝 Devoir
+            {% if cur_mark["homework_who"] %} · par {{ cur_mark["homework_who"].nickname }}{% endif %}
+            </span>
+          {% endif %}
+          {# comment-count pill: toggle thread #}
+          <button type="button" class="comment-count" data-review-id="{{ u.id }}" title="Déplier / replier les commentaires">
+            <span class="emoji">💬</span>
+            <span class="num" id="comment_number_text_{{ u.id }}">{{ comments|length }}</span>
+            <span class="arrow">▾</span>
+          </button>
+        </div>
+
+        {% if cur_mark["comment"] %}
+        <div class="review-comment">{{ cur_mark["comment"]|safe }}</div>
+        {% else %}
+        <div class="review-comment empty">Pas de commentaire</div>
+        {% endif %}
+      </div>
+
+      <div class="score-block">
+        {% if cur_mark["mark"] is none %}
+          {% if g.user.id != u.id and not g.user.is_guest %}
+          <a class="btn" href="{{ url_for('homework.add_homework', show_id=show.id, user_id=u.id) }}">📝 Devoir</a>
+          {% else %}
+          <span class="score-empty">Pas notée</span>
+          {% endif %}
+        {% elif cur_mark["mark"] == "homework_in_progress" %}
+          {% if cur_mark["homework_who"].id == g.user.id %}
+          <a class="btn" href="{{ url_for('homework.delete_homework', show_id=show.id, user_id=u.id) }}">✕ Annuler</a>
+          {% else %}
+          <span class="score-empty">Devoir en cours</span>
+          {% endif %}
+        {% else %}
+          <span class="score">{{ cur_mark["mark"] }}</span>
+        {% endif %}
+      </div>
+    </header>
+
+    {# ----- Thread (collapsable, hidden by default via .is-collapsed on .review) ----- #}
+    <div class="thread" id="comment_toolbar_{{ u.id }}">
+      {% if not comments %}
+      <div class="thread-empty">
+        <span class="quote">“</span>
+        <span class="msg">Pas encore de réactions sur cette note.</span>
+      </div>
+      {% endif %}
+      {% if comments %}
+      <div class="thread-list">
+        {% for cur_comment in comments %}
+        <div class="subcomment {% if cur_comment.user_id == g.user.id %}is-mine user-mine{% endif %} user-{{ cur_comment.user.id }}" id="media_comment_{{ cur_comment.markcomment_id }}">
+          <span class="ava">{{ cur_comment.user.nickname[0]|upper }}{% if cur_comment.user.avatar %}<img src="{{ config.AVATARS_URL }}{{ cur_comment.user.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
+          <div class="body comment_edit_group" id="comment_edit_group_{{ cur_comment.markcomment_id }}">
+            <div class="meta">
+              <span class="who">{{ cur_comment.user.nickname }}</span>
+              <span class="when">{{ cur_comment.posted_when.strftime("%d/%m/%Y · %H:%M") }}</span>
+            </div>
+            <div class="text comment_nonedit_text" id="comment_nonedit_text_{{ cur_comment.markcomment_id }}">{{ cur_comment.message }}</div>
+            <div class="comment_edit_form" id="comment_edit_form_{{ cur_comment.markcomment_id }}" style="display: none;">
+              <input class="text editing comment_edit_text" type="text" value="{{ cur_comment.message }}" id="comment_edit_text_{{ cur_comment.markcomment_id }}">
+              <a class="edit-save post_comment comment_edit_link" id="comment_edit_link_{{ cur_comment.markcomment_id }}" title="Enregistrer">↵</a>
+              <a class="edit-cancel cancel_edit" data-comment-id="{{ cur_comment.markcomment_id }}" title="Annuler">✕</a>
+            </div>
+            {% if g.user.id == cur_comment.user_id and not g.user.is_guest %}
+            <div class="tools comment_tools" id="comment_tools_{{ cur_comment.markcomment_id }}">
+              <a class="edit_comment" id="edit_comment_{{ cur_comment.markcomment_id }}"><i class="fa-solid fa-pen"></i> Éditer</a>
+              <a class="delete delete_comment" id="delete_comment_{{ cur_comment.markcomment_id }}"><i class="fa-solid fa-trash"></i> Supprimer</a>
+            </div>
             {% endif %}
-
-		{% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE==True and g.user.notifications["notif_slack"] == True%}
-			<!-- Button trigger modal -->
-			<div class="text-center">
-				<button type="button" class="btn btn-success" data-toggle="modal" data-target="#slack_confirm">Noter</button>
-			</div>
-
-		<!-- Modal for Slack confirmation -->
-		<div class="modal fade" id="slack_confirm" tabindex="-1" role="dialog" aria-labelledby="slackModalLabel">
-		  <div class="modal-dialog" role="document">
-		    <div class="modal-content">
-		      <div class="modal-header">
-			<h4 class="modal-title" id="slackModalLabel">Publier sur Slack</h4>
-		      </div>
-		      <div class="modal-body">
-			Voulez-vous publier cette note sur Slack ?
-		      </div>
-		      <div class="modal-footer">
-				{{ render_field(form.submit_mark_slack,group=false,label_visible=false,div=false,class="btn btn-success") }}	
-				{{ render_field(form.submit_mark_only,group=false,label_visible=false,div=false,class="btn btn-success") }}	
-		      </div>
-		    </div>
-		  </div>
-		{% else %}
-		<div class="text-center">
-			{{ render_field(form.submit_mark,group=false,label_visible=false,div=false,class="btn btn-success") }}	
-		</div>
-		{% endif %}
-		</form>
-	{% else %}
-		<div class="text-right">
-			<a href="#" id="display_all_button" class="btn btn-success"><i class="fa fa-plus-square" id="display_all_icon" aria-hidden="true"></i> <span id="display_all_text">Montrer tout</span></a>
-		</div>
-		{% for cur_mark in mark_users %}
-		<div class="media media_mark media_mark_{{ cur_mark["user"].id }}" style="background-color:#{{ cur_mark["user"].graph_color }}">
-			<div class="media-left">
-			    <img src="{{ config.AVATARS_URL}}{{ cur_mark["user"].avatar }}" class="img-circle avatar" alt="user profile image">
-			    <div class="h4 text-center">
-				{% if cur_mark["mark"] == "homework_in_progress" %}
-                                        {% if cur_mark["homework_who"].id == g.user.id %}
-					        <a href={{ url_for("homework.delete_homework",show_id=show.id,user_id=cur_mark["user"].id) }} class="btn btn-danger btn-xs btn-mark">Annuler un devoir</a>
-                                        {% else %}
-					        <a class="disabled btn btn-warning btn-xs btn-mark">Devoir</a>
-                                        {% endif %}
-				{% elif cur_mark["mark"] == None %}
-					{% if g.user.id != (cur_mark["user"]).id and not g.user.is_guest %}
-						<a href={{ url_for("homework.add_homework",show_id=show.id,user_id=cur_mark["user"].id) }} class="btn btn-success btn-xs btn-mark">Donner un devoir</a>
-					{% else %}
-						<a class="disabled btn btn-danger btn-xs btn-mark">Pas de note</a>
-					{% endif %}
-				{% else %}	
-					<div>
-						<h3><span class="label label-success">{{ cur_mark["mark"] }}</span></h3>
-					</div>
-				{% endif %}
-		    	    </div>
-			</div>
-			<div class="media-body">
-				<h4 class="media-heading">{{ cur_mark["user"].nickname }}
-					<span id="seen_when_{{ cur_mark["user"].id }}"><small><i>	
-						{% if cur_mark["seen_where"] != None %}
-							<span id="seen_when">{{ cur_mark["seen_when"] }}</span> <span id="seen_where">({{ cur_mark["seen_where"] }})</span>
-						{% else %}
-							N/A
-						{% endif %}
-					</i></small></span>
-					{% if show.favorite_users|selectattr("user_id","equalto",cur_mark["user"].id)|list|length > 0 and (show.favorite_users|selectattr("user_id","equalto",cur_mark["user"].id)|list)[0].star_type != None %}
-						<i class="fa fa-star {{ (show.favorite_users|selectattr("user_id","equalto",cur_mark["user"].id)|list)[0].star_type }} " id="favorite_{{ cur_mark["user"].id }}"></i>
-					{% endif %}
-					{% if cur_mark["homework_who"] %}
-						<img src="{{ config.AVATARS_URL}}{{  cur_mark["homework_who"].avatar }}" height="30" width="30" alt="homework_avatar" class="avatar img-circle"/>
-					{% endif %}
-					<div class="pull-right">
-					      <span class="label label-default pull-right comment_number"><i class="glyphicon glyphicon-comment"></i><span id="comment_number_text_{{ cur_mark["user"].id }}">{{ cur_mark["mark_comments"]|length }}</span></span>
-					</div>
-				</h4>
-				<p>
-				{% if cur_mark["comment"] != None %}
-					{{ cur_mark["comment"]|safe }}
-				{% else %}
-					N/A
-				{% endif %}
-				</p>
-				<div class="comment_toolbar" id="comment_toolbar_{{ cur_mark["user"].id }}" style="display:none;">
-					{% if cur_mark["mark"] != None and cur_mark["mark"] != "homework_in_progress" %}
-						{% if not g.user.is_guest %}
-							<div class="input-group comment_form" id="comment_form_{{ cur_mark["user"].id }}"> 
-							    <input class="form-control comment_text" placeholder="Réagir sur la note de {{ cur_mark["user"].nickname }}" type="text" id="comment_text_{{ cur_mark["user"].id }}">
-							    <span class="input-group-addon">
-								<a class="post_comment" id="comment_link_{{ cur_mark["user"].id }}" href="#"><i class="fa fa-edit"></i></a>
-							    </span>
-							</div>
-						{% endif %}
-					{% else %}
-						{% if not g.user.is_guest %}
-							<i>Pas de commentaire possible</i>
-						{% else %}
-							<i>Pas de commentaire</i>
-						{% endif %}
-					{% endif %}
-					{% for cur_comment in cur_mark["mark_comments"] %}
-					<div class="media media_comment" id="media_comment_{{ cur_comment.markcomment_id }}" style="background-color:#{{ cur_comment.user.graph_color }}">
-						<div class="media-left">
-						    <img src="{{ config.AVATARS_URL}}{{ cur_comment.user.avatar }}" class="img-circle avatar" alt="user profile image">
-						</div>
-						<div class="media-body">
-							<h4 class="media-heading">{{ cur_comment.user.nickname }}
-								<small><i>{{ cur_comment.posted_when.strftime("%d/%m/%Y - %H:%M:%S") }}</i></small>
-							</h4>
-							<div class="comment_edit_group" id="comment_edit_group_{{cur_comment.markcomment_id}}">
-								<div class="comment_nonedit_text" id="comment_nonedit_text_{{cur_comment.markcomment_id}}">
-									{{ cur_comment.message }}
-								</div>
-								<div class="input-group comment_edit_form" id="comment_edit_form_{{ cur_comment.markcomment_id }}" style="display:none;width:99%"> 
-								    <input class="form-control comment_edit_text" value="{{ cur_comment.message }}" type="text" id="comment_edit_text_{{ cur_comment.markcomment_id }}">
-								    <span class="input-group-addon">
-									<a class="post_comment comment_edit_link" id="comment_edit_link_{{ cur_comment.markcomment_id }}" href="#"><i class="fa fa-edit"></i></a>
-								    </span>
-								</div>
-							{% if g.user.id == cur_comment.user_id and not g.user.is_guest %}
-							<div class="comment_tools" id="comment_tools_{{cur_comment.markcomment_id}}">
-								<a href="#" class="btn btn-primary btn-sm edit_comment" id="edit_comment_{{ cur_comment.markcomment_id }}"><span class="glyphicon glyphicon-edit"></span> Editer</a>
-								<a href="#" class="btn btn-danger btn-sm delete_comment" id="delete_comment_{{ cur_comment.markcomment_id }}"><span class="glyphicon glyphicon-trash"></span> Supprimer</a>
-							</div> 
-							{% endif %}
-							</div>
-						</div>
-					</div>
-					{% endfor %}
-				</div>
-			</div>
-			<div class="media-right">
-		            <a href="#" class="display_link" id="display_link_{{ cur_mark["user"].id }}">
-				<span class="fa-stack">
-	  				<i class="fa fa-square fa-stack-2x fa-bg-white"></i>
-					<i class="display_button fa fa-plus-square fa-stack-2x display" id="display_icon_{{ cur_mark["user"].id }}" aria-hidden="true"></i>
-				</span>
-		  	    </a>
-			</div>
-		</div>
-		{% endfor %}
-	{% endif %}
-	</div>
-
-
-        <script>
-	$(document).ready(function(){
-
-	    // Callback that display the posted comment
-	    function display_comment(data) {
-
-		// If the server detected an empty message
-		// Display an error but not the comment
-		if (data.error != null) {
-			var new_comment = "<div class='alert alert-danger modal-dialog text-center'>"
-				+ data.error
-				+ "</div>"
-		}
-		else {
-
-			// Create the div block for inserting the comment	
-			var new_comment = "<div class='media media_comment' style='background-color:#{{ g.user.graph_color }};' id='media_comment_" + data.mark_comment.markcomment_id + "'>"
-				+ "<div class='media-left'>"
-				+ "<img src='{{ config.AVATARS_URL}}{{ g.user.avatar }}' class='img-circle avatar' alt='user profile image'>"
-				+ "</div>"
-				+ "<div class='media-body'>"
-				+ "<h4 class='media-heading'>" + data.user.nickname
-				+ "<small><i> " + data.mark_comment.posted_when + "</i></small></h4>"
-				+ "<div class='comment_edit_group' id='comment_edit_group_" + data.mark_comment.markcomment_id + "'>"
-				+ "<div class='comment_nonedit_text' id='comment_nonedit_text_" + data.mark_comment.markcomment_id + "'>" + data.mark_comment.message +"</div>"
-				+ "<div class='input-group comment_edit_form' id='comment_edit_form_" + data.mark_comment.markcomment_id +"' style='display:none;width:99%'>"
-   			        + "<input class='form-control comment_edit_text' value='" + data.mark_comment.message.replace(/\'/g,"&#39;") + "' type='text' id='comment_edit_text_" + data.mark_comment.markcomment_id + "'>"
-			        + "<span class='input-group-addon'>"
-				+ "<a class='post_comment comment_edit_link' id='comment_edit_link_" + data.mark_comment.markcomment_id + "' href='#'><i class='fa fa-edit'></i></a>"
-			        + "</span>"
-				+ "</div>"
-				+ "<div class='comment_tools' id='comment_tools_" + data.mark_comment.markcomment_id + "'>"
-				+ "<a href='#' class='btn btn-primary btn-sm edit_comment' id='edit_comment_" + data.mark_comment.markcomment_id + "'><span class='glyphicon glyphicon-edit'></span> Editer</a>"
-				+ "<a href='#' class='btn btn-danger btn-sm delete_comment' id='delete_comment_" + data.mark_comment.markcomment_id + "'><span class='glyphicon glyphicon-trash'></span> Supprimer</a>"
-				+ "</div>"
-				+ "</div></div>"
-		}
-
-		// Insert the element
-		if (data.error != null) {
-			$(new_comment).insertAfter('#comment_form_' + data.mark_comment.mark_user_id ).hide().slideDown("slow").delay(1000).fadeTo(500,0).slideUp("slow");
-		}
-		else {
-			$(new_comment).insertAfter('#comment_form_' + data.mark_comment.mark_user_id ).hide().slideDown("slow");
-		}
-
-		// Update the comment number
-		$("#comment_number_text_" + data.mark_comment.mark_user_id).text(data.mark_comment_number)
-
-		// Reset the comment text input field
-		$(".comment_text").val("")
-		};
-
-	    // Function that update the comment
-	    function update_comment(data) {
-
-		// Insert the element
-		if (data.error == null) {
-
-			// Update the comment number
-			$("#comment_number_text_" + data.mark_comment.mark_user_id).text(data.mark_comment_number)
-
-			// Do some stuff if we did a delete operation
-			if (data.operation == "comments.delete_mark_comment") {
-
-				// And then delete the buttons since we can't edit or delete the comment anymore
-				$("#media_comment_" + data.mark_comment.markcomment_id).delay(2000).slideUp("slow", function() {
-					$(this).remove()
-				});
-			}
-			// Do some stuff if we did an edit operation
-			else if (data.operation == "comments.edit_mark_comment") {
-
-
-				// Hide the form and display the comment (Don't do it with toggle Not working :( )
-				$("#comment_nonedit_text_" + data.mark_comment.markcomment_id ).show()
-				$("#comment_edit_form_" + data.mark_comment.markcomment_id).hide()
-				$("#comment_tools_" +  data.mark_comment.markcomment_id).show()
-			}
-
-			// This code allows making a transition fadeOut/Fade in on text update 
-			$("#comment_nonedit_text_" + data.mark_comment.markcomment_id).fadeOut(function() {
-				$(this).text(data.mark_comment.message).fadeIn()
-			});
-
-		}
-		else {
-			// Let's display an alert
-			var error_message = "<div class='alert alert-danger modal-dialog text-center'>"
-				+ data.error
-				+ "</div>"
-
-			$(error_message).insertAfter('#comment_tools_' + data.markcomment_id).hide().slideDown("slow").delay(1000).fadeTo(500,0).slideUp("slow");
-		}
-
-	    }
-
-	    // Function that buils the AJAX Request
-	    // and send the comment to the server side
-	    function send_comment(type,obj) {
-
-		// Let's extract the user id from the link id
-		var user = $(obj).attr("id").replace("comment_" + type + "_","")
-
-		// Fetch the comment text
-		var comment_text = $("#comment_text_" + user).val()
-
-		// Let's send the comment
-		$.post(
-			"{{ url_for('comments.add_mark_comment') }}",
-			{ 
-				 comment : comment_text,
-				 show_id: {{ show.id }},
-				 dest_user: user
-			},
-				 display_comment
-		);
-     	    };
-
-	    // Function triggered when we want to edit a comment
-	    function edit_comment(type,obj) {
-
-		// Let's extract the comment id from the link_id
-		var comment_id = obj.attr("id").replace("comment_edit_" + type + "_","")
-
-		// Fetch the text
-		var comment_text = $("#comment_edit_text_" + comment_id).val()
-
-		// Let's send the request for deleting the comment
-		$.post(
-			"{{ url_for('comments.edit_mark_comment') }}",
-			{ 
-				comment_id: comment_id,
-				comment_text: comment_text,
-			},	update_comment
-		);
-
-		// Echap is pressed
-                if(e.keyCode == 27){ 
-			$("#comment_edit_group_" + comment_id +">div").toggle()
-		}
-	    }
-
-	    // Send comment if we click on the edit button	
-	    $('.post_comment').click(function (e) {
-
-		// Disable anchor behaviour in order to avoid to go back on the top of the page
-		e.preventDefault()
-
-		// Send comment
-		send_comment("link",$(this))
-
-            }); 
-
-            // Message send from the input field when enter key is pressed
-            $('.comment_text').on('keypress', function (e) {
-
-                 if(e.which == 13){
-
-			// Let's send the comment
-			send_comment("text",$(this))
-                }
-            });
-
-	    // Display/Hide comment individually
-	    $(".display_link").click(function (e) {
-
-		// Disable anchor behaviour in order to avoid to go back on the top of the page
-		e.preventDefault()
-
-		// Let's extract the user id from the display button
-		var user = $(this).attr("id").replace("display_link_","")
-
-		if ($("#display_icon_" + user).hasClass("fa-minus-square")) {
-			$("#display_icon_" + user).addClass("fa-plus-square").removeClass("fa-minus-square")
-			$("#comment_toolbar_" + user).slideUp()
-		} else if ($("#display_icon_" + user).hasClass("fa-plus-square")) {
-			$("#display_icon_" + user).addClass("fa-minus-square").removeClass("fa-plus-square")
-			$("#comment_toolbar_" + user).slideDown()
-		}
-		});
-
-	    // Display/Hide all comments
-	    $("#display_all_button").click(function (e) {
-
-		// Disable anchor behaviour in order to avoid to go back on the top of the page
-		e.preventDefault()
-
-		if ($("#display_all_icon").hasClass("fa-minus-square")) {
-			$("#display_all_icon").addClass("fa-plus-square").removeClass("fa-minus-square")
-			$(".display_button").addClass("fa-plus-square").removeClass("fa-minus-square")
-			$("#display_all_text").text("Montrer Tout")
-			$(".comment_toolbar").slideUp()
-		} else if ($("#display_all_icon").hasClass("fa-plus-square")) {
-			$("#display_all_icon").addClass("fa-minus-square").removeClass("fa-plus-square")
-			$(".display_button").addClass("fa-minus-square").removeClass("fa-plus-square")
-			$(".comment_toolbar").slideDown()
-			$("#display_all_text").text("Cacher Tout")
-		}
-		});
-
-	    // Comment deletion requested (fn.on is used in order to be able to trigger dynamically created elements)
-	    $(document).on('click','.delete_comment',function (e) {
-
-		// Disable anchor behaviour in order to avoid to go back on the top of the page
-		e.preventDefault()
-
-		// Let's extract the comment id from the link_id
-		var comment_id = $(this).attr("id").replace("delete_comment_","")
-
-		// Let's send the request for deleting the comment
-		$.post(
-			"{{ url_for('comments.delete_mark_comment') }}",
-			{ 
-				comment_id: comment_id
-			},	update_comment
-		);
-
-	    });
-
-	    // Edit comment requested ==> Display the form block
-	    $(document).on('click','.edit_comment',function (e) {
-
-		// Disable anchor behaviour in order to avoid to go back on the top of the page
-		e.preventDefault()
-
-		// Let's extract the comment id from the link_id
-		var comment_id = $(this).attr("id").replace("edit_comment_","")
-
-		// Hide all edit boxes before showing the good one
-		$(".comment_nonedit_text").show()
-		$(".comment_edit_form").hide()
-		$(".comment_tools").show()
-
-		// Display the edit form for the current comment and hide all others
-		$("#comment_nonedit_text_" + comment_id).hide()
-		$("#comment_edit_form_" + comment_id).show()
-		$("#comment_tools_" + comment_id).hide()
-
-		// Set the focus on the input box
-		$("#comment_edit_text_" + comment_id).focus()
-		
-            });
-
-
-	    // Edit comment if we press enter
-	    $(document).on('keyup','.comment_edit_text',function (e) {
-
-		 // Enter is pressed
-                 if(e.keyCode == 13){
-			edit_comment("text",$(this))
-
-                }
-            });
-
-	    // Edit comment if we click on the edit button	
-	    $('.comment_edit_link').click(function (e) {
-
-		// Disable anchor behaviour in order to avoid to go back on the top of the page
-		e.preventDefault()
-
-		// Send comment
-		edit_comment("link",$(this))
-
-            }); 
-
-	    // Set or unset favorite show
-	    $(document).on('click','.list_star',function (e) {
-
-		if ($(this).attr("id") != "empty_star" ) {
-
-			// We want to set a favorite level
-			$.post(
-				"{{ url_for('favorites.set_favorite_show',show=show.id,user=g.user.id) }}",
-				{ "star_type": $(this).attr("id") },
-				function(data) { favorite_update(data,"set") }
-			);
-		}
-		else {
-
-			// We want to remove the favorite level
-			$.get(
-				"{{ url_for('favorites.delete_favorite_show',show=show.id,user=g.user.id) }}",
-				function(data) { favorite_update(data,"delete") }
-			);
-		}
-            }); 
-
-	    // Favorite update function
-	    function favorite_update(data,event) {
-		var favorite_message = '<div class="msg-alert alert alert-' + data.status +' modal-dialog text-center">'
-				     + '<button type="button" class="close" data-dismiss="alert" aria-label="Close">'
-			  	     + '<span aria-hidden="true">&times;</span>'
-				     + '</button>'
-				     + data.message 
-			             + '</div>'
-
-		// Display the alert box
-		$(favorite_message).insertBefore('#show_navbar').hide().slideDown("slow").delay(1000).fadeTo(500,0).slideUp("slow");
-
-		// Change the star display only if the transaction is a success
-		if (data.status == "success") {
-			if (event == "set") {
-	
-				// Fill the star and update the label
-				$("#star_icon").removeClass().addClass("fa fa-star fa-2x " + data.star_type.star_type)
-				$("#star_label").removeClass().addClass(data.star_type.star_type).text(data.star_type.star_message)
-
-				// Remove the star from the mark and add the new one
-				$("#favorite_{{ g.user.id }}").remove()
-
-				var star_html = '<i class="fa fa-star ' + data.star_type.star_type + '" id="favorite_{{ g.user.id }}"></i>'
-				$(star_html).insertAfter("#seen_when_{{ g.user.id }}")
-			}
-			else if (event == "delete") {
-
-				// Empty the star and update the label
-				$("#star_icon").removeClass().addClass("fa fa-2x nofavorite_star fa-star-o")
-				$("#star_label").removeClass().addClass("nofavorite_star").text("Pas de favori")
-
-				// Remove the star from the mark
-				$("#favorite_{{ g.user.id }}").remove()
-			}
-
-		}
-	    }
-	});
-	</script>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if can_comment %}
+      <div class="composer" id="comment_form_{{ u.id }}">
+        <span class="ava">{{ g.user.nickname[0]|upper }}{% if g.user.avatar %}<img src="{{ config.AVATARS_URL }}{{ g.user.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
+        <label class="composer-input">
+          <input class="comment_text" type="text" placeholder="Réagir sur la note de {{ u.nickname }}…" id="comment_text_{{ u.id }}">
+          <button type="button" class="send post_comment" id="comment_link_{{ u.id }}">↵ Envoyer</button>
+        </label>
+      </div>
+      {% endif %}
+    </div>
+  </article>
+  {% endfor %}
+</section>
+{% endif %}
+
+{# ===========================================================================
+   JS — comments AJAX + favorite toggle + toggle thread
+   Endpoints unchanged from legacy: comments.add_mark_comment / edit / delete,
+   favorites.set_favorite_show / delete_favorite_show.
+   =========================================================================== #}
+<script>
+$(document).ready(function() {
+
+  /* -------- favorite menu open/close -------- */
+  var $favBtn = $('#fav-btn');
+  $favBtn.on('click', function (e) {
+    if ($(e.target).closest('.fav-menu').length) return;
+    e.preventDefault();
+    $favBtn.toggleClass('is-open');
+  });
+  $(document).on('click', function (e) {
+    if (!$(e.target).closest('#fav-btn').length) $favBtn.removeClass('is-open');
+  });
+
+  /* -------- favorite set/delete (AJAX) -------- */
+  function favoriteUpdate(data, action) {
+    if (data.status === 'success') {
+      var $tag = $('#fav-tag');
+      if (action === 'set') {
+        $favBtn.attr('data-star-type', data.star_type.star_type).removeClass('is-empty');
+        $tag.text(data.star_type.star_message);
+      } else {
+        $favBtn.attr('data-star-type', '').addClass('is-empty');
+        $tag.text('Pas de favori');
+      }
+    }
+    $favBtn.removeClass('is-open');
+  }
+  $favBtn.on('click', '.fav-menu a', function (e) {
+    e.preventDefault();
+    var starType = $(this).data('star');
+    if (starType) {
+      $.post(
+        "{{ url_for('favorites.set_favorite_show', show=show.id, user=g.user.id) if not g.user.is_guest else '#' }}",
+        { star_type: starType },
+        function (data) { favoriteUpdate(data, 'set'); }
+      );
+    } else {
+      $.get(
+        "{{ url_for('favorites.delete_favorite_show', show=show.id, user=g.user.id) if not g.user.is_guest else '#' }}",
+        function (data) { favoriteUpdate(data, 'delete'); }
+      );
+    }
+  });
+
+  /* -------- comment-count pill: toggle thread collapse on its review -------- */
+  $('.comment-count').on('click', function (e) {
+    e.preventDefault();
+    var uid = $(this).data('review-id');
+    $('#review_' + uid).toggleClass('is-collapsed');
+  });
+
+  $('#display_all_button').on('click', function (e) {
+    e.preventDefault();
+    var anyCollapsed = $('.review.is-collapsed').length > 0;
+    if (anyCollapsed) {
+      $('.review').removeClass('is-collapsed');
+      $(this).text('− Tout replier');
+    } else {
+      $('.review').addClass('is-collapsed');
+      $(this).text('+ Tout déplier');
+    }
+  });
+
+  /* -------- post a sub-comment -------- */
+  function renderSubcomment(data) {
+    var nick = data.user.nickname;
+    var initial = nick.charAt(0).toUpperCase();
+    var avaSrc = data.user.avatar ? "{{ config.AVATARS_URL }}" + data.user.avatar : null;
+    var avaImg = avaSrc ? '<img src="' + avaSrc + '" alt="" onerror="this.remove()">' : '';
+    var isMine = data.user.id === {{ g.user.id if g.user.is_authenticated else 0 }};
+    var safeMsg = String(data.mark_comment.message).replace(/'/g, '&#39;');
+    var cid = data.mark_comment.markcomment_id;
+    var classes = 'subcomment ' + (isMine ? 'is-mine user-mine ' : '') + 'user-' + data.user.id;
+    var editForm = '<div class="comment_edit_form" id="comment_edit_form_' + cid + '" style="display:none;">'
+                 + '<input class="text editing comment_edit_text" type="text" value="' + safeMsg + '" id="comment_edit_text_' + cid + '">'
+                 + '<a class="edit-save post_comment comment_edit_link" id="comment_edit_link_' + cid + '" title="Enregistrer">↵</a>'
+                 + '<a class="edit-cancel cancel_edit" data-comment-id="' + cid + '" title="Annuler">✕</a>'
+                 + '</div>';
+    var tools = '';
+    if (isMine) {
+      tools = '<div class="tools comment_tools" id="comment_tools_' + cid + '">'
+            + '<a class="edit_comment" id="edit_comment_' + cid + '"><i class="fa-solid fa-pen"></i> Éditer</a>'
+            + '<a class="delete delete_comment" id="delete_comment_' + cid + '"><i class="fa-solid fa-trash"></i> Supprimer</a>'
+            + '</div>';
+    }
+    return '<div class="' + classes + '" id="media_comment_' + cid + '">'
+         +   '<span class="ava">' + initial + avaImg + '</span>'
+         +   '<div class="body comment_edit_group" id="comment_edit_group_' + cid + '">'
+         +     '<div class="meta">'
+         +       '<span class="who">' + nick + '</span>'
+         +       '<span class="when">' + data.mark_comment.posted_when + '</span>'
+         +     '</div>'
+         +     '<div class="text comment_nonedit_text" id="comment_nonedit_text_' + cid + '">' + data.mark_comment.message + '</div>'
+         +     editForm
+         +     tools
+         +   '</div>'
+         + '</div>';
+  }
+
+  function display_comment(data) {
+    if (data.error) {
+      // Show transient error banner above the composer
+      var err = '<div class="flash danger" style="margin-bottom: 10px;">' + data.error + '</div>';
+      var ownerUid = (data.mark_comment && data.mark_comment.mark_user_id) || '';
+      var $form = $('#comment_form_' + ownerUid);
+      $(err).insertBefore($form).hide().slideDown('slow').delay(2000).slideUp('slow', function () { $(this).remove(); });
+      return;
+    }
+    var $thread = $('#comment_toolbar_' + data.mark_comment.mark_user_id);
+    var $list = $thread.find('.thread-list');
+    if ($list.length === 0) {
+      // First comment in this thread — create the list at the top of the thread.
+      $list = $('<div class="thread-list"></div>').prependTo($thread);
+    }
+    var html = renderSubcomment(data);
+    $list.append($(html).hide());
+    $list.children().last().slideDown('slow');
+    // Update count badge
+    $('#comment_number_text_' + data.mark_comment.mark_user_id).text(data.mark_comment_number);
+    // Reset all comment input fields (matches legacy behavior)
+    $('.comment_text').val('');
+  }
+
+  function update_comment(data) {
+    if (data.error) {
+      // Show transient error in place of the comment tools
+      var err = '<div class="flash danger" style="margin-top:6px;">' + data.error + '</div>';
+      var $tools = $('#comment_tools_' + data.markcomment_id);
+      $(err).insertAfter($tools).hide().slideDown('slow').delay(2000).slideUp('slow', function () { $(this).remove(); });
+      return;
+    }
+    $('#comment_number_text_' + data.mark_comment.mark_user_id).text(data.mark_comment_number);
+
+    if (data.operation === 'comments.delete_mark_comment') {
+      $('#media_comment_' + data.mark_comment.markcomment_id).delay(800).slideUp('slow', function () {
+        $(this).remove();
+      });
+    } else if (data.operation === 'comments.edit_mark_comment') {
+      // Smooth fade transition on the updated text (mirrors legacy)
+      $('#comment_nonedit_text_' + data.mark_comment.markcomment_id).fadeOut(function () {
+        $(this).text(data.mark_comment.message).fadeIn();
+      });
+      $('#comment_edit_form_' + data.mark_comment.markcomment_id).hide();
+      $('#comment_tools_' + data.mark_comment.markcomment_id).show();
+    }
+  }
+
+  function send_comment(type, $obj) {
+    var user = $obj.attr('id').replace('comment_' + type + '_', '');
+    var text = $('#comment_text_' + user).val();
+    $.post(
+      "{{ url_for('comments.add_mark_comment') }}",
+      { comment: text, show_id: {{ show.id }}, dest_user: user },
+      display_comment
+    );
+  }
+
+  function edit_comment(type, $obj) {
+    var commentId = $obj.attr('id').replace('comment_edit_' + type + '_', '');
+    var text = $('#comment_edit_text_' + commentId).val();
+    $.post(
+      "{{ url_for('comments.edit_mark_comment') }}",
+      { comment_id: commentId, comment_text: text },
+      update_comment
+    );
+  }
+
+  $(document).on('click', '.post_comment', function (e) {
+    e.preventDefault();
+    send_comment('link', $(this));
+  });
+  $(document).on('keypress', '.comment_text', function (e) {
+    if (e.which === 13) { e.preventDefault(); send_comment('text', $(this)); }
+  });
+  $(document).on('click', '.delete_comment', function (e) {
+    e.preventDefault();
+    var commentId = $(this).attr('id').replace('delete_comment_', '');
+    $.post(
+      "{{ url_for('comments.delete_mark_comment') }}",
+      { comment_id: commentId },
+      update_comment
+    );
+  });
+  function exitEditMode() {
+    $('.comment_nonedit_text').show();
+    $('.comment_edit_form').hide();
+    $('.comment_tools').show();
+  }
+
+  $(document).on('click', '.edit_comment', function (e) {
+    e.preventDefault();
+    var commentId = $(this).attr('id').replace('edit_comment_', '');
+    exitEditMode();
+    $('#comment_nonedit_text_' + commentId).hide();
+    $('#comment_edit_form_' + commentId).show();
+    $('#comment_edit_text_' + commentId).focus();
+    $('#comment_tools_' + commentId).hide();
+  });
+
+  /* Cancel edit — revert without saving */
+  $(document).on('click', '.cancel_edit', function (e) {
+    e.preventDefault();
+    var commentId = $(this).data('comment-id');
+    var $input = $('#comment_edit_text_' + commentId);
+    var $orig = $('#comment_nonedit_text_' + commentId);
+    if ($input.length) $input.val($orig.text());
+    exitEditMode();
+  });
+
+  $(document).on('click', '.comment_edit_link', function (e) {
+    e.preventDefault();
+    edit_comment('link', $(this));
+  });
+  $(document).on('keyup', '.comment_edit_text', function (e) {
+    if (e.keyCode === 13) edit_comment('text', $(this));
+  });
+});
+</script>
 {% endblock %}

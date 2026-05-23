@@ -1,341 +1,422 @@
 {% extends "base.html" %}
 {% block content %}
-	<div class="container" id="dashboard">
-		<div class="row">
-            <h1 class="text-center">{{ g.messages["label_dashboard"] }}</h1>
-			<div class="col-md-4">
-				<div class="panel panel-default">
-					  <div class="panel-heading text-center">Moyenne</div>
-					  <div class="panel-body text-center">
-						<div id="average">{{ stats_dict[g.user.id]["avg"] }}</div>
-						<br/>
-						  <div>
-							<table class="table table-vertical">
-								{% for cur_avg in stats_dict %}
-								{% if g.user.id != cur_avg %}
-								<tr>
-									<td class="text-right"><img src="{{ config.AVATARS_URL}}{{ stats_dict[cur_avg]["user"].avatar }}" width="30" height="30" class="avatar img-circle" alt="avatar"></td>
-									<td class="text-left">{{ stats_dict[cur_avg]["user"].nickname }}</td>
-									<td class="text-left"> {{ stats_dict[cur_avg]["avg"] }}</td>
-								</tr>
-								{% endif %}
-								{% endfor %}
-							</table>
-						  </div>
-					  </div>
+	<header class="page-head wide">
+	  <div>
+	    <h1>{{ g.messages["label_dashboard"] }}</h1>
+	  </div>
+	</header>
+
+	<main class="dash" id="dashboard">
+
+		<section class="row-top">
+
+			{# Panel 1 — Moyenne #}
+			<article class="card">
+				<header class="card-head">
+					<div class="titles">
+						<span class="eyebrow">Tendance personnelle</span>
+						<h2>Moyenne</h2>
+					</div>
+				</header>
+				<div class="card-body">
+					<div class="you-block">
+						<span class="ava-big" style="background:{{ g.user.theme_color }};">{{ g.user.nickname[0]|upper }}</span>
+						<span class="col"><span class="me">{{ g.user.nickname }}</span></span>
+						<span class="big" id="average">{{ stats_dict[g.user.id]["avg"] }}</span>
+					</div>
+					<div class="others-head">Les autres</div>
+					<div class="others">
+						{% for cur_avg in stats_dict %}
+						{% if g.user.id != cur_avg %}
+						<div class="row">
+							<span class="ava" style="background:{{ stats_dict[cur_avg]["user"].theme_color }};">{{ stats_dict[cur_avg]["user"].nickname[0]|upper }}</span>
+							<span class="who"><span class="name">{{ stats_dict[cur_avg]["user"].nickname }}</span></span>
+							<span class="v" style="color:{{ stats_dict[cur_avg]["user"].theme_color }};">{{ stats_dict[cur_avg]["avg"] }}</span>
+						</div>
+						{% endif %}
+						{% endfor %}
+					</div>
 				</div>
-			</div>
-			<div class="col-md-4">
-				<div class="panel panel-default">
-                        <div class="panel-heading text-center">{{ g.messages["label_show_type_number"] }}</div>
-					  <div class="panel-body text-center" id="shows">
-							<div class="split">{{ general_stats["shows"] }}</div>
-					  </div>
-				</div>
-			</div>
-			<div class="col-md-4">
-				<div class="panel panel-default">
-                        <div class="panel-heading text-center">{{ g.messages["label_show_type_seen_number"] }}</div>
-					  <div class="panel-body text-center">
-							<div>
-                                {% if g.show_type == "movie" %}
-					  			<div id="seenmovies"> {{ stats_dict[g.user.id]["shows_total"] }}</div>
-							     <div><span id="theaters">Ciné :{{ stats_dict[g.user.id]["shows_theaters"] }} </span> / <span id="home">Maison : {{ stats_dict[g.user.id]["shows_home"] }}</span></div>
-                                {% elif g.show_type == "tvshow" %}
-					  			<div id="seentvshows"> {{ stats_dict[g.user.id]["shows_total"] }}</div>
-                                {% elif g.show_type == "videogame" %}
-					  			<div id="seenvideogames"> {{ stats_dict[g.user.id]["shows_total"] }}</div>
-                                {% endif %}
+			</article>
+
+			{# Panel 2 — Catalogue (single big metric) #}
+			<article class="card amber">
+				<header class="card-head">
+					<div class="titles">
+						<span class="eyebrow">Catalogue partagé</span>
+						<h2>{{ g.messages["label_show_type_number"] }}</h2>
+					</div>
+				</header>
+				<div class="card-body" id="shows">
+					<div class="cata-split">
+						<div class="cata">
+							<div class="cata-stat">
+								<span class="num">{{ general_stats["shows"] }}</span>
+								<span class="lbl">fiches en base</span>
 							</div>
-							<br/>
-							<div>
-								<table class="table table-vertical">
-									{% for cur_avg in stats_dict %}
-									{% if g.user.id != cur_avg %}
-									<tr>
-										<td class="text-right"><img src="{{ config.AVATARS_URL}}{{ stats_dict[cur_avg]["user"].avatar }}" width="30" height="30" class="avatar img-circle" alt="avatar"></td>
-										<td class="text-left">{{ stats_dict[cur_avg]["user"].nickname }}</td>
-                                        {% if g.show_type == "movie" %}
-										<td class="text-right"><span id="seenshows_small">{{ stats_dict[cur_avg]["shows_total"] }}</span> ( <span id="theaters_small">{{ stats_dict[cur_avg]["shows_theaters"] }}</span> / <span id="home_small">{{ stats_dict[cur_avg]["shows_home"] }}</span> ) </td>
-                                        {% elif g.show_type == "tvshow" %}
-										<td class="text-left"><span id="seentvshows_small">{{ stats_dict[cur_avg]["shows_total"] }}</span></td>
-                                        {% elif g.show_type == "videogame" %}
-										<td class="text-left"><span id="seenvideogames_small">{{ stats_dict[cur_avg]["shows_total"] }}</span></td>
-                                        {% endif %}
-
-									</tr>
-									{% endif %}
-									{% endfor %}
-								</table>
-					 		</div>
-
-					  </div>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div class="container-fluid">
-		<div class="row">	
-			<div class="col-md-6" id="graphs">
-				<div class="panel panel-default" id="graph_1">
-					  <div class="panel-heading text-center">
-						  <button value="{{ g.cur_date.year - 1 }}"  class="glyphicon glyphicon-menu-left year_nav_left" aria-hidden="true"></button>
-                          <span>{{ g.messages["label_show_type_seenby"] }} </span><span>{{ dashboard_graph_form.user_list(class="user_list",id="user_list_canvas_1") }}</span><span> en </span><span class="graph_cur_year" id="graph_cur_year_canvas_1">{{cur_year}}</span>
-						  <button value="{{ g.cur_date.year +1 }}" class="glyphicon glyphicon-menu-right year_nav_right" aria-hidden="true"></button>
-							<a href="#" id="new_graph">
-								<span class="fa-stack pull-right" id="span_new_graph">
-									<i class="fa fa-square fa-stack-2x fa-bg-white"></i>
-									<i class="display_button fa fa-plus-square fa-stack-2x display" aria-hidden="true"></i>
+							<div class="cata-stat">
+								<span class="num">{{ stats_dict[g.user.id]["shows_total"] }}</span>
+								<span class="lbl">notées par toi · <span class="pct">{% if general_stats["shows"] %}{{ (stats_dict[g.user.id]["shows_total"] * 100 // general_stats["shows"]) }}{% else %}0{% endif %} %</span></span>
+							</div>
+							<div class="cata-stat">
+								<span class="num">{{ general_stats["shows_marked"] }}</span>
+								<span class="lbl">vues par le groupe · <span class="pct">{% if general_stats["shows"] %}{{ (general_stats["shows_marked"] * 100 // general_stats["shows"]) }}{% else %}0{% endif %} %</span></span>
+							</div>
+						</div>
+						{% if suggestion %}
+						<a class="cata-suggestion" href="{{ url_for('show.display_show', show_type=g.show_type, show_id=suggestion.id) }}">
+							<div class="poster-placeholder" aria-hidden="true">
+								{% if g.show_type == "movie" %}<i class="fa-solid fa-film"></i>
+								{% elif g.show_type == "tvshow" %}<i class="fa-solid fa-tv"></i>
+								{% elif g.show_type == "videogame" %}<i class="fa-solid fa-gamepad"></i>
+								{% endif %}
+							</div>
+							{% if suggestion.poster_path %}
+							<img class="cata-suggestion-poster" src="{{ config.POSTERS_URL }}{{ suggestion.poster_path }}" alt="{{ suggestion.name }}" onerror="this.style.display='none'">
+							{% endif %}
+							<div class="cata-suggestion-overlay">
+								<span class="cata-suggestion-head">À voir</span>
+								<span class="title">{{ suggestion.name }}</span>
+								<span class="meta">
+									{% if suggestion.director %}<span class="director">de {{ suggestion.director }}</span>{% endif %}
+									{% if suggestion.release_date %}<span class="year">· {{ suggestion.release_date.year }}</span>{% endif %}
 								</span>
-							</a>
-					  </div>
-					  <div class="panel-body">
-						<canvas id="canvas_1" width="200" height="100"></canvas>
-					  </div>
+							</div>
+						</a>
+						{% endif %}
+					</div>
 				</div>
-			</div>
-			<div class="col-md-6">
-				<div class="panel panel-default">
-                        <div class="panel-heading text-center">{{ g.messages["label_activity"] }}</div>
-						<table width="100%" id="activitylist" class="table display">
-							<thead style="display:none;">
-								<tr>
-									<th>Type</th>
-									<th>Activité</th>
-								</tr>
-							</thead>
-						</table>
-				</div>
-			</div>
-		</div>
-	</div>
-	<div>
-<script>
-	$(document).ready(function() {
-		var table=$('#activitylist').DataTable(
-			{ "searching":false,
-			  "stateSave": true,
-			  "ordering": false,
-			  "processing": true,
-			  "serverSide": true,
-			  "paging": false,
-			  "dom": 'rt',
-			  "ajax": {
-				"url": "{{ url_for('main.update_activity_flow') }}",
-				"type" : "POST",
-				"data": function(args) {
-				      return { "args": JSON.stringify( args ) };
-				},
-			  },
-			  "columns" : [
-				{ "data" : "entry_type",
-				  "className": "text-center" },
-				{ "data" : "entry_text",
-				  "className": "text-center" }
-				]
-			}
-		)
-	
-		// Enable popover on table redraw	
-		table.on( 'draw', function () {
-	                    $('[data-toggle="popover"]').popover();
-		} );
+			</article>
 
-		// Scroll to top when pagination is clicked
-		table.on('page.dt', function() {
-		  $('html, body').animate({
-		    scrollTop: $("html").offset().top
-		   }, 'slow');
-		});
-	}
-)
-</script>
+			{# Panel 3 — Vus (you + ciné/maison movie + autres) #}
+			<article class="card teal">
+				<header class="card-head">
+					<div class="titles">
+						<span class="eyebrow">Activité personnelle</span>
+						<h2>{{ g.messages["label_show_type_seen_number"] }}</h2>
+					</div>
+				</header>
+				<div class="card-body">
+					<div class="you-block">
+						<span class="ava-big" style="background:{{ g.user.theme_color }};">{{ g.user.nickname[0]|upper }}</span>
+						<span class="col">
+							<span class="me">{{ g.user.nickname }}</span>
+							{% if g.show_type == "movie" %}
+							<span class="meta"><span id="theaters">{{ stats_dict[g.user.id]["shows_theaters"] }}</span> ciné · <span id="home">{{ stats_dict[g.user.id]["shows_home"] }}</span> maison</span>
+							{% endif %}
+						</span>
+						{% if g.show_type == "movie" %}
+						<span class="big" id="seenmovies">{{ stats_dict[g.user.id]["shows_total"] }}</span>
+						{% elif g.show_type == "tvshow" %}
+						<span class="big" id="seentvshows">{{ stats_dict[g.user.id]["shows_total"] }}</span>
+						{% elif g.show_type == "videogame" %}
+						<span class="big" id="seenvideogames">{{ stats_dict[g.user.id]["shows_total"] }}</span>
+						{% endif %}
+					</div>
+					<div class="others-head">Les autres</div>
+					<div class="others">
+						{% for cur_avg in stats_dict %}
+						{% if g.user.id != cur_avg %}
+						<div class="row">
+							<span class="ava" style="background:{{ stats_dict[cur_avg]["user"].theme_color }};">{{ stats_dict[cur_avg]["user"].nickname[0]|upper }}</span>
+							<span class="who">
+								<span class="name">{{ stats_dict[cur_avg]["user"].nickname }}</span>
+								{% if g.show_type == "movie" %}<span class="meta">{{ stats_dict[cur_avg]["shows_theaters"] }} ciné · {{ stats_dict[cur_avg]["shows_home"] }} maison</span>{% endif %}
+							</span>
+							<span class="v" style="color:{{ stats_dict[cur_avg]["user"].theme_color }};">{{ stats_dict[cur_avg]["shows_total"] }}</span>
+						</div>
+						{% endif %}
+						{% endfor %}
+					</div>
+				</div>
+			</article>
+
+		</section>
+
+		<section class="row-bot">
+
+			{# Graph stack — Chart.js v4 bar chart, replicable via #new_graph #}
+			<div class="graph-stack" id="graphs">
+				<article class="card" id="graph_1">
+					<header class="card-head">
+						<div class="titles">
+							<span class="eyebrow">{{ g.messages["label_show_type_seenby"] }}</span>
+							<h2>Évolution mensuelle</h2>
+						</div>
+						<div class="ctrls">
+							{{ dashboard_graph_form.user_list(class="dash-pill user_list", id="user_list_canvas_1") }}
+							<span class="dash-pill year">
+								<button type="button" class="year_nav_left" value="{{ g.cur_date.year - 1 }}" aria-label="Année précédente">‹</button>
+								<span class="yval graph_cur_year" id="graph_cur_year_canvas_1">{{ cur_year }}</span>
+								<button type="button" class="year_nav_right" value="{{ g.cur_date.year + 1 }}" aria-label="Année suivante">›</button>
+							</span>
+							<a href="#" id="new_graph" class="dash-pill solid">
+								<i class="display_button fa-solid fa-plus" aria-hidden="true"></i>
+								<span class="new-graph-label">Graphique</span>
+							</a>
+						</div>
+					</header>
+					<div class="card-body">
+						<canvas id="canvas_1"></canvas>
+					</div>
+					<footer class="card-foot">
+						{% if g.show_type == "movie" %}
+						<span class="legend"><i class="cine"></i>Cinéma <span class="legend-count" data-key="theaters">—</span></span>
+						<span class="legend"><i class="home"></i>Maison <span class="legend-count" data-key="others">—</span></span>
+						{% else %}
+						<span class="legend"><i class="home"></i>{{ g.messages["label_show_type_lowercase_plural"]|capitalize }} <span class="legend-count" data-key="others">—</span></span>
+						{% endif %}
+					</footer>
+				</article>
+			</div>
+
+			{# Activity — DataTables server-side, entry_text already embeds the avatar span #}
+			<article class="card activity">
+				<header class="card-head">
+					<div class="titles">
+						<span class="eyebrow">Communauté</span>
+						<h2>{{ g.messages["label_activity"] }}</h2>
+					</div>
+				</header>
+				<div class="card-body">
+					<table width="100%" id="activitylist" class="flux">
+						<thead>
+							<tr><th>{{ g.messages["label_activity"] }}</th></tr>
+						</thead>
+					</table>
+				</div>
+			</article>
+
+		</section>
+
+	</main>
+
+<script src="{{ url_for('static', filename='js/activity_flow.js') }}"></script>
 <script>
-	$(document).ready(function(){
-	    $('[data-toggle="popover"]').popover();
+// Activity feed — renderer lives in static/js/activity_flow.js (shared with
+// show_activity_flow.html). The DataTables init below stays page-local because
+// the dashboard card and the full-page feed differ on paging / layout.
+
+$(document).ready(function () {
+	var table = $('#activitylist').DataTable({
+		"searching": false,
+		"stateSave": true,
+		"ordering": false,
+		"processing": true,
+		"serverSide": true,
+		"paging": false,
+		"dom": 'rt',
+		"ajax": {
+			"url": "{{ url_for('main.update_activity_flow') }}",
+			"type": "POST",
+			"data": function (args) { return { "args": JSON.stringify(args) }; }
+		},
+		"columns": [
+			{ "data": null, "className": "act-cell",
+			  "render": function (data, type, row) { return activity_render_node(row); } }
+		]
 	});
-</script>
-<script>
-// Context initialization
-//var ctx = document.getElementById("canvas_main").getContext("2d");
-var json_data = { theaters: {}, others: {} };
+});
+
+// Chart.js v4 — bar chart, stacked for movie (ciné/maison), single dataset otherwise.
 var graphs = {};
-var data;
+
+function canvas_id_for(elem) {
+	return $(elem).closest('.card').find('canvas').attr('id');
+}
 
 function draw_graph(canvas) {
-
-    // Le code a exécuter !
-    $.post(
+	$.post(
 		"{{ url_for('graphs.graph_shows_by_year') }}",
 		{
 			year: $('#graph_cur_year_' + canvas).text(),
 			user: $('#user_list_' + canvas).val()
 		},
-		function(data){ update_graph_display(data,canvas) },
-		"json" 
+		function (data) { update_graph_display(data, canvas); },
+		"json"
 	);
 }
 
+// Chart.js v4 — stacked bar chart styled like the v5 mockup
+// (violet ciné + rose accent maison, rounded top, no grid, no legend).
+// The card-foot legend counts and peak/total stats are computed here too.
+// Month labels come from the controller (abbreviated FR via strftime("%b")).
+// Uppercased here to match the v5 mockup typography.
+var BAR_LABELS = [ {% for cur_label in labels %}"{{ cur_label|upper }}",{% endfor %} ];
 
+function update_graph_display(json_data, canvas_id) {
+	if (graphs[canvas_id] != undefined) graphs[canvas_id].destroy();
 
-function update_graph_display(json_data,canvas_id) {
+	var canvas = document.getElementById(canvas_id);
+	if (!canvas) return;
+	var ctx = canvas.getContext("2d");
 
-	// Destroy the graph if it is already initializes
-	// in order to clear all the previous data
-	if (graphs[canvas_id] != undefined) {
-		graphs[canvas_id].destroy()
-	}
+	var theaters = json_data["theaters"] || [];
+	var others   = json_data["others"]   || [];
 
-	// Create context
-	ctx=document.getElementById(canvas_id).getContext("2d")   
-
-	// Data structure
-	data= { 
-		labels : [ {% for cur_label in labels %} "{{ cur_label }}", {% endfor %} ],
-		datasets : [
-            {% if g.show_type=="movie" %}
-			{
-				fill: true,
-				borderColor : "#C3D9FF",
-				backgroundColor : "#C3D9FF",
-				label: "Ciné",
-				data: json_data["theaters"]
-			},
-			{
-				fill: true,
-				borderColor : "#FF0084",
-				backgroundColor : "#FF0084",
-				label: "Maison",
-				data: json_data["others"]
-			}
-            {% elif g.show_type=="tvshow" %}
-			{
-				fill: true,
-				borderColor : "#FF0084",
-				backgroundColor : "#FF0084",
-				label: "Séries",
-				data: json_data["others"]
-			}
-            {% elif g.show_type=="videogame" %}
-			{
-				fill: true,
-				borderColor : "#FF0084",
-				backgroundColor : "#FF0084",
-				label: "Jeux vidéo",
-				data: json_data["others"]
-			}
-            {% endif %}
-			]
+	var datasets = [
+		{% if g.show_type == "movie" %}
+		{
+			label: "Maison",
+			data: others,
+			backgroundColor: "#b04860",
+			borderColor: "#b04860",
+			borderRadius: { topLeft: 5, topRight: 5, bottomLeft: 0, bottomRight: 0 },
+			borderSkipped: false,
+			barPercentage: 0.95,
+			categoryPercentage: 0.9
+		},
+		{
+			label: "Cinéma",
+			data: theaters,
+			backgroundColor: "#6b3a9e",
+			borderColor: "#6b3a9e",
+			borderRadius: { topLeft: 5, topRight: 5, bottomLeft: 0, bottomRight: 0 },
+			borderSkipped: false,
+			barPercentage: 0.95,
+			categoryPercentage: 0.9
 		}
+		{% else %}
+		{
+			label: {{ g.messages["label_show_type_lowercase_plural"]|tojson }},
+			data: others,
+			backgroundColor: "#b04860",
+			borderColor: "#b04860",
+			borderRadius: 5,
+			borderSkipped: false,
+			barPercentage: 0.95,
+			categoryPercentage: 0.9
+		}
+		{% endif %}
+	];
 
-	// Draw graph
-	graphs[canvas_id]=new Chart(ctx, {
-			type: "bar",
-			data: data,
-		    options: {
+	graphs[canvas_id] = new Chart(ctx, {
+		type: "bar",
+		data: { labels: BAR_LABELS, datasets: datasets },
+		options: {
+			responsive: true,
+			maintainAspectRatio: false,
 			scales: {
-				xAxes: [{
-					stacked: true
-				}],
-				yAxes: [{
-					stacked: true
-			}]
-		    }
+				x: {
+					stacked: true,
+					grid: { display: false, drawBorder: false },
+					border: { display: false },
+					ticks: {
+						font: { family: "Outfit", weight: "900", size: 9.5 },
+						color: "#9a8fa1",
+						padding: 8
+					}
+				},
+				y: {
+					stacked: true,
+					beginAtZero: true,
+					grid: { color: "#e8e2ec", drawBorder: false },
+					border: { display: false },
+					ticks: {
+						font: { family: "Outfit", weight: "500", size: 10 },
+						color: "#9a8fa1",
+						precision: 0
+					}
+				}
+			},
+			plugins: {
+				legend: { display: false },
+				tooltip: {
+					backgroundColor: "#1c1820",
+					titleFont: { family: "Outfit", weight: "900", size: 11 },
+					bodyFont:  { family: "Inter", size: 12 },
+					padding: 10, cornerRadius: 8,
+					displayColors: true
+				}
+			}
 		}
-	    }
-	);
-}
-
-// Show/Hide buttons when needed
-function update_graph_year_nav(cur_button) {
-    if (cur_button.val() > "{{ cur_year }}") {
-		cur_button.hide()
-	}
-	else {
-		cur_button.show()
-	}
-}
-
-// Add new graph on button click
-$("#new_graph").click(function(e) {
-
-	// Disable anchor behaviour in order to avoid to go back on the top of the page
-	e.preventDefault()
-
-	// Clone the graph
-	new_graph=$("#graph_1").clone(true)
-
-	//Replace the plus button by a minus one and update the click button
-	graph_id=Date.now()
-	new_graph.find(".display_button").removeClass("fa-plus-square").addClass("fa-minus-square delete_graph")
-	
-	new_graph.find("#new_graph").off("click").removeAttr("id").on("click",function(e) {
-
-		// Disable anchor behaviour in order to avoid to go back on the top of the page
-		e.preventDefault()
-		
-		// If we fire that event that means we want to remove the current graph
-		$(this).parents(".panel").slideUp("slow", function() {
-			$(this).remove()
-		});
 	});
 
-	// Define a new graph id and update fields
-	new_graph.attr("id","graph_" + graph_id)
-	new_graph.find("#canvas_1").attr("id","canvas_" + graph_id)
-	new_graph.find("#user_list_canvas_1").attr("id","user_list_canvas_" + graph_id).val($("#user_list_canvas_1").val())
-	new_graph.find("#graph_cur_year_canvas_1").attr("id","graph_cur_year_canvas_" + graph_id)
-	
+	// Update footer legend counts and peak/total stats (scoped to this card).
+	var card = canvas.closest('.card');
+	if (!card) return;
 
-	// Draw the graph
-	new_graph.appendTo("#graphs").hide().slideDown("slow")
-	draw_graph("canvas_" + graph_id)
+	var thSum = theaters.reduce(function(a, b){ return a + (b || 0); }, 0);
+	var hoSum = others.reduce(function(a, b){ return a + (b || 0); }, 0);
+	card.querySelectorAll('.legend-count[data-key="theaters"]').forEach(function(e){ e.textContent = thSum; });
+	card.querySelectorAll('.legend-count[data-key="others"]').forEach(function(e){ e.textContent = hoSum; });
+}
+
+// Hide the right year button when we'd jump past the current year.
+function update_graph_year_nav(cur_button) {
+	if (parseInt(cur_button.val()) > {{ cur_year }}) cur_button.hide();
+	else cur_button.show();
+}
+
+// When more than one graph is shown, the left column expands and the
+// activity column keeps its width — see .row-bot.has-extra-graphs in CSS.
+function updateGraphsLayout() {
+	$('.row-bot').toggleClass('has-extra-graphs', $('#graphs > .card').length > 1);
+}
+
+// + Nouveau graphique — clone the card and turn the trigger into a "−" remove button
+$(document).on("click", "#new_graph", function (e) {
+	e.preventDefault();
+	var new_graph = $("#graph_1").clone(true);
+	var graph_id = Date.now();
+
+	new_graph.find(".display_button").removeClass("fa-plus").addClass("fa-minus delete_graph");
+	new_graph.find(".new-graph-label").text("Retirer");
+
+	new_graph.find("#new_graph")
+		.removeAttr("id")
+		.off("click")
+		.on("click", function (e) {
+			e.preventDefault();
+			$(this).closest(".card").slideUp("slow", function () {
+				$(this).remove();
+				updateGraphsLayout();
+			});
+		});
+
+	new_graph.attr("id", "graph_" + graph_id);
+	new_graph.find("#canvas_1").attr("id", "canvas_" + graph_id);
+	new_graph.find("#user_list_canvas_1").attr("id", "user_list_canvas_" + graph_id).val($("#user_list_canvas_1").val());
+	new_graph.find("#graph_cur_year_canvas_1").attr("id", "graph_cur_year_canvas_" + graph_id);
+
+	new_graph.appendTo("#graphs").hide().slideDown("slow");
+	updateGraphsLayout();
+	draw_graph("canvas_" + graph_id);
 });
 
-// Update graph on user change
-$(".user_list").change(function() {
-	canvas_name=($(this).parent().parent().next('div').children('canvas').attr('id'))
+// User dropdown — redraw the card's canvas
+$(document).on("change", ".user_list", function () {
+	draw_graph(canvas_id_for(this));
+});
+
+// Year navigation — left decrements, right increments. The .graph_cur_year
+// is the sibling between the two buttons inside .pill.year.
+$(document).on("click", ".year_nav_left, .year_nav_right", function () {
+	var $btn = $(this);
+	var canvas_name = canvas_id_for(this);
+	var $yval = $btn.siblings(".graph_cur_year");
+	var $left = $btn.siblings(".year_nav_left");
+	var $right = $btn.siblings(".year_nav_right");
+
+	if ($btn.hasClass("year_nav_left")) {
+		$yval.text($btn.val());
+		$btn.val(parseInt($btn.val()) - 1);
+		$right.val(parseInt($right.val()) - 1);
+		update_graph_year_nav($right);
+	} else {
+		$yval.text($btn.val());
+		$btn.val(parseInt($btn.val()) + 1);
+		$left.val(parseInt($left.val()) + 1);
+		update_graph_year_nav($btn);
+	}
+
 	draw_graph(canvas_name);
 });
 
-// Update graph on button click
-$("button").click(function(){
-    // Let's fetch the canvas id
-    canvas_name=$(this).parent().next('div').children('canvas').attr('id')
-	
-    if ($(this).hasClass("year_nav_left")) {
-            $(this).nextAll(".graph_cur_year:first").text($(this).val())
-	    $(this).val(parseInt($(this).val()) - 1)
-	    $(this).nextAll(".year_nav_right:first").val(parseInt($(this).nextAll(".year_nav_right:first").val()) - 1)
-
-	    // Update navbar button
-	    update_graph_year_nav($(this).nextAll(".year_nav_right:first"))
-    }
-    else if ($(this).hasClass("year_nav_right")) {
-            $(this).prevAll(".graph_cur_year:first").text($(this).val())
-	    $(this).val(parseInt($(this).val()) + 1)
-	    $(this).prevAll(".year_nav_left:first").val(parseInt($(this).prevAll(".year_nav_left:first").val()) + 1)
-
-	    // Update navbar button
-	    update_graph_year_nav($(this))
-    }
-
-    // Let's redraw the graph considering the new year
-    draw_graph(canvas_name);
-
-});
-
-// Let's draw the graph when the document is ready
-jQuery(document).ready(function($) {
-	var canvas_list = document.getElementsByTagName("canvas");
-	var cur_canvas;
-	for (cur_canvas = 0; cur_canvas < canvas_list.length; cur_canvas++) {
-		draw_graph(canvas_list[cur_canvas].id);
-	} 
-	
-	// Update the first navbar
-        update_graph_year_nav($("#graphs").find(".year_nav_right"));
-
+// Initial draw — one graph at load
+$(document).ready(function () {
+	$("#graphs canvas").each(function () { draw_graph(this.id); });
+	update_graph_year_nav($("#graphs").find(".year_nav_right").first());
 });
 </script>
 {% endblock %}

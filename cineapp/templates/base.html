@@ -1,211 +1,232 @@
 <!doctype html>
-<html>
-  <head>
-	<!-- JQuery -->
-	<script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
 
-	<!-- Latest compiled and minified CSS -->
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap.min.css" integrity="sha384-HSMxcRTRxnN+Bdg0JdbxYKrThecOKuH5zCYotlSAcp1+c8xmyTe9GYg1l9a69psu" crossorigin="anonymous">
-	
-	<!-- Optional theme -->
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/css/bootstrap-theme.min.css" integrity="sha384-6pzBo3FDv/PJ8r2KRkGHifhEocL+1X2rVCTTkUfGk7/0pbek5mMa1upzvWbrUbOZ" crossorigin="anonymous">
-	
-	<!-- Latest compiled and minified JavaScript -->
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@3.4.1/dist/js/bootstrap.min.js" integrity="sha384-aJ21OjlMXNL5UyIl/XNwTMqvzeRMZH2w8c5cRVpzpU8Y5bApTppSuUkhZXN0VxHd" crossorigin="anonymous"></script>
+  <title>{% block title %}{% if show %}{{ show.name }} — CineApp{% else %}CineApp{% endif %}{% endblock %}</title>
 
-	<!-- Datatables lib -->
-	<link href="https://cdn.datatables.net/v/bs/dt-2.3.3/fh-4.0.3/r-3.0.6/datatables.min.css" rel="stylesheet" integrity="sha384-rsLUMOL64bpGFe0PGpv/LNWooxDC1JWy+zcON8MKyrFQ+ruos0nQ1oWEn6QwaXNl" crossorigin="anonymous">
-	<script src="https://cdn.datatables.net/v/bs/dt-2.3.3/fh-4.0.3/r-3.0.6/datatables.min.js" integrity="sha384-BAPGWgS3C51LkQhUlSTiZynDX7u6SQ1UIkspaMysN0SMepyrXIcxqqBf70FJw30G" crossorigin="anonymous"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,300..800&family=Inter:wght@300..700&family=Outfit:wght@400;500;600;900&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 
-        <script src="https://cdn.socket.io/3.1.3/socket.io.min.js" integrity="sha384-cPwlPLvBTa3sKAgddT6krw0cJat7egBga3DJepJyrLl4Q9/5WLra3rrnMcyTyOnh" crossorigin="anonymous"></script>
-	<script type="text/javascript" language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+  <!-- Shared styles (100% custom design system) -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 
-	<!-- CK Editor lib -->
-        <link rel="stylesheet" href="/static/ckeditor5/ckeditor5.css" />
+  <!-- Font Awesome 6 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous">
 
-	<!-- Font Awesome CSS -->
-	<link rel="stylesheet" type="text/css" href="/static/font-awesome/css/font-awesome.min.css"/>
+  <!-- Flag Icons -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css">
 
-	<!-- Flag Icons CSS -->
-	<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/lipis/flag-icons@7.2.3/css/flag-icons.min.css"/>
+  <!-- DataTables CSS (vanilla build — no framework dependency) -->
+  <link rel="stylesheet" href="https://cdn.datatables.net/v/dt/dt-2.3.3/fh-4.0.3/r-3.0.6/datatables.min.css" crossorigin="anonymous">
 
-	<!-- Style sheet for custom styles -->
-	<link href="/static/styles.css" rel="stylesheet">
+  <!-- CK Editor CSS -->
+  <link rel="stylesheet" href="/static/ckeditor5/ckeditor5.css">
 
-	<!-- ChartJS -->
-	<script type="text/javascript" language="javascript" src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/2.1.0/Chart.min.js"></script>
+  <!-- jQuery + plugins -->
+  <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
 
-	<!-- Service Worker -->
-	<script type="text/javascript" language="javascript" src="/static/sw_main.js"></script>
+  <!-- DataTables JS -->
+  <script src="https://cdn.datatables.net/v/dt/dt-2.3.3/fh-4.0.3/r-3.0.6/datatables.min.js" crossorigin="anonymous"></script>
 
-    {%if show %}
-    <title>{{ show.name }} - CineApp</title>
+  <!-- Socket.IO (chat) -->
+  <script src="https://cdn.socket.io/3.1.3/socket.io.min.js" integrity="sha384-cPwlPLvBTa3sKAgddT6krw0cJat7egBga3DJepJyrLl4Q9/5WLra3rrnMcyTyOnh" crossorigin="anonymous"></script>
+
+  <!-- Chart.js v4 -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+  <!-- Service Worker helpers -->
+  <script src="{{ url_for('static', filename='sw_main.js') }}"></script>
+</head>
+
+<body{% block body_class %}{% endblock %}>
+
+{% block topbar %}
+<header class="topbar">
+  <div class="topbar-inner">
+    {% if g.user.is_authenticated and not g.user.is_guest %}
+      <a class="brand" href="{{ url_for('main.index') }}">cineapp</a>
     {% else %}
-    <title>CineApp</title>
+      <a class="brand" href="{{ url_for('show.list_shows', show_type=g.show_type) }}">cineapp</a>
     {% endif %}
-  </head>
 
-  <body>
-	<nav class="navbar navbar-default navbar-inverse navbar-static-top">
-		<div class="container-fluid">
-			<div class="navbar-header">
-			{% if g.user.is_authenticated %}
-			      <button type="button" class="navbar-toggle collapsed" data-toggle="collapse" data-target="#main_navbar" aria-expanded="false">
-				<span class="sr-only">Toggle navigation</span>
-				<span class="icon-bar"></span>
-				<span class="icon-bar"></span>
-				<span class="icon-bar"></span>
-			      </button>
-			{% endif %}
-				{% if not g.user.is_guest %}
-			      		<a class="navbar-brand" href="{{ url_for('main.index') }}">CineApp</a>
-				{% else %}
-			      		<a class="navbar-brand" href="{{ url_for('show.list_shows',show_type=g.show_type) }}">CineApp</a>
-				{% endif %}
-			 </div>	
-			{% if g.user.is_authenticated %}
-			<div class="collapse navbar-collapse" id="main_navbar">
-				{% if not g.user.is_guest %}
-				<ul class="nav navbar-nav">
-					<li><a href="{{ url_for('homework.list_homeworks') }}">Devoirs</a></li>
-					<li><a href="{{ url_for('main.show_activity_flow') }}">Activité</a></li>
-					<li><a href="{{ url_for('show.add_show',show_type=g.show_type) }}">
-                                                        {{ g.messages["label_add"] }}
-                                        </a></li>
-					<li><a href="{{ url_for('show.list_shows',show_type=g.show_type) }}">
-                                                        {{ g.messages["label_list"] }}
-                                        </a></li>
-					<li class="dropdown">
-					  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Stats/Graphiques<span class="caret"></span></a>
-					  <ul class="dropdown-menu">
-					    {% for cur_graph in g.graph_list %}
-                                                {% if cur_graph[g.show_type]==True%}
-						<li><a href="{{ url_for(cur_graph["graph_endpoint"]) }}">{{ cur_graph["graph_label"] }}</a></li>
-                                                {% endif %}
-					    {% endfor %}
-					  </ul>
-					  </li>
-					  <li><a href="{{ url_for('chat.chat') }}">Chat</a></li>
-				</ul>
-				{% endif %}
-				{%from "_formhelpers.html" import render_field %}
-				<form class="navbar-form navbar-left" method="post" action="{{ url_for('main.filter_form') }}">
-					{{ search_form.hidden_tag() }}
-					<div class="input-group">
-                                                {{ search_form.search(class="form-control",placeholder=g.messages["field_search"]) }}	
-						<div class="input-group-btn">
-							{{ search_form.submit_search(class="btn btn-default") }}
-						</div>
-					</div>
-				</form>
+    {% if g.user.is_authenticated and not g.user.is_guest %}
+    <button class="menu-toggle" type="button" aria-label="Menu" aria-expanded="false" aria-controls="main-menu">
+      <span class="menu-toggle-bar"></span>
+      <span class="menu-toggle-bar"></span>
+      <span class="menu-toggle-bar"></span>
+    </button>
+    <nav class="menu" id="main-menu">
+      <button class="menu-close" type="button" aria-label="Fermer le menu">×</button>
+      <a href="{{ url_for('main.show_dashboard') }}"
+         class="{% if request.endpoint == 'main.show_dashboard' %}active{% endif %}">Accueil</a>
+      <a href="{{ url_for('homework.list_homeworks') }}"
+         class="{% if request.endpoint and request.endpoint.startswith('homework.') %}active{% endif %}">Devoirs</a>
+      <a href="{{ url_for('main.show_activity_flow') }}"
+         class="{% if request.endpoint == 'main.show_activity_flow' %}active{% endif %}">Activité</a>
+      <a href="{{ url_for('show.add_show', show_type=g.show_type) }}"
+         class="{% if request.endpoint == 'show.add_show' %}active{% endif %}">{{ g.messages["label_add"] }}</a>
+      <a href="{{ url_for('show.list_shows', show_type=g.show_type) }}"
+         class="{% if request.endpoint == 'show.list_shows' %}active{% endif %}">{{ g.messages["label_list"] }}</a>
+      <a href="{{ url_for('graphs.graph_by_mark') }}"
+         class="{% if request.endpoint and request.endpoint.startswith('graphs.') %}active{% endif %}">Stats</a>
+      <a href="{{ url_for('chat.chat') }}"
+         class="{% if request.endpoint and request.endpoint.startswith('chat.') %}active{% endif %}">Chat</a>
+    </nav>
+    {% else %}
+    <div></div>
+    {% endif %}
 
-				<ul class="nav navbar-nav navbar-right">
-					<li class="dropdown">
-						<a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">
-							{% if not g.user.is_guest %}
-							<img src="{{ config.AVATARS_URL }}{{ g.user.avatar }}" height="20" width="20" class="avatar img-circle" alt="avatar">
-							{% endif %}
-						        Welcome <strong>{{ g.user.nickname }}</strong>
-						</a>
-						<ul class="dropdown-menu">
-							<li><a href="{{ url_for('main.switch_show_type',show_type="movie") }}"><i class="fa fa-video-camera"></i> Films</a></li>
-                                                        <li><a href="{{ url_for('main.switch_show_type',show_type="tvshow") }}"><i class="fa fa-television"></i> Séries</a></li>
-							<li><a href="{{ url_for('main.switch_show_type',show_type="videogame") }}"><i class="fa fa-gamepad"></i> Jeux vidéo</a></li>
-							<li role="separator" class="divider"></li>
-							{% if not g.user.is_guest %}
-							<li><a href="{{ url_for('profile.edit_user_profile') }}"><span class="glyphicon glyphicon-user" aria-hidden="true"></span> Profil</a></li>
-							<li><a href="{{ url_for('profile.change_user_password') }}"><span class="glyphicon glyphicon-lock" aria-hidden="true"></span> Mot de passe</a></li>
-							<li role="separator" class="divider"></li>
-							{% endif %}
-							<li><a href="{{ url_for('main.logout') }}"><span class="glyphicon glyphicon-log-out" aria-hidden="true"></span> Se Deconnecter</a></li>
-						</ul>
-					</li>
-				</ul>
-			</div>
-			{% endif %}
-		</div>
-	</nav>
-	{% with messages = get_flashed_messages(with_categories=true) %}
-	{% if messages %}
-		{% for category, message in messages %}
-		<div class="msg-alert alert alert-{{ category }} modal-dialog text-center">
-			<button type="button" class="close" data-dismiss="alert" aria-label="Close">
-				  <span aria-hidden="true">&times;</span>
-			</button>
-			{{ message }}<br/>
-		</div>
-		{% endfor %}
-	{% endif %}
-	{% endwith %}
-	{% block content %} {% endblock %}
+    {% if g.user.is_authenticated %}
+    <form class="search-pill" method="post" action="{{ url_for('main.filter_form') }}">
+      {{ search_form.hidden_tag() }}
+      <span aria-hidden="true">⌕</span>
+      {{ search_form.search(placeholder=g.messages["field_search"]) }}
+      <button type="submit" name="submit_search" value="y" class="search-submit" aria-label="Rechercher">→</button>
+    </form>
+    {% else %}
+    <div></div>
+    {% endif %}
 
-    <!-- Footer navbar for credits -->
-    <footer class="footer">
-      <div class="container">
-        <p class="text-muted text-center">CineApp - {{ config.VERSION }} - Utilise l'API TMDB mais n'est pas approuvé ni certifié par TMDB</p>
+    {% if g.user.is_authenticated %}
+    <div class="user-chip" tabindex="0">
+      <span class="ava">
+        {{ g.user.nickname[0]|upper }}
+        {% if not g.user.is_guest and g.user.avatar %}
+        <img src="{{ config.AVATARS_URL }}{{ g.user.avatar }}" alt="" onerror="this.remove()">
+        {% endif %}
+      </span>
+      <span id="topbar-username">{{ g.user.nickname }}</span>
+      <span class="caret">▾</span>
+      <div class="user-menu">
+        <a href="{{ url_for('main.switch_show_type', show_type='movie') }}"
+           class="{% if g.show_type == 'movie' %}active{% endif %}"><i class="fa-solid fa-film"></i> Films</a>
+        <a href="{{ url_for('main.switch_show_type', show_type='tvshow') }}"
+           class="{% if g.show_type == 'tvshow' %}active{% endif %}"><i class="fa-solid fa-tv"></i> Séries</a>
+        <a href="{{ url_for('main.switch_show_type', show_type='videogame') }}"
+           class="{% if g.show_type == 'videogame' %}active{% endif %}"><i class="fa-solid fa-gamepad"></i> Jeux vidéo</a>
+        {% if not g.user.is_guest %}
+        <div class="sep"></div>
+        <a href="{{ url_for('profile.edit_user_profile') }}"><i class="fa-regular fa-user"></i> Profil</a>
+        <a href="{{ url_for('profile.change_user_password') }}"><i class="fa-solid fa-lock"></i> Mot de passe</a>
+        {% endif %}
+        <div class="sep"></div>
+        <a href="{{ url_for('main.logout') }}"><i class="fa-solid fa-right-from-bracket"></i> Se déconnecter</a>
       </div>
-    </footer>
+    </div>
+    {% endif %}
+  </div>
+</header>
+{% endblock %}
 
-  <script>
-$(".alert").alert();
-window.setTimeout(function() {
-    $(".msg-alert").fadeTo(500, 0).slideUp(500, function(){
-        $(this).remove(); 
+{% block flash %}
+{% with messages = get_flashed_messages(with_categories=true) %}
+{% if messages %}
+<div class="flash-stack">
+  {% for category, message in messages %}
+    <div class="flash {{ category }}">
+      {{ message }}
+      <button type="button" class="close" aria-label="Fermer" onclick="this.parentElement.remove()">×</button>
+    </div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endwith %}
+{% endblock %}
+
+{% block content %}{% endblock %}
+
+{% block footer %}
+<footer class="foot">
+  <span>cineapp · {{ config.VERSION }}</span>
+  <span>Utilise l'API TMDB · non approuvé ni certifié par TMDB</span>
+</footer>
+{% endblock %}
+
+<script>
+  // Toggle the user menu on click (hover already handled in CSS for desktop)
+  (function () {
+    const chip = document.querySelector('.user-chip');
+    if (!chip) return;
+    chip.addEventListener('click', function (e) {
+      if (e.target.closest('.user-menu a')) return;
+      chip.classList.toggle('is-open');
     });
-}, 2000);
-  </script>
+    document.addEventListener('click', function (e) {
+      if (!chip.contains(e.target)) chip.classList.remove('is-open');
+    });
+  })();
 
-{% if not g.user.is_guest %}
+  // Mobile menu — hamburger toggles the overlay
+  (function () {
+    const toggle = document.querySelector('.menu-toggle');
+    const menu   = document.querySelector('nav.menu');
+    const close  = document.querySelector('.menu-close');
+    if (!toggle || !menu) return;
+
+    function open()  {
+      menu.classList.add('is-open');
+      toggle.setAttribute('aria-expanded', 'true');
+      document.body.style.overflow = 'hidden';
+    }
+    function shut() {
+      menu.classList.remove('is-open');
+      toggle.setAttribute('aria-expanded', 'false');
+      document.body.style.overflow = '';
+    }
+
+    toggle.addEventListener('click', open);
+    if (close) close.addEventListener('click', shut);
+    // Close when clicking any menu link
+    menu.querySelectorAll('a').forEach(a => a.addEventListener('click', shut));
+    // Close on Escape
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && menu.classList.contains('is-open')) shut();
+    });
+  })();
+
+  // Auto-dismiss flashes after 4s
+  window.setTimeout(function () {
+    document.querySelectorAll('.flash').forEach(function (el) {
+      el.style.transition = 'opacity .4s, transform .4s';
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(-8px)';
+      window.setTimeout(function () { el.remove(); }, 400);
+    });
+  }, 4000);
+</script>
+
+{% if g.user.is_authenticated and not g.user.is_guest %}
 <script>
 // Application server key for Push notifications
 const applicationServerPublicKey = '{{ config["NOTIF_APPLICATION_KEY_STRING"] }}';
 
-// Check service worker subscription capability
 if ('serviceWorker' in navigator && 'PushManager' in window) {
   console.log('Service Worker and Push is supported');
-
-  // Register the service worker on first launch
   navigator.serviceWorker.register('/static/sw.js')
-  .then(function(swReg) {
-    console.log('Service Worker is registered', swReg);
-
-    // Update the Service Worker with the last version
-    swReg.update();
-
-    // Check the subscription object
-   swReg.pushManager.getSubscription()
-   // Set the initial subscription value
-  .then(function(subscription) {
-    isSubscribed = !(subscription === null);
-
-  {% if g.user.is_authenticated %}
-  // Then subscribe the user
-    if (isSubscribed) {
-      console.log('User IS already subscribed - Do nothing.');
-    } else {
-      console.log('User is NOT subscribed - Lets subscribe him');
-      subscribeUser(swReg);
-    }
-  {% else %}
-    if (isSubscribed) {
-      console.log('User IS subscribed but we are not logged in - Unsubscribe him.');
-      unsubscribeUser(swReg);
-    } else {
-      console.log('User is NOT subscribed and its normal');
-    }
-  {% endif %}
-  });
-
-  })
-  .catch(function(error) {
-    console.error('Service Worker Error', error);
-  });
+    .then(function (swReg) {
+      console.log('Service Worker is registered', swReg);
+      swReg.update();
+      swReg.pushManager.getSubscription().then(function (subscription) {
+        const isSubscribed = !(subscription === null);
+        if (isSubscribed) {
+          console.log('User IS already subscribed - Do nothing.');
+        } else {
+          console.log('User is NOT subscribed - Lets subscribe him');
+          subscribeUser(swReg);
+        }
+      });
+    })
+    .catch(function (error) { console.error('Service Worker Error', error); });
 } else {
   console.warn('Push messaging is not supported');
-  pushButton.textContent = 'Push Not Supported';
 }
-
 </script>
 {% endif %}
-  </body>
+
+</body>
 </html>

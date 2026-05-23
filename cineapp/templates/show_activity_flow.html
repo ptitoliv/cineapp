@@ -1,68 +1,102 @@
 {% extends "base.html" %}
-{% block content %}
-<script>
-	$(document).ready(function() {
-		var table=$('#activitylist').DataTable(
-			{ "searching":false,
-			  "stateSave": true,
-			  "ordering": false,
-			  "processing": true,
-			  "serverSide": true,
-			  "displayLength": 100,
-			  "layout": {
-				"topEnd" : "paging"
-			  },
-			  "ajax": {
-				"url": "{{ url_for('main.update_activity_flow') }}",
-				"type" : "POST",
-				"data": function(args) {
-				      return { "args": JSON.stringify( args ) };
-				},
-			  },
-			  "columns" : [
-				{ "data" : "entry_type",
-				  "className": "text-right" },
-				{ "data" : null,
-				  "defaultContent": "" },
-				{ "data" : "entry_text" }
-				],
-			  "language": {
-					"info": "Page _PAGE_ sur _PAGES_",
-                                        "lengthMenu": "Afficher _MENU_ {{ g.messages["label_show_type_lowercase_plural"] }}",
-					"paginate" : {
-						"first": "Première page",
-						"last": "Dernière  page",
-						"next": "Suivant",
-						"previous": "Précédent"
-					 }
-				}
-			}
-		)
-	
-		// Enable popover on table redraw	
-		table.on( 'draw', function () {
-	                    $('[data-toggle="popover"]').popover();
-		} );
 
-		// Scroll to top when pagination is clicked
-		table.on('page.dt', function() {
-		  $('html, body').animate({
-		    scrollTop: $("html").offset().top
-		   }, 'slow');
-		});
-	}
-)
+{# ===========================================================================
+   show_activity_flow.html — full activity feed
+
+   A DataTables-driven vertical timeline. The route main.update_activity_flow
+   returns structured per-entry data (same contract consumed by the dashboard
+   activity card) ; each row is assembled here into a timeline node — the type
+   pill is the marker on the dorsal spine, the user avatar is inline.
+
+   Server-side AJAX + simple_numbers pagination, identical to the navigation
+   of list_shows.html. Static styles live in styles.css under the
+   [ACTIVITY_FLOW] section.
+   =========================================================================== #}
+
+{% block content %}
+<header class="page-head">
+  <div><h1>{{ g.messages["label_activity"] }}</h1></div>
+</header>
+
+<section class="flux-wrap">
+  <div class="flux-head">
+    <span class="flux-count"><b id="flux-total">—</b> événements</span>
+    {# page-length selector — reuses the .dt-length markup/styles of the movie
+       list, but lives here so it sits on the count row, above the rule #}
+    <div class="dt-length">
+      <label>Afficher
+        <select id="flux-length" aria-controls="activitylist">
+          <option value="10">10</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="100" selected>100</option>
+        </select>
+        événements par page</label>
+    </div>
+  </div>
+
+  <table id="activitylist" class="flux" width="100%">
+    <thead>
+      <tr><th>{{ g.messages["label_activity"] }}</th></tr>
+    </thead>
+  </table>
+</section>
+
+<script src="{{ url_for('static', filename='js/activity_flow.js') }}"></script>
+<script>
+$(document).ready(function () {
+
+  var table = $('#activitylist').DataTable({
+    searching: false,
+    ordering: false,
+    stateSave: true,
+    processing: true,
+    serverSide: true,
+    autoWidth: false,
+    displayLength: 100,
+    pagingType: 'simple_numbers',
+    layout: {
+      topStart: null,
+      topEnd: null,
+      bottomStart: 'info',
+      bottomEnd: 'paging'
+    },
+    ajax: {
+      url: "{{ url_for('main.update_activity_flow') }}",
+      type: 'POST',
+      data: function (args) { return { args: JSON.stringify(args) }; }
+    },
+    columns: [
+      { data: null, className: 'act-cell',
+        render: function (data, type, row) { return activity_render_node(row); } }
+    ],
+    language: {
+      info: 'Page _PAGE_ sur _PAGES_ · _TOTAL_ événements au total',
+      infoEmpty: 'Aucun événement à afficher',
+      infoFiltered: '',
+      paginate: { next: 'Suivant ›', previous: '‹ Précédent' }
+    }
+  });
+
+  // Flux-head controls — cached once, kept in sync after every draw.
+  var $fluxTotal  = $('#flux-total');
+  var $fluxLength = $('#flux-length');
+
+  table.on('draw', function () {
+    var info = table.page.info();
+    $fluxTotal.text(info.recordsTotal);
+    $fluxLength.val(table.page.len());
+  });
+
+  // The flux-head <select> drives DataTables' native page length.
+  $fluxLength.on('change', function () {
+    table.page.len(parseInt(this.value, 10)).draw();
+  });
+
+  // Scroll back to the top when paginating (same behaviour as the legacy feed).
+  table.on('page.dt', function () {
+    $('html, body').animate({ scrollTop: 0 }, 'slow');
+  });
+});
 </script>
-<div class="container">
-    <h1 class="text-center">{{ g.messages["label_activity"] }}</h1>
-	<table width="100%" id="activitylist" class="table">
-		<thead>
-			<tr>
-				<th style="width:15%;">Type</th>
-				<th style="width:10%;"></th>
-				<th>Activité</th>
-			</tr>
-		</thead>
-	</table>
-</div>
 {% endblock %}

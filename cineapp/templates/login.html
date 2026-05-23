@@ -1,33 +1,96 @@
-<!-- extend from base layout -->
 {% extends "base.html" %}
+
+{# Pre-auth landing page. The topbar/footer of base.html are blanked here so
+   the login keeps its immersive look (full-bleed hero + side panel). Flashes
+   are rendered inline inside the panel (.login-flash), so the base flash-stack
+   is blanked too. #}
+
+{% block title %}Connexion — CineApp{% endblock %}
+{% block body_class %} class="login-page"{% endblock %}
+{% block topbar %}{% endblock %}
+{% block flash %}{% endblock %}
+{% block footer %}{% endblock %}
+
 {% block content %}
-<!--login modal-->
-<div class="container">
-<h1 class="text-center">Welcome to CineApp</h1>
-	<div id="loginbox" class="mainbox col-md-6 col-md-offset-3 col-sm-6 col-sm-offset-3"> 
-		<div class="panel panel-default" >
-			    <div class="panel-heading">
-				<div class="panel-title text-center">Authentification</div>
-			    </div>
-			    <div class="panel-body" >
-                                {%from "_formhelpers.html" import render_field %}
-				<form name="form" id="login" class="form-horizontal" enctype="multipart/form-data" method="POST">
-				    {{ form.hidden_tag() }} 
-				    {{ render_field(form.username,label_visible=False,message=true,group=false,focus=true,placeholder="Utilisateur", autofocus="autofocus") }}
-				    {{ render_field(form.password,label_visible=False,message=true,group=false, placeholder="Mot de passe") }}
-				    <div class="form-group">
-					<!-- Button -->
-					<div class="col-sm-12 controls">
-					    <input type="submit" class="btn btn-primary btn-block" value="Se connecter">
-					</div>
-				    </div>
-				</form>
-			    </div>
-		</div>  
-	  <div>
-	 <div class="text-center">
-		 <p>Powered by:</p>
-		 <img src="/static/images/tmdb_logo.svg" height="150" width="212"/>
-	 </div>
-</div>
+<section class="login-hero">
+  {#- Poster medley : deck built by views.build_login_medley() — real posters
+      in the centre, type placeholders pushed to the ends so the rotated grid
+      hides them in its clipped corners. Pure markup, no JS : the poster is a
+      background-image layer that fails silently — revealing the placeholder
+      underneath — when the file is missing. -#}
+  {% set type_icons = {'movie': 'fa-film', 'tvshow': 'fa-tv', 'videogame': 'fa-gamepad'} %}
+  <div class="login-medley">
+    {% for tile in medley %}
+    <div class="login-mp login-mp--{{ tile.type }}">
+      <span class="poster-placeholder" aria-hidden="true"><i class="fa-solid {{ type_icons[tile.type] }}"></i></span>
+      {% if tile.poster %}
+      <span class="login-mp-poster" style="background-image:url('{{ config.POSTERS_URL }}{{ tile.poster|urlencode }}')"></span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  <div class="login-veil"></div>
+  <div class="login-hero-content">
+    <a class="login-brand" href="{{ url_for('main.index') }}">cineapp</a>
+    <div class="login-hero-mid">
+      <h1>Tout ce que vous regardez, <em>noté</em> et partagé.</h1>
+      <p>Films, séries et jeux vidéo — le carnet de bord de la bande, avec vos notes, vos favoris et vos devoirs.</p>
+    </div>
+    <div class="login-stats">
+      <div><span class="n">832</span><span class="l">Films</span></div>
+      <div><span class="n">210</span><span class="l">Séries</span></div>
+      <div><span class="n">96</span><span class="l">Jeux vidéo</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="login-panel">
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for category, message in messages %}
+    <div class="login-flash {{ category }}">
+      <i class="fa-solid fa-circle-exclamation"></i>{{ message }}
+    </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="login-eyebrow">Connexion</div>
+  <h2 class="login-title">Bon retour parmi nous.</h2>
+
+  <form class="login-form" method="POST" action="{{ url_for('main.login') }}">
+    {{ form.hidden_tag() }}
+    <div class="login-field">
+      <label for="username">Utilisateur</label>
+      {{ form.username(placeholder="Votre pseudo", autofocus=true) }}
+    </div>
+    <div class="login-field">
+      <label for="password">Mot de passe</label>
+      {{ form.password(placeholder="••••••••") }}
+    </div>
+    <button class="login-submit" type="submit">Se connecter</button>
+  </form>
+
+  <p class="login-guest">Juste de passage ? <a id="login-guest-link">Entrer en mode invité</a></p>
+
+  <div class="login-powered">
+    <span class="login-powered-label">Propulsé par</span>
+    <div class="login-powered-logos">
+      <a href="https://www.themoviedb.org" target="_blank" rel="noopener" aria-label="The Movie Database">
+        <img src="{{ url_for('static', filename='images/logos/tmdb.svg') }}" alt="The Movie Database">
+      </a>
+      <a href="https://www.igdb.com" target="_blank" rel="noopener" aria-label="IGDB">
+        <img src="{{ url_for('static', filename='images/logos/igdb.svg') }}" alt="IGDB">
+      </a>
+    </div>
+  </div>
+</section>
+
+<script>
+// "Mode invité" — the /login route accepts the reserved guest/guest credentials.
+document.getElementById('login-guest-link').addEventListener('click', function () {
+  var form = document.querySelector('.login-form');
+  form.querySelector('#username').value = 'guest';
+  form.querySelector('#password').value = 'guest';
+  form.submit();
+});
+</script>
 {% endblock %}

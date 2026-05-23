@@ -1,112 +1,179 @@
-{% extends "base.html" %} 
+{% extends "base.html" %}
 {% block content %}
-	<div class="container">
-		<div class="centered text-center">
-			<h1 class="title_position">{{ show.name }}</h1>
-			{% if show.original_name != None %}
-			<h3 class="title_position"><em>({{ show.original_name }})</em></h3>
-			{% endif %}
-		</div>
-		<div class="row">
-			<div class="col-md-2">
-				{% if show.poster_path != None %}
-				<img src="{{ config['POSTERS_URL'] }}/{{ show.poster_path }}" class="img-responsive"/>
-				{% else %}
-				<div class="jumbotron text-center">Pas d'affiche</div>
-				{% endif %}
-			</div>
-			{%from "_formhelpers.html" import render_field %}
-			<form action="{{ url_for('show.confirm_' + endpoint + '_show',show_type=g.show_type) }}" method="post" name="confirmshow">
-			{{ form.hidden_tag() }}
-			<div class="col-md-10">
-				<table class="table table-striped">
-					<tr class="text-left">
-                    	<td class="col-md-2">{{ g.messages["label_director"] }}</td>
-					 	<td>{{ show.director }}</td>
-					</tr>
-					<tr class="text-left">
-                    	<td class="col-md-2" style="vertical-align: middle">{{ g.messages["label_release_date"] }}</td>
-						<td style="vertical-align: middle">
-	 					{% if g.show_type == "videogame" %}
-							{% if show.release_dates %}
-							<ul class="list-unstyled" style="margin-bottom: 0">
-								{% for rd in show.release_dates|sort(attribute='release_date')|sort(attribute='region.priority', reverse=true) %}
-								<li>
-									<span style="display: inline-block; width: 13em;">
-										{% if loop.changed(rd.region.id) %}
-										<span class="fi fi-{{ rd.region.flag_code }}" style="margin-right: 0.5em"></span>
-										{{ rd.region.region_translated_name }}
-										{% endif %}
-									</span>
-									<span>
-										{{ rd.release_date|date_format("%d/%m/%Y") or "Date inconnue" }}
-										{% if rd.release_platform %}<em>({{ rd.release_platform }})</em>{% endif %}
-									</span>
-								</li>
-								{% endfor %}
-							</ul>
-							{% else %}
-							<em>Aucune date de sortie connue</em>
-							{% endif %}
-						{% else %}
-						{{ show.release_date|date_format("%d/%m/%Y") }}
-						{% endif %}
-						</td>
-					</tr>
-					<tr class="text-left">
-					 <td class="col-md-2">Fiche:</td>
-					 <td><a href="{{ show.url }}">{{ show.url }}</a></td>
-					</tr>
-                       {% if show is movie %}
-		       <tr class="text-left">
-                        <td class="col-md-2">Durée:</td>
-                       {% if show.duration %}
-                        <td>{{ show.duration|minutes_to_human_duration }}</td>
-                       {% endif %}
-					</tr>
-                    {% elif show is tvshow %}
-					<tr class="text-left">
-                       <td class="col-md-2">Production:</td>
-                       {% if production_status != None %}
-                       <td><label class="btn-{{ production_status.style }} btn-sm">{{ production_status.translated_status }}</label></td>
-                       {% else %}
-                       <td><label class="btn-default btn-sm">Inconnu</label></td>
-                       {% endif %}
-                    </tr>
-					<tr class="text-left">
-                       <td class="col-md-2">Nombre de saisons:</td>
-                       <td>{{ show.nb_seasons }}</td>
-					</tr>
-					{% elif show is videogame %}
-					<tr class="text-left">
-                       <td class="col-md-2">Plateformes:</td>
-                       <td>{{ show.platforms }}</td>
-					</tr>
-					<tr class="text-left">
-                       <td class="col-md-2">Éditeur:</td>
-                       <td>{{ show.publisher }}</td>
-					</tr>
-					 {% endif %}
-					<tr class="text-left">
-					 <td class="col-md-2">Résumé:{% if show.overview_translated %}<br><small><i>(Traduction via DeepL)</i></small>{% endif %}</td>
-					 {% if show.overview %}
-					 <td>{{ show.overview }}</td>
-					 {% else %}
-					 <td>Néant</td>
-					 {% endif %}
-					</tr>
-					<tr class="text-left">
-					 <td class="col-md-2">Type:</td>
-					<td> {{ render_field(form.type,label_visible=false) }} </td>
-					</tr>
-					<tr class="text-left">
-					 <td class="col-md-2">Origine:</td>
-					 <td>{{ render_field(form.origin,label_visible=false) }}</td>
-					</tr>
-				</table>
-			</div>
-			{{ render_field(form.submit_confirm,label_visible=false,class="btn btn-success center-block") }}	
-			</form>
-		</div>
-	</div>
+
+<section class="hero show-detail">
+  {# ----- Left column: poster ----- #}
+  <div class="poster-wrap">
+    <div class="poster">
+      <div class="poster-placeholder lg" aria-hidden="true">
+        {% if show.show_type == "movie" %}<i class="fa-solid fa-film"></i>
+        {% elif show.show_type == "tvshow" %}<i class="fa-solid fa-tv"></i>
+        {% elif show.show_type == "videogame" %}<i class="fa-solid fa-gamepad"></i>
+        {% endif %}
+      </div>
+      {% if show.poster_path %}
+      <img class="poster-image" src="{{ config.POSTERS_URL }}{{ show.poster_path }}" alt="{{ show.name }}" onerror="this.style.display='none'">
+      {% endif %}
+    </div>
+  </div>
+
+  {# ----- Right column: title + meta + synopsis ----- #}
+  <div>
+    <div class="eyebrow">
+      <span class="accent">▸</span>&nbsp;{{ g.messages["label_show_type"] }}
+      {% if show.type_object %}&nbsp;·&nbsp;<span class="accent">{{ show.type_object.type }}</span>{% endif %}
+    </div>
+
+    <div class="title-row">
+      <h1 class="title">{{ show.name }}</h1>
+    </div>
+
+    {% if show.original_name %}
+    <p class="original">{{ show.original_name }}</p>
+    {% endif %}
+
+    {# ----- byline (metadata) ----- #}
+    <div class="byline">
+      {% if show.director %}
+      <div>
+        <label>{{ g.messages["label_director"] }}</label>
+        <value>{{ show.director }}</value>
+      </div>
+      {% endif %}
+
+      {% if show is movie or show is tvshow %}
+      <div>
+        <label>{{ g.messages["label_release_date"] }}</label>
+        <value>{{ show.release_date|date_format("%d/%m/%Y") if show.release_date else '—' }}</value>
+      </div>
+      {% endif %}
+
+      {% if show is movie and show.duration %}
+      <div>
+        <label>Durée</label>
+        <value>{{ show.duration|minutes_to_human_duration }}</value>
+      </div>
+      {% endif %}
+
+      {% if show is tvshow and production_status %}
+      <div>
+        <label>Production</label>
+        <value><span class="pill-status {{ production_status.style }}">{{ production_status.translated_status }}</span></value>
+      </div>
+      <div>
+        <label>Saisons</label>
+        <value>{{ show.nb_seasons or '—' }}</value>
+      </div>
+      {% endif %}
+
+      {% if show is videogame %}
+      {% if show.platforms %}
+      <div>
+        <label>Plateformes</label>
+        <value>{{ show.platforms }}</value>
+      </div>
+      {% endif %}
+      {% if show.publisher %}
+      <div>
+        <label>Éditeur</label>
+        <value>{{ show.publisher }}</value>
+      </div>
+      {% endif %}
+      {% endif %}
+
+      {% if show.origin_object %}
+      <div>
+        <label>Origine</label>
+        <value>{{ show.origin_object.origin }}</value>
+      </div>
+      {% endif %}
+
+      {% if show.url %}
+      <div>
+        <label>Fiche externe</label>
+        <value><a href="{{ show.url }}" target="_blank" rel="noopener">→ ouvrir</a></value>
+      </div>
+      {% endif %}
+    </div>
+
+    {# ----- Videogame: per-region release dates ----- #}
+    {% if show.release_dates %}
+    <div class="releases">
+      <div class="releases-head">
+        <h3>Sorties par région</h3>
+        <span class="releases-meta">{{ show.release_dates|length }} sortie{{ 's' if show.release_dates|length > 1 else '' }}</span>
+      </div>
+      {% set premiere = show.release_dates|sort(attribute='release_date')|first %}
+      <div class="releases-premiere">
+        <span class="premiere-eyebrow">★ Première mondiale</span>
+        <span class="premiere-date">{{ premiere.release_date|date_format("%d %B %Y") if premiere.release_date else 'Date inconnue' }}</span>
+      </div>
+      <table class="releases-table">
+        <thead>
+          <tr><th>Date</th><th>Région</th><th>Plateformes</th></tr>
+        </thead>
+        <tbody>
+          {% for rd in show.release_dates|sort(attribute='release_date') %}
+          <tr>
+            <td class="rt-date">{{ rd.release_date|date_format("%d %b %Y") if rd.release_date else 'Date inconnue' }}</td>
+            <td class="rt-region">{% if rd.region.flag_code %}<span class="fi fi-{{ rd.region.flag_code }}"></span>{% endif %}{{ rd.region.region_translated_name }}</td>
+            <td class="rt-platforms">{{ rd.release_platform|replace(',', ', ') if rd.release_platform else '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {# ----- Synopsis ----- #}
+    {% if show.overview %}
+    {% if show.overview_translated %}
+    <div class="synopsis-translated">Traduction via DeepL</div>
+    {% endif %}
+    <p class="synopsis">{{ show.overview }}</p>
+    {% endif %}
+  </div>
+</section>
+
+{# ===========================================================================
+   Confirm form (replaces the reviews section in display_show)
+   =========================================================================== #}
+<section class="reviews">
+  <form action="{{ url_for('show.confirm_' + endpoint + '_show', show_type=g.show_type) }}" method="post" name="confirmshow" class="wizard-form wizard-confirm-form">
+    {{ form.hidden_tag() }}
+    {{ form.show_id }}
+
+    <div class="wizard-confirm-meta">
+      <div class="field">
+        <label for="type">Type</label>
+        {{ form.type(class_="confirm-select") }}
+      </div>
+      <div class="field">
+        <label for="origin">Origine</label>
+        {{ form.origin(class_="confirm-select") }}
+      </div>
+    </div>
+
+    <div class="wizard-submit-row">
+      {{ form.submit_confirm(class_="btn wizard-submit") }}
+    </div>
+  </form>
+</section>
+
+<div id="container_overlay">
+  <div id="spinner" class="spinner"></div>
+</div>
+
+<script type="text/javascript">
+  $(document).ready(function() {
+    // Show the spinner on the form's submit event — fires only AFTER HTML5
+    // validation passes, so an invalid submit no longer leaves the overlay stuck.
+    $(".wizard-form").on('submit', function() {
+      $('#container_overlay').show();
+    });
+    // Hide the spinner if the page is restored from the bfcache (browser back).
+    $(window).on('pageshow', function() { $('#container_overlay').hide(); });
+  });
+</script>
+
 {% endblock %}
