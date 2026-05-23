@@ -185,36 +185,42 @@ def get_game(external_id):
     # Let's fetch the region by higher enabled priorities (Value >0)
     regions_list = Region.query.filter(Region.priority != 0).order_by(Region.priority.desc()).all()
     regions_by_id = {r.id: r for r in regions_list}
-    release_platform_string = {}
     region_release_dates = []
 
     # The objective is for each different release date, we check if it is for a region we want to import
     # If yes, we collect all the platforms for which the game has been released on that date for this region
+    release_platform_by_date = {}
     for rd in game.get("release_dates", []) or []:
-        release_platform_list = {}
-        for cur_region in regions_list:
+        cur_release_date = rd.get("date")
+        if cur_release_date not in release_platform_by_date:
+            release_platform_by_date[cur_release_date] = {}
 
+        for cur_region in regions_list:
+            
             # Fill the platform list for the current release date
             if rd.get("release_region").get("id") == cur_region.id:
-                if cur_region.id not in release_platform_list:
-                    release_platform_list[cur_region.id] = []
-                release_platform_list[cur_region.id].append(rd.get("platform").get("name"))
+                if cur_region.id not in release_platform_by_date[cur_release_date]:
+                    release_platform_by_date[cur_release_date][cur_region.id] = []
+                release_platform_by_date[cur_release_date][cur_region.id].append(rd.get("platform").get("name"))
+
+    # VideoGameReleaseDate objet creation
+    # region_release_date contains tuple with region/release_date/list of platforms for that release date
+    for cur_rd in release_platform_by_date:
 
         # Convert the release date into the good format
         try:
-            rd_date = datetime.utcfromtimestamp(rd.get("date")).date()
+            rd_date = datetime.utcfromtimestamp(cur_rd).date()
         except (ValueError, OSError, TypeError):
             rd_date = None
 
-        # VideoGameReleaseDate objet creation
-        # region_release_date contains tuple with region/release_date/list of platforms for that release date
-        for cur_region in release_platform_list:
-            release_platform_string[cur_region] = (',').join(release_platform_list[cur_region])
+        for cur_region in release_platform_by_date[cur_rd]:
+            release_platform_string = (',').join(release_platform_by_date[cur_rd][cur_region])
+       
             region_release_dates.append(VideoGameReleaseDate(
                                         region_id=cur_region,
                                         region=regions_by_id.get(cur_region),
                                         release_date=rd_date,
-                                        release_platform=release_platform_string[cur_region])
+                                        release_platform=release_platform_string)
             )
                                           
     # Fill the platform lists for which the game has been released on
