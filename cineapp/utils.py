@@ -4,8 +4,35 @@ from past.utils import old_div
 from flask import current_app
 from cineapp.models import db, Show, Mark, MarkComment, FavoriteShow
 from sqlalchemy.sql.expression import literal, desc
+from datetime import datetime
 import PIL, os
 from PIL import Image
+
+_HUMANIZE_MONTHS_FR = ["janv.", "févr.", "mars", "avr.", "mai", "juin",
+                      "juil.", "août", "sept.", "oct.", "nov.", "déc."]
+
+def humanize_when(dt):
+    """
+        Returns a short French humanized form of a datetime relative to now.
+        Examples: "à l'instant", "il y a 12min", "il y a 3h", "hier · 18:04",
+        "il y a 4j", "12 mars · 14:30".
+    """
+    if dt is None:
+        return ""
+    now = datetime.now()
+    diff = now - dt
+    seconds = diff.total_seconds()
+    if seconds < 60:
+        return "à l'instant"
+    if seconds < 3600:
+        return "il y a %dmin" % int(seconds // 60)
+    if seconds < 86400:
+        return "il y a %dh" % int(seconds // 3600)
+    if diff.days == 1:
+        return "hier · %s" % dt.strftime("%H:%M")
+    if diff.days < 7:
+        return "il y a %dj" % diff.days
+    return "%d %s · %s" % (dt.day, _HUMANIZE_MONTHS_FR[dt.month - 1], dt.strftime("%H:%M"))
 
 def frange(start, end, step):
     tmp = start
