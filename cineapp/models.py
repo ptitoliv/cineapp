@@ -18,7 +18,7 @@ class User(db.Model):
     email = db.Column(db.String(120), index=True, unique=True)
     avatar = db.Column(db.String(255), unique=True)
     notifications = db.Column(JSONEncodedDict(255), nullable=False)
-    graph_color = db.Column(db.String(6))
+    theme_color = db.Column(db.String(7), nullable=False, server_default='#b08c00')
     added_shows = db.relationship('Show', backref='added_by', lazy='dynamic')
     posted_messages = db.relationship('ChatMessage', backref='posted_by', lazy='dynamic')
     subscriptions = db.relationship('PushNotification',backref='user',lazy="dynamic")
@@ -74,7 +74,7 @@ class User(db.Model):
             "email": self.email,
             "avatar": self.avatar,
             "notifications": self.notifications,
-            "graph_color": self.graph_color
+            "theme_color": self.theme_color
         }
 
 class Type(db.Model):
