@@ -14,10 +14,10 @@ from flask_wtf import Form
 from wtforms_sqlalchemy.fields import QuerySelectField
 from cineapp import lm
 from cineapp.forms import LoginForm, AddUserForm, AddShowForm, MarkShowForm, SearchShowForm, SelectShowForm, ConfirmShowForm, FilterForm, UserForm, PasswordForm, HomeworkForm, UpdateShowForm, DashboardGraphForm
-from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow
+from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow, VideoGame
 from cineapp.tmvdb import search_shows,get_show,download_poster, search_page_number
 from cineapp.emails import add_show_notification, mark_show_notification, add_homework_notification, update_show_notification
-from cineapp.utils import frange, get_activity_list, resize_avatar
+from cineapp.utils import frange, get_activity_list, humanize_when, resize_avatar
 from cineapp.push import notification_unsubscribe
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
@@ -25,16 +25,57 @@ from sqlalchemy import desc, or_, and_, Table, text
 from sqlalchemy.sql.expression import select, case, literal
 from bcrypt import hashpw, gensalt
 from werkzeug.utils import secure_filename
-from random import randint
+from random import randint, sample, shuffle
 from cineapp.slack import slack_mark_notification
 from cineapp.auth import guest_control
 
 view_bp = Blueprint('main', __name__)
 
+# Login front-door medley : how many tiles each show type contributes. The
+# three types always share the same count — a type short on real posters is
+# padded with its placeholder so films / séries / jeux vidéo stay balanced.
+LOGIN_MEDLEY_PER_TYPE = 20
+
 @view_bp.route('/')
 @view_bp.route('/index')
 def index():
         return redirect(url_for('main.login'))
+
+def build_login_medley():
+        """ Deck of poster tiles for the login medley : an equal share of the
+            catalogue's real posters per show type, each type padded up to
+            LOGIN_MEDLEY_PER_TYPE with placeholder tiles ({'poster': None}).
+
+            Only posters whose file actually exists in POSTERS_PATH are kept
+            as real tiles — a poster_path with no file on disk would render as
+            a placeholder anyway. Real posters are shuffled into the centre of
+            the deck and the placeholders split to its two ends, so the
+            rotated medley grid keeps real posters in its visible core and
+            pushes placeholders into the corners clipped by the rotation. """
+        try:
+                present = set(os.listdir(app.config['POSTERS_PATH']))
+        except OSError:
+                present = set()
+
+        # Array that will contains real posters
+        real_posters = []
+
+        # Array that will contain placeholder filled by the default style
+        placeholders = []
+
+        # For each show type, let's fill the arrays considering what we have in the database
+        for show_type, model in (('movie', Movie), ('tvshow', TVShow), ('videogame', VideoGame)):
+                posters = [row[0] for row in db.session.query(model.poster_path).filter(model.poster_path.isnot(None))]
+                posters = [poster for poster in posters if poster in present]
+                picked = sample(posters, min(len(posters), LOGIN_MEDLEY_PER_TYPE))
+                real_posters += [{'type': show_type, 'poster': poster} for poster in picked]
+                placeholders += [{'type': show_type, 'poster': None} for _ in range(LOGIN_MEDLEY_PER_TYPE - len(picked))]
+        
+        # Let's randomize the display
+        shuffle(real_posters)
+        shuffle(placeholders)
+        half = len(placeholders) // 2
+        return placeholders[:half] + real_posters + placeholders[half:]
 
 @view_bp.route('/login', methods=['GET','POST'])
 def login():
@@ -73,7 +114,7 @@ def login():
                         return redirect(request.args.get('next') or url_for('main.index'))
                 return redirect(url_for('main.index'))
         
-        return render_template('login.html', title='Sign In', form=form)
+        return render_template('login.html', title='Sign In', form=form, medley=build_login_medley())
 
 @view_bp.route('/logout')
 def logout():
@@ -188,19 +229,36 @@ def show_dashboard():
 
         # Fetch general databases statistics
         general_stats["shows"] = Show.query.filter(Show.show_type==g.show_type).count()
+        
+        # Distinct shows with at least one rating — used by the dashboard
+        # to display catalogue coverage.
+        general_stats["shows_marked"] = db.session.query(db.func.count(db.distinct(Mark.show_id))).join(Show).filter(Show.show_type==g.show_type, Mark.mark != None).scalar() or 0
+
+        # Pick a random show the current user hasn't rated yet
+        # ~ ==> NOT
+        suggestion = None
+        unseen_query = Show.query.filter(
+                Show.show_type == g.show_type,
+                ~Show.id.in_(db.session.query(Mark.show_id).filter(Mark.user_id == g.user.id, Mark.mark != None))
+        )
+
+        # Let's pick a random unrated show if there is one available
+        unseen_count = unseen_query.count()
+        if unseen_count > 0:
+                suggestion = unseen_query.offset(randint(0, unseen_count - 1)).limit(1).first()
 
         # Generate datas for the bar graph
         cur_year=datetime.now().strftime("%Y")
         
-        # Set month in French
+        # Set month in French (abbreviated form: janv., févr., mars, …)
         locale.setlocale(locale.LC_ALL, "fr_FR.UTF-8")
         for cur_month in range(1,13,1):
-                labels.append(datetime.strptime(str(cur_month), "%m").strftime("%B"))
+                labels.append(datetime.strptime(str(cur_month), "%m").strftime("%b"))
 
         # Go back to default locale
         locale.setlocale(locale.LC_ALL,locale.getdefaultlocale())
         
-        return render_template('show_dashboard.html', activity_list=activity_dict["list"], general_stats=general_stats,labels=labels,cur_year=cur_year,stats_dict=stats_dict,dashboard_graph_form=dashboard_graph_form)
+        return render_template('show_dashboard.html', activity_list=activity_dict["list"], general_stats=general_stats,labels=labels,cur_year=cur_year,stats_dict=stats_dict,dashboard_graph_form=dashboard_graph_form,suggestion=suggestion)
 
 @view_bp.route('/activity/show')
 @login_required
@@ -231,68 +289,85 @@ def update_activity_flow():
         # Initialize dict which will contains that presented to the datatable
         activity_dict = { "draw": draw , "recordsTotal": temp_activity_dict["count"], "recordsFiltered" : temp_activity_dict["count"], "data": []}
 
-        # Let's fill the activity_dict with data good format for the datatable
+        # Fill activity_dict with structured per-entry data. The route returns
+        # unitary objects only — each consumer template renders the final HTML
+        # itself via a DataTables columns.render callback.
         for cur_activity in temp_activity_dict["list"]:
+                entry = { "action_type" : cur_activity["entry_type"] }
+
                 if cur_activity["entry_type"] == "shows":
-                        entry_type="<a class=\"disabled btn btn-danger btn-xs\">Entrée</a>"
+                        show = cur_activity["object"]
+                        author = show.added_by
 
-                        # Sometimes, the user can be Null (Especially after an import
-                        # So, we need to put a default user in order to avoid a NoneType Exception
-                        if cur_activity["object"].added_by == None:
-                                user="CineBot"
-                        else:
-                                user=cur_activity["object"].added_by.nickname
-
-                        # Define the text that will be shown on the datatable
-                        entry_text=g.messages["label_generic_uppercase"] + " <a href=\"" +  url_for('show.display_show',show_type=g.show_type, show_id=cur_activity["object"].id) + "\">" + cur_activity["object"].name + u"</a> vient d'être " + g.messages["label_text_added"] + " par " + user
+                        entry["user"] = {
+                                "id": author.id if author else 0,
+                                "nickname": author.nickname if author else "CineBot",
+                                "theme_color": author.theme_color if author else "#1c1820",
+                        }
+                        entry["show"] = {
+                                "id": show.id,
+                                "name": show.name,
+                                "url": url_for('show.display_show', show_type=g.show_type, show_id=show.id),
+                        }
+                        entry["when"] = humanize_when(show.added_when)
 
                 elif cur_activity["entry_type"] == "marks":
-                        entry_type="<a class=\"disabled btn btn-primary btn-xs\">Note</a>"      
+                        mark = cur_activity["object"]
 
-                        # Sometimes, the comment can be Null (Especially after an import
-                        # So, we need to put a default user in order to avoid a NoneType Exception
-                        if cur_activity["object"].comment == None:
-                                comment=""
-                        else:
-                                comment=cur_activity["object"].comment.replace('"','\'')
-
-                        # Precise if this is a mark for an homework or a simple mark
-                        if cur_activity["object"].updated_when != None and cur_activity["object"].homework_when != None:
-
-                                entry_type+=" <a class=\"disabled btn btn-warning btn-xs\">Devoir</a>"  
-
-                                # Define the text that will be shown on the datatable
-                                entry_text=cur_activity["object"].user.nickname + u" vient de remplir son devoir sur " + g.messages["label_generic"] + " <a href=\"" + url_for('show.display_show', show_type=g.show_type, show_id=cur_activity["object"].show_id) +"\">" +  cur_activity["object"].show.name + "</a> .La note est de <span title=\"Commentaire\" data-html=\"true\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
-
-                        else:
-                                # Define the text that will be shown on the datatable
-                                entry_text=cur_activity["object"].user.nickname + u" a noté " + g.messages["label_generic"] + " <a href=\"" + url_for('show.display_show', show_type=g.show_type, show_id=cur_activity["object"].show_id) +"\">" +  cur_activity["object"].show.name + "</a> avec la note <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-content=\"" + comment + "\"><strong>" + str(cur_activity["object"].mark) +"</strong></span>"
+                        entry["user"] = { "id": mark.user.id, "nickname": mark.user.nickname, "theme_color": mark.user.theme_color }
+                        entry["show"] = {
+                                "id": mark.show_id,
+                                "name": mark.show.name,
+                                "url": url_for('show.display_show', show_type=g.show_type, show_id=mark.show_id),
+                        }
+                        entry["mark"] = {
+                                "value": mark.mark,
+                                "comment": "" if mark.comment is None else mark.comment.replace('"', '\''),
+                                "is_homework_mark": mark.updated_when is not None and mark.homework_when is not None,
+                        }
+                        entry["when"] = humanize_when(mark.updated_when)
 
                 elif cur_activity["entry_type"] == "homeworks":
-                        entry_type="<a class=\"disabled btn btn-warning btn-xs\">Devoir</a>"
+                        m = cur_activity["object"]
 
-                        # Define the text that will be shown on the datatable
-                        entry_text=cur_activity["object"].homework_who_user.nickname + " vient de donner <a href=\"" + url_for('show.display_show', show_type=g.show_type, show_id=cur_activity["object"].show_id) + "\">" +  cur_activity["object"].show.name + "</a> en devoir a " + cur_activity["object"].user.nickname
+                        entry["user"] = { "id": m.homework_who_user.id, "nickname": m.homework_who_user.nickname, "theme_color": m.homework_who_user.theme_color }
+                        entry["show"] = {
+                                "id": m.show_id,
+                                "name": m.show.name,
+                                "url": url_for('show.display_show', show_type=g.show_type, show_id=m.show_id),
+                        }
+                        entry["target_user"] = { "id": m.user.id, "nickname": m.user.nickname, "theme_color": m.user.theme_color }
+                        entry["when"] = humanize_when(m.homework_when)
 
                 elif cur_activity["entry_type"] == "comments":
-                        entry_type="<a class=\"disabled btn btn-comment btn-xs\">Commentaire</a>"
+                        com = cur_activity["object"]
 
-                        # Check that the mark comment is not empty in order to avoid an exception
-                        # when encoding the string
-                        if cur_activity["object"].mark.comment == None:
-                                cur_activity["object"].mark.comment = "N/A"
-
-                        # Define the text that will be shown on the datatable
-                        entry_text=cur_activity["object"].user.nickname + " vient de poster un <span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-trigger=\"hover\" data-content=\"" + cur_activity["object"].message + "\"><strong>commentaire</strong></span> sur " + g.messages["label_generic"] + " <a href=\"" + url_for('show.display_show',show_type=g.show_type, show_id=cur_activity["object"].mark.show.id) + "\">" +  cur_activity["object"].mark.show.name + "</a> en réponse à <strong><span title=\"Commentaire\" data-toggle=\"popover\" data-placement=\"top\" data-html=\"true\" data-trigger=\"hover\" data-html=\"true\" data-content=\"" + cur_activity["object"].mark.comment + "\">" + cur_activity["object"].mark.user.nickname + "</strong></span>"
+                        entry["user"] = { "id": com.user.id, "nickname": com.user.nickname, "theme_color": com.user.theme_color }
+                        entry["show"] = {
+                                "id": com.mark.show.id,
+                                "name": com.mark.show.name,
+                                "url": url_for('show.display_show', show_type=g.show_type, show_id=com.mark.show.id),
+                        }
+                        entry["comment"] = { "message": com.message }
+                        entry["parent_mark"] = {
+                                "user": { "id": com.mark.user.id, "nickname": com.mark.user.nickname, "theme_color": com.mark.user.theme_color },
+                                "comment": "N/A" if com.mark.comment is None else com.mark.comment,
+                        }
+                        entry["when"] = humanize_when(com.posted_when)
 
                 elif cur_activity["entry_type"] == "favorites":
-                        entry_type="<a class=\"disabled btn btn-favorite btn-xs\">Favori</a>"
+                        fav = cur_activity["object"]
 
-                        # Define the text that will be shown on the datatable
-                        entry_text=cur_activity["object"].user.nickname + " vient d'ajouter en favori <a href=\"" + url_for('show.display_show', show_type=g.show_type,show_id=cur_activity["object"].show_id) + "\">" +  cur_activity["object"].show.name + "</a> - Niveau <i class=\"fa fa-star " + cur_activity["object"].star_type + "\"</i>"
+                        entry["user"] = { "id": fav.user.id, "nickname": fav.user.nickname, "theme_color": fav.user.theme_color }
+                        entry["show"] = {
+                                "id": fav.show_id,
+                                "name": fav.show.name,
+                                "url": url_for('show.display_show', show_type=g.show_type, show_id=fav.show_id),
+                        }
+                        entry["favorite"] = { "star_type": fav.star_type }
+                        entry["when"] = humanize_when(fav.added_when)
 
-                # Append the processed entry to the dictionnary that will be used by the datatable
-                activity_dict["data"].append({"entry_type" : entry_type, "entry_text" : entry_text })
+                activity_dict["data"].append(entry)
 
         # Return the dictionnary as a JSON object
         return json.dumps(activity_dict)
