@@ -180,7 +180,7 @@ class FlaskrTestCase(unittest.TestCase):
             
     def test_02_index(self):
         rv = self.client.get('/login')
-        assert "Welcome to CineApp" in str(str(rv.data))
+        assert "Se connecter" in str(str(rv.data))
 
     def test_03_login_logout(self):
 
@@ -194,17 +194,17 @@ class FlaskrTestCase(unittest.TestCase):
         
         # Good login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(str(rv.data))
+        assert '<span id="topbar-username">ptitoliv</span>' in str(str(rv.data))
         
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(str(rv.data))
+        assert "Se connecter" in str(str(rv.data))
         
         # Login as guest
         rv=self.client.post('/login',data=dict(username="guest",password="guest"), follow_redirects=True)
-        assert "Welcome <strong>Guest</strong>" in str(str(rv.data))
+        assert '<span id="topbar-username">Guest</span>' in str(str(rv.data))
         
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(str(rv.data))
+        assert "Se connecter" in str(str(rv.data))
 
     def test_04_add_movie(self):
         with self.app.app_context():
@@ -226,7 +226,7 @@ class FlaskrTestCase(unittest.TestCase):
             db.session.commit()
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
 
         # We are logged => add the movie
         rv=self.client.get('/movie/add')
@@ -267,9 +267,9 @@ class FlaskrTestCase(unittest.TestCase):
         # Fill the movie title
         rv=self.client.post('/movie/add/select',data=dict(search="Les Tuche",submit_search=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
-        
+
         # Let's find the show in the list
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         found=False
         for cur_show in list_shows:
             if "Les Tuche" in cur_show.text:
@@ -287,7 +287,7 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/movie/add/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
         parsed_html=BeautifulSoup(rv.data,"html.parser")
 
-        list_messages=parsed_html.find_all("div", {"class": "msg-alert"})
+        list_messages=parsed_html.find_all("div", {"class": "flash"})
 
         found=False
         for cur_msg in list_messages:
@@ -322,11 +322,11 @@ class FlaskrTestCase(unittest.TestCase):
         # --- Edge case: download_poster fails during add (L39-40) ---
         rv=self.client.post('/movie/add/select',data=dict(search="Piège de cristal",submit_search=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         igdb_id_piege=None
         for cur_show in list_shows:
             if "Piège" in cur_show.text:
-                radio = cur_show.find_previous('input', {'type': 'radio'})
+                radio = cur_show.find('input', {'type': 'radio'})
                 if radio:
                     igdb_id_piege = radio['value']
                 break
@@ -349,11 +349,11 @@ class FlaskrTestCase(unittest.TestCase):
         # --- Edge case: movie with empty release_date (L119) ---
         rv=self.client.post('/movie/add/select',data=dict(search="Volte-Face",submit_search=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         igdb_id_volte=None
         for cur_show in list_shows:
             if "Volte" in cur_show.text:
-                radio = cur_show.find_previous('input', {'type': 'radio'})
+                radio = cur_show.find('input', {'type': 'radio'})
                 if radio:
                     igdb_id_volte = radio['value']
                 break
@@ -404,7 +404,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert u"Ajout d'un film" == parsed_html.find(id="add_wizard_label").text
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_04_update_movie(self):
 
@@ -414,7 +414,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # --- Edge case: POST update without valid form data ---
         rv=self.client.post('/movie/update',data=dict(),follow_redirects=True)
@@ -441,7 +441,7 @@ class FlaskrTestCase(unittest.TestCase):
         parsed_html=BeautifulSoup(rv.data,"html.parser")
         
         # Let's find the show in the list
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         found=False
         for cur_show in list_shows:
             if "Les Tuche" in cur_show.text:
@@ -459,7 +459,7 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/movie/update/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
         parsed_html=BeautifulSoup(rv.data,"html.parser")
 
-        list_messages=parsed_html.find_all("div", {"class": "msg-alert"})
+        list_messages=parsed_html.find_all("div", {"class": "flash"})
 
         found=False
         for cur_msg in list_messages:
@@ -532,7 +532,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_05_edit_profile(self):
 
@@ -542,11 +542,11 @@ class FlaskrTestCase(unittest.TestCase):
             u=User.query.get(1);
         
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
 
         # Check if we can display the page
         rv=self.client.get('/my/profile', follow_redirects=True)
-        assert "Informations Utilisateur" in rv.data.decode('utf-8')
+        assert "Vos informations" in rv.data.decode('utf-8')
 
         # In order to repeat the same code for testing all cases for avatar,
         # let's use a dictionnary with a loop. test_avatar.png is used twice in
@@ -606,12 +606,12 @@ class FlaskrTestCase(unittest.TestCase):
             assert "Impossible de redimensionner l&#39;image" in rv.data.decode("utf-8")
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_05_change_password(self):
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
 
         # Let's change the password in a bad way
         rv=self.client.post('/my/password',data=dict(password="toto1234",confirm="toto1235"), follow_redirects=True)
@@ -622,12 +622,12 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Mot de passe mis à jour" in rv.data.decode('utf-8')
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_06_mark_movie(self):
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
         
         # --- Edge case: mark with non-numeric value (L74-75) ---
         rv=self.client.post('/movie/mark/1',data=dict(mark="abc",comment="cool",seen_where="C",submit_mark=1),follow_redirects=True)
@@ -648,7 +648,7 @@ class FlaskrTestCase(unittest.TestCase):
         # --- Edge case: GET mark page for already marked show (L709-710) ---
         rv=self.client.get('/movie/mark/1',follow_redirects=True)
         parsed_html=BeautifulSoup(rv.data,"html.parser")
-        assert "Les Tuche" in parsed_html.find("h1",{"class":"title_position"}).text
+        assert "Les Tuche" in parsed_html.find("h1",{"class":"title"}).text
      
         # --- Edge case: mail notification failure (L678) ---
         with patch('cineapp.shows.mark_show_notification') as mock_notif:
@@ -718,12 +718,12 @@ class FlaskrTestCase(unittest.TestCase):
         assert rv.status_code == 200
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_07_comment_mark(self):
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Try to send an empty comment
         rv=self.client.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment=""),follow_redirects=True)
@@ -736,36 +736,36 @@ class FlaskrTestCase(unittest.TestCase):
         assert "plop" in str(rv.data)
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
         # User "foo" comments on ptitoliv's mark so commenter != mark owner
         # (covers emails.py own_mark_user=False branch).
         rv=self.client.post('/login',data=dict(username="foo",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>foo</strong>" in str(rv.data)
+        assert '<span id="topbar-username">foo</span>' in str(rv.data)
 
         rv=self.client.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment="commented by foo"),follow_redirects=True)
         rv=self.client.get('/movie/display/1', follow_redirects=True)
         assert "commented by foo" in str(rv.data)
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_08_random_movie(self):
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
         
         # We are logged => mark the movie
         rv=self.client.get('/movie/display/random', follow_redirects=True)
-        assert "Fiche" in str(rv.data) 
+        assert "Fiche externe" in str(rv.data) 
         
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_09_search_movie(self):
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
         
         # We are logged => mark the movie
         rv=self.client.get('/movie/list', follow_redirects=True)
@@ -924,7 +924,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert rv.status_code == 200
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_10_edit_mark_movie(self):
 
@@ -936,7 +936,7 @@ class FlaskrTestCase(unittest.TestCase):
             db.session.commit()
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
         
         # We are logged => mark the movie
         rv=self.client.post('/json/edit_mark_comment',data=dict(comment_id=1,comment_text="plup"),follow_redirects=True)
@@ -959,7 +959,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert response_args["error"] == "Vous ne pouvez supprimer que vos propres commentaires"
         
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_11_slack_fail_cases(self):
 
@@ -983,7 +983,7 @@ class FlaskrTestCase(unittest.TestCase):
     def test_12_add_tvshow(self):
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
         
         # We are logged => add the movie
         rv=self.client.get('/tvshow/add')
@@ -995,7 +995,7 @@ class FlaskrTestCase(unittest.TestCase):
         parsed_html=BeautifulSoup(rv.data,"html.parser")
         
         # Let's find the show in the list
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         found=False
         for cur_show in list_shows:
             if "Babylon 5" in cur_show.text:
@@ -1013,7 +1013,7 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/tvshow/add/confirm',data=dict(show_id="3137",origin="F",type="C",submit_confirm=True),follow_redirects=True)
         parsed_html=BeautifulSoup(rv.data,"html.parser")
 
-        list_messages=parsed_html.find_all("div", {"class": "msg-alert"})
+        list_messages=parsed_html.find_all("div", {"class": "flash"})
 
         found=False
         for cur_msg in list_messages:
@@ -1031,11 +1031,11 @@ class FlaskrTestCase(unittest.TestCase):
         # --- Edge case: tvshow with no showrunner and unknown production status (L155, L160-161) ---
         rv=self.client.post('/tvshow/add/select',data=dict(search="Westworld",submit_search=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         igdb_id_westworld=None
         for cur_show in list_shows:
             if "Westworld" in cur_show.text:
-                radio = cur_show.find_previous('input', {'type': 'radio'})
+                radio = cur_show.find('input', {'type': 'radio'})
                 if radio:
                     igdb_id_westworld = radio['value']
                 break
@@ -1060,7 +1060,7 @@ class FlaskrTestCase(unittest.TestCase):
             assert tvshow_ww.production_status is None
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_12_update_tvshow(self):
 
@@ -1070,7 +1070,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to tvshow mode
         rv=self.client.get('/switch/tvshow', follow_redirects=True)
@@ -1092,7 +1092,7 @@ class FlaskrTestCase(unittest.TestCase):
         parsed_html=BeautifulSoup(rv.data,"html.parser")
 
         # Let's find the show in the list
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         found=False
         for cur_show in list_shows:
             if "Babylon 5" in cur_show.text:
@@ -1110,7 +1110,7 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/tvshow/update/confirm',data=dict(show_id="3137",origin="F",type="C",submit_confirm=True),follow_redirects=True)
         parsed_html=BeautifulSoup(rv.data,"html.parser")
 
-        list_messages=parsed_html.find_all("div", {"class": "msg-alert"})
+        list_messages=parsed_html.find_all("div", {"class": "flash"})
 
         found=False
         for cur_msg in list_messages:
@@ -1138,12 +1138,12 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_13_mark_tvshow(self):
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Re-enable notif_slack (disabled at the end of test_06)
         rv=self.client.post('/my/profile',data=dict(
@@ -1195,12 +1195,12 @@ class FlaskrTestCase(unittest.TestCase):
         assert rv.status_code == 200
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_14_comment_mark(self):
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
         
         # We are logged => comment the mark
         rv=self.client.post('/json/add_mark_comment',data=dict(show_id=6,dest_user=1,comment="plop"),follow_redirects=True)
@@ -1216,15 +1216,15 @@ class FlaskrTestCase(unittest.TestCase):
         assert rv.status_code == 200
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_15_random_show(self):
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
         
         rv=self.client.get('/tvshow/display/random', follow_redirects=True)
-        assert "Fiche" in str(rv.data)
+        assert "Fiche externe" in str(rv.data)
 
         # Try random on videogame mode on an empty list (no videogame exists yet)
         rv=self.client.get('/switch/videogame', follow_redirects=True)
@@ -1232,7 +1232,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Pas de contenu disponible" in rv.data.decode('utf-8')
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_16_switch(self):
 
@@ -1243,7 +1243,7 @@ class FlaskrTestCase(unittest.TestCase):
         modes={ 'movie': 'films', 'tvshow': 'séries', 'videogame': 'jeux vidéo' };
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
 
         # Switch between availables modes
         for key, value in modes.items():
@@ -1261,7 +1261,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert rv.status_code == 404
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_17_add_user(self):
 
@@ -1270,7 +1270,7 @@ class FlaskrTestCase(unittest.TestCase):
         """
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
 
         # First test ==> Add successfully a user
         rv=self.client.post('/users/add', data=dict(username="toto",email="toto@toto.com",password="toto",confirm="toto"))
@@ -1300,7 +1300,7 @@ class FlaskrTestCase(unittest.TestCase):
             assert value in parsed_html.find(id=key).text
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_18_guest_mode(self):
 
@@ -1309,7 +1309,7 @@ class FlaskrTestCase(unittest.TestCase):
         """
         # Login
         rv=self.client.post('/login',data=dict(username="guest",password="guest"), follow_redirects=True)
-        assert "Welcome <strong>Guest</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">Guest</span>' in str(rv.data) 
 
         rv=self.client.post('/filter',data=dict(search="Les Tuche",submit_search=True),follow_redirects=True)   
         assert "Recherche Personnalisée: Les Tuche" in rv.data.decode('utf-8')
@@ -1333,7 +1333,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_19_homework(self):
 
@@ -1362,7 +1362,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
 
         # Give an homework from user 1 to user 2
         with mail.record_messages() as outbox:
@@ -1432,7 +1432,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         rv=self.client.get('/logout', follow_redirects=True)
         rv=self.client.post('/login',data=dict(username="toto",password="toto"), follow_redirects=True)
-        assert "Welcome <strong>toto</strong>" in str(rv.data)
+        assert '<span id="topbar-username">toto</span>' in str(rv.data)
 
         # Complete the homework by marking the show
         rv=self.client.post('/movie/mark/1',data=dict(mark=12,comment="devoir fait",seen_where="M",seen_when="2026-03-28",submit_mark=1),follow_redirects=True)
@@ -1440,7 +1440,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_20_favorites(self):
 
@@ -1457,7 +1457,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
 
         # Add a show as favorite
         rv=self.client.post('/json/favshow/set/1/1',data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
@@ -1504,7 +1504,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_21_activity_flow(self):
 
@@ -1514,7 +1514,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data) 
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
 
         # Check if the activity flow route is working
         modes={ 'tvshow': 'séries', 'movie': 'films' };
@@ -1542,7 +1542,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_22_graphs_movie_mode(self):
 
@@ -1552,7 +1552,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to movie mode
         rv=self.client.get('/switch/movie', follow_redirects=True)
@@ -1584,7 +1584,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_23_graphs_tvshow_mode(self):
 
@@ -1594,7 +1594,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to tvshow mode
         rv=self.client.get('/switch/tvshow', follow_redirects=True)
@@ -1626,7 +1626,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_24_graphs_check_graph_type(self):
 
@@ -1636,7 +1636,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to movie mode
         rv=self.client.get('/switch/movie', follow_redirects=True)
@@ -1650,7 +1650,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_25_add_videogame(self):
 
@@ -1669,7 +1669,7 @@ class FlaskrTestCase(unittest.TestCase):
             db.session.commit()
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to videogame mode
         rv=self.client.get('/switch/videogame', follow_redirects=True)
@@ -1701,14 +1701,14 @@ class FlaskrTestCase(unittest.TestCase):
         parsed_html=BeautifulSoup(rv.data,"html.parser")
 
         # Let's find the game in the list
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         found=False
         igdb_id=None
         for cur_show in list_shows:
             if "Sonic" in cur_show.text:
                 found=True
                 # Get the radio button value (igdb_id)
-                radio = cur_show.find_previous('input', {'type': 'radio'})
+                radio = cur_show.find('input', {'type': 'radio'})
                 if radio:
                     igdb_id = radio['value']
                 break
@@ -1729,7 +1729,7 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/videogame/add/confirm',data=dict(show_id=igdb_id,origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
         parsed_html=BeautifulSoup(rv.data,"html.parser")
 
-        list_messages=parsed_html.find_all("div", {"class": "msg-alert"})
+        list_messages=parsed_html.find_all("div", {"class": "flash"})
 
         found=False
         for cur_msg in list_messages:
@@ -1815,11 +1815,11 @@ class FlaskrTestCase(unittest.TestCase):
         # Search a game different from Sonic
         rv=self.client.post('/videogame/add/select',data=dict(search="Zelda",submit_search=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         igdb_id_zelda=None
         for cur_show in list_shows:
             if "Zelda" in cur_show.text:
-                radio = cur_show.find_previous('input', {'type': 'radio'})
+                radio = cur_show.find('input', {'type': 'radio'})
                 if radio:
                     igdb_id_zelda = radio['value']
                 break
@@ -1834,11 +1834,11 @@ class FlaskrTestCase(unittest.TestCase):
         # --- download_poster: HTTP error 404 (L262) ---
         rv=self.client.post('/videogame/add/select',data=dict(search="Mario",submit_search=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         igdb_id_mario=None
         for cur_show in list_shows:
             if "Mario" in cur_show.text:
-                radio = cur_show.find_previous('input', {'type': 'radio'})
+                radio = cur_show.find('input', {'type': 'radio'})
                 if radio:
                     igdb_id_mario = radio['value']
                 break
@@ -1852,11 +1852,11 @@ class FlaskrTestCase(unittest.TestCase):
         # --- download_poster: network exception (L269-271) ---
         rv=self.client.post('/videogame/add/select',data=dict(search="Tetris",submit_search=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         igdb_id_tetris=None
         for cur_show in list_shows:
             if "Tetris" in cur_show.text:
-                radio = cur_show.find_previous('input', {'type': 'radio'})
+                radio = cur_show.find('input', {'type': 'radio'})
                 if radio:
                     igdb_id_tetris = radio['value']
                 break
@@ -1883,11 +1883,11 @@ class FlaskrTestCase(unittest.TestCase):
         # --- get_game: IGDB API returns no results on confirm (L173-174) ---
         rv=self.client.post('/videogame/add/select',data=dict(search="Metroid",submit_search=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         igdb_id_metroid=None
         for cur_show in list_shows:
             if "Metroid" in cur_show.text:
-                radio = cur_show.find_previous('input', {'type': 'radio'})
+                radio = cur_show.find('input', {'type': 'radio'})
                 if radio:
                     igdb_id_metroid = radio['value']
                 break
@@ -1901,11 +1901,11 @@ class FlaskrTestCase(unittest.TestCase):
         # 13 Sentinels: Aegis Rim has IGDB localizations missing the cover field for some regions
         rv=self.client.post('/videogame/add/select',data=dict(search="13 Sentinels",submit_search=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         igdb_id_sentinels=None
         for cur_show in list_shows:
             if "13 Sentinels" in cur_show.text:
-                radio = cur_show.find_previous('input', {'type': 'radio'})
+                radio = cur_show.find('input', {'type': 'radio'})
                 if radio:
                     igdb_id_sentinels = radio['value']
                 break
@@ -1920,7 +1920,7 @@ class FlaskrTestCase(unittest.TestCase):
             assert videogame.poster_path is not None
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_26_update_videogame(self):
 
@@ -1930,7 +1930,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to videogame mode
         rv=self.client.get('/switch/videogame', follow_redirects=True)
@@ -1958,13 +1958,13 @@ class FlaskrTestCase(unittest.TestCase):
         parsed_html=BeautifulSoup(rv.data,"html.parser")
 
         # Let's find the game in the list
-        list_shows=(parsed_html.table.find_all('label'))
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
         found=False
         igdb_id=None
         for cur_show in list_shows:
             if "Sonic" in cur_show.text:
                 found=True
-                radio = cur_show.find_previous('input', {'type': 'radio'})
+                radio = cur_show.find('input', {'type': 'radio'})
                 if radio:
                     igdb_id = radio['value']
                 break
@@ -1984,7 +1984,7 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/videogame/update/confirm',data=dict(show_id=igdb_id,origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
         parsed_html=BeautifulSoup(rv.data,"html.parser")
 
-        list_messages=parsed_html.find_all("div", {"class": "msg-alert"})
+        list_messages=parsed_html.find_all("div", {"class": "flash"})
 
         found=False
         for cur_msg in list_messages:
@@ -2051,7 +2051,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_27_mark_videogame(self):
 
@@ -2060,7 +2060,7 @@ class FlaskrTestCase(unittest.TestCase):
         """
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to videogame mode
         rv=self.client.get('/switch/videogame', follow_redirects=True)
@@ -2079,7 +2079,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Note mise" in str(rv.data)
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_28_comment_mark_videogame(self):
 
@@ -2088,7 +2088,7 @@ class FlaskrTestCase(unittest.TestCase):
         """
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to videogame mode
         rv=self.client.get('/switch/videogame', follow_redirects=True)
@@ -2104,7 +2104,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert "super jeu" in str(rv.data)
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_29_display_videogame(self):
 
@@ -2113,7 +2113,7 @@ class FlaskrTestCase(unittest.TestCase):
         """
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to videogame mode
         rv=self.client.get('/switch/videogame', follow_redirects=True)
@@ -2132,7 +2132,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert u"Développeur(s)" in page_content or "veloppeur" in page_content
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_30_random_videogame(self):
 
@@ -2141,16 +2141,16 @@ class FlaskrTestCase(unittest.TestCase):
         """
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to videogame mode
         rv=self.client.get('/switch/videogame', follow_redirects=True)
 
         rv=self.client.get('/videogame/display/random', follow_redirects=True)
-        assert "Fiche" in str(rv.data)
+        assert "Fiche externe" in str(rv.data)
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_31_search_videogame(self):
 
@@ -2159,7 +2159,7 @@ class FlaskrTestCase(unittest.TestCase):
         """
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to videogame mode
         rv=self.client.get('/switch/videogame', follow_redirects=True)
@@ -2213,7 +2213,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert rv.status_code == 200
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_32_homework_videogame(self):
 
@@ -2223,7 +2223,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to videogame mode
         rv=self.client.get('/switch/videogame', follow_redirects=True)
@@ -2247,7 +2247,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_33_favorites_videogame(self):
 
@@ -2257,7 +2257,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to videogame mode
         rv=self.client.get('/switch/videogame', follow_redirects=True)
@@ -2284,7 +2284,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_34_activity_flow_videogame(self):
 
@@ -2294,7 +2294,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to videogame mode
         rv=self.client.get('/switch/videogame', follow_redirects=True)
@@ -2311,7 +2311,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_35_graphs_videogame_mode(self):
 
@@ -2321,7 +2321,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Switch to videogame mode
         rv=self.client.get('/switch/videogame', follow_redirects=True)
@@ -2350,7 +2350,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
     def test_36_push_notifications(self):
 
@@ -2360,7 +2360,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Login
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         # Subscribe to push notifications
         subscription_data = {
@@ -2384,7 +2384,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Logout triggers notification_unsubscribe for all session subscriptions
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
 
         # Verify subscription has been removed from database
         with self.app.app_context():
@@ -2395,7 +2395,7 @@ class FlaskrTestCase(unittest.TestCase):
         # Re-login and subscribe once, then subscribe again with a different endpoint
         # The second subscribe will fail because session_id has a unique constraint
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         rv=self.client.post('/notifications/subscribe', data=json.dumps(subscription_data), content_type='application/json')
         response=json.loads(rv.data)
@@ -2415,7 +2415,7 @@ class FlaskrTestCase(unittest.TestCase):
         # --- Error case: DB error during unsubscribe (L65-67) ---
         with patch('cineapp.push.db.session.commit', side_effect=Exception("DB delete error")):
             rv=self.client.get('/logout', follow_redirects=True)
-            assert "Welcome to CineApp" in str(rv.data)
+            assert "Se connecter" in str(rv.data)
 
         # Subscription should still be in DB since delete failed
         with self.app.app_context():
@@ -2446,7 +2446,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # --- Access chat page (L79) ---
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
-        assert "Welcome <strong>ptitoliv</strong>" in str(rv.data)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         rv=self.client.get('/chat')
         assert rv.status_code == 200
@@ -2535,4 +2535,4 @@ class FlaskrTestCase(unittest.TestCase):
         socketio_client.disconnect(namespace='/chat_ws')
 
         rv=self.client.get('/logout', follow_redirects=True)
-        assert "Welcome to CineApp" in str(rv.data)
+        assert "Se connecter" in str(rv.data)
