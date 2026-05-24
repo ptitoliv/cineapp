@@ -38,7 +38,7 @@ function activity_phrase(row) {
   var what = '<a href="' + escapeHtml(row.show.url) + '">' + escapeHtml(row.show.name) + '</a>';
   switch (row.action_type) {
     case "shows":
-      return who + ' a ajouté ' + what + ' au catalogue.';
+      return who + ' a ajouté ' + what + '.';
     case "marks":
       var note = '<span class="mark">' + row.mark.value + '</span>';
       if (row.mark.is_homework_mark) {

@@ -23,6 +23,17 @@
 .mob-sort-row.user-{{ cu.id }} .ava { background: {{ color }}; }
 .sort-pill.is-active.user-{{ cu.id }} { background: {{ color }}; border-color: {{ color }}; color: var(--paper-card); }
 {% endfor %}
+{% if not g.user.is_guest %}
+/* Very light tint on the current user's columns (Fav / Note / Date),
+   derived from User.theme_color + 14 alpha hex (~8%). */
+.list thead .users th.user-{{ g.user.id }},
+.list thead .cols th.my-col,
+.list tbody td.my-col { background: {{ g.user.theme_color }}14; }
+/* Mobile: tint the user ROW (structural rules live in styles.css). */
+@media (max-width: 920px) {
+  .list tbody td.cell-fav.my-col::after { background: {{ g.user.theme_color }}14; }
+}
+{% endif %}
 </style>
 
 <header class="page-head">
@@ -43,7 +54,6 @@
   {% from "_formhelpers.html" import render_field %}
   <form class="filter-bar" method="post" role="form" action="{{ url_for('main.filter_form') }}">
     {{ filter_form.hidden_tag() }}
-    <span class="lbl">Filtrer</span>
     {{ render_field(filter_form.origin) }}
     {{ render_field(filter_form.type) }}
     {% if g.show_type == "movie" %}
@@ -68,7 +78,7 @@
   <div class="mob-sort-row user-{{ g.user.id }}">
     <span class="mob-sort-rowlabel">
       <span class="ava">{{ g.user.nickname[0]|upper }}{% if g.user.avatar %}<img src="{{ config.AVATARS_URL }}{{ g.user.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
-      Mes notes
+      {{ g.user.nickname }}
     </span>
     <button type="button" class="sort-pill user-{{ g.user.id }}" data-col="2" data-dir="desc">Fav <span class="dir">↓</span></button>
     <button type="button" class="sort-pill user-{{ g.user.id }}" data-col="3" data-dir="desc">Note <span class="dir">↓</span></button>
@@ -102,7 +112,7 @@
           <th colspan="3" class="user-{{ g.user.id }}" data-dt-order="disable">
             <div class="ulabel">
               <span class="ava">{{ g.user.nickname[0]|upper }}{% if g.user.avatar %}<img src="{{ config.AVATARS_URL }}{{ g.user.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
-              <span class="uname">Mes notes</span>
+              <span class="uname">{{ g.user.nickname }}</span>
             </div>
           </th>
           {% endif %}
@@ -258,7 +268,7 @@ $(document).ready(function() {
     {% if not g.user.is_guest %}
     { data: 'my_fav', className: 'cell-fav my-col user-mine user-{{ g.user.id }}', width: '4%', orderable: true,
       render: function (data, type, row) { return renderFavStar(row.my_fav); },
-      createdCell: function (td) { td.setAttribute('data-user', 'Mes notes'); }
+      createdCell: function (td) { td.setAttribute('data-user', {{ g.user.nickname | tojson }}); }
     },
     { data: 'my_mark', className: 'cell-mark my-col', width: '5%', render: renderMyMark },
     { data: 'my_when', className: 'cell-when my-col', width: '5%', render: renderMyWhen },
@@ -344,6 +354,17 @@ $(document).ready(function() {
       // Let DataTables run its native asc/desc cycle on this column.
       $(table.column(col).header()).trigger('click');
     }
+  });
+
+  // Bubble placement — default position is above the cell. If the cell sits
+  // near the top of the viewport and the bubble would clip, flip it below.
+  // Delegated event because DataTables re-renders the cells on every draw.
+  $('#showslist').on('mouseenter', '.cell-mark-val.has-comment', function () {
+    var bubble = this.querySelector('.bubble');
+    if (!bubble) return;
+    var cellTop = this.getBoundingClientRect().top;
+    var bubbleH = bubble.offsetHeight || 80;
+    bubble.classList.toggle('bubble-below', cellTop < bubbleH + 24);
   });
 });
 </script>

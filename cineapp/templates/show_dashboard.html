@@ -14,7 +14,6 @@
 			<article class="card">
 				<header class="card-head">
 					<div class="titles">
-						<span class="eyebrow">Tendance personnelle</span>
 						<h2>Moyenne</h2>
 					</div>
 				</header>
@@ -43,7 +42,6 @@
 			<article class="card amber">
 				<header class="card-head">
 					<div class="titles">
-						<span class="eyebrow">Catalogue partagé</span>
 						<h2>{{ g.messages["label_show_type_number"] }}</h2>
 					</div>
 				</header>
@@ -92,7 +90,6 @@
 			<article class="card teal">
 				<header class="card-head">
 					<div class="titles">
-						<span class="eyebrow">Activité personnelle</span>
 						<h2>{{ g.messages["label_show_type_seen_number"] }}</h2>
 					</div>
 				</header>
@@ -140,7 +137,6 @@
 				<article class="card" id="graph_1">
 					<header class="card-head">
 						<div class="titles">
-							<span class="eyebrow">{{ g.messages["label_show_type_seenby"] }}</span>
 							<h2>Évolution mensuelle</h2>
 						</div>
 						<div class="ctrls">
@@ -174,7 +170,6 @@
 			<article class="card activity">
 				<header class="card-head">
 					<div class="titles">
-						<span class="eyebrow">Communauté</span>
 						<h2>{{ g.messages["label_activity"] }}</h2>
 					</div>
 				</header>
@@ -348,12 +343,6 @@ function update_graph_year_nav(cur_button) {
 	else cur_button.show();
 }
 
-// When more than one graph is shown, the left column expands and the
-// activity column keeps its width — see .row-bot.has-extra-graphs in CSS.
-function updateGraphsLayout() {
-	$('.row-bot').toggleClass('has-extra-graphs', $('#graphs > .card').length > 1);
-}
-
 // + Nouveau graphique — clone the card and turn the trigger into a "−" remove button
 $(document).on("click", "#new_graph", function (e) {
 	e.preventDefault();
@@ -370,7 +359,6 @@ $(document).on("click", "#new_graph", function (e) {
 			e.preventDefault();
 			$(this).closest(".card").slideUp("slow", function () {
 				$(this).remove();
-				updateGraphsLayout();
 			});
 		});
 
@@ -380,7 +368,6 @@ $(document).on("click", "#new_graph", function (e) {
 	new_graph.find("#graph_cur_year_canvas_1").attr("id", "graph_cur_year_canvas_" + graph_id);
 
 	new_graph.appendTo("#graphs").hide().slideDown("slow");
-	updateGraphsLayout();
 	draw_graph("canvas_" + graph_id);
 });
 

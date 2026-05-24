@@ -200,13 +200,13 @@
       <form method="post" action="{{ url_for('show.update_show', show_type=g.show_type) }}" name="updateshow" style="display:inline;">
         {{ update_show_form.hidden_tag() }}
         {{ update_show_form.show_id }}
-        {{ update_show_form.submit_update_show(class_="btn") }}
+        {{ update_show_form.submit_update_show(class_="btn btn-solid") }}
       </form>
-      <a class="btn" href="{{ url_for('show.mark_show', show_type=g.show_type, show_id_form=show.id) }}">
+      <a class="btn btn-solid" href="{{ url_for('show.mark_show', show_type=g.show_type, show_id_form=show.id) }}">
         {% if marked_flag %}Mettre à jour la note{% else %}{% if show is movie %}Noter ce film{% elif show is tvshow %}Noter cette série{% elif show is videogame %}Noter ce jeu vidéo{% endif %}{% endif %}
       </a>
       {% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE and g.user.notifications["notif_slack"] %}
-      <a class="btn" href="{{ url_for('show.publish_mark', show_type=g.show_type, show_id=show.id) }}">↑ Publier sur Slack</a>
+      <a class="btn btn-solid" href="{{ url_for('show.publish_mark', show_type=g.show_type, show_id=show.id) }}">↑ Publier sur Slack</a>
       {% endif %}
     </div>
     {% endif %}
@@ -265,10 +265,10 @@
       </div>
       <div class="mark-foot-actions">
         {% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE and g.user.notifications["notif_slack"] %}
-        {{ render_field(form.submit_mark_only, group=false, label_visible=false, div=false, parse_class=False, class_="btn") }}
-        {{ render_field(form.submit_mark_slack, group=false, label_visible=false, div=false, parse_class=False, class_="btn") }}
+        {{ render_field(form.submit_mark_only, group=false, label_visible=false, div=false, parse_class=False, class_="btn btn-solid") }}
+        {{ render_field(form.submit_mark_slack, group=false, label_visible=false, div=false, parse_class=False, class_="btn btn-solid") }}
         {% else %}
-        {{ render_field(form.submit_mark, group=false, label_visible=false, div=false, parse_class=False, class_="btn") }}
+        {{ render_field(form.submit_mark, group=false, label_visible=false, div=false, parse_class=False, class_="btn btn-solid") }}
         {% endif %}
       </div>
     </div>
@@ -347,13 +347,13 @@
       <div class="score-block">
         {% if cur_mark["mark"] is none %}
           {% if g.user.id != u.id and not g.user.is_guest %}
-          <a class="btn" href="{{ url_for('homework.add_homework', show_id=show.id, user_id=u.id) }}">📝 Devoir</a>
+          <a class="btn btn-solid" href="{{ url_for('homework.add_homework', show_id=show.id, user_id=u.id) }}">📝 Devoir</a>
           {% else %}
           <span class="score-empty">Pas notée</span>
           {% endif %}
         {% elif cur_mark["mark"] == "homework_in_progress" %}
           {% if cur_mark["homework_who"].id == g.user.id %}
-          <a class="btn" href="{{ url_for('homework.delete_homework', show_id=show.id, user_id=u.id) }}">✕ Annuler</a>
+          <a class="btn btn-solid" href="{{ url_for('homework.delete_homework', show_id=show.id, user_id=u.id) }}">✕ Annuler</a>
           {% else %}
           <span class="score-empty">Devoir en cours</span>
           {% endif %}

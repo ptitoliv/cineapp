@@ -66,7 +66,6 @@
    labels, eyebrows, table headers, the footer signature, etc. font-size stays
    per-rule below. */
 .foot,
-.filter-bar > .lbl,
 .filter-bar .control-label,
 .form-label,
 .list thead .cols th,
@@ -460,19 +459,16 @@ nav.menu a.active { font-weight: 500; }
 /* ----- filter strip ----- */
 .filter-strip { max-width: 1480px; margin: 0 auto; padding: 0 56px 28px; }
 .filter-bar {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 12px;
-  padding: 18px 22px; background: var(--paper-card);
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  padding: 18px 20px; background: var(--paper-card);
   border: 1px solid var(--rule); border-radius: var(--card-radius);
   box-shadow: 0 1px 0 var(--rule-soft);
-}
-.filter-bar > .lbl {
-  font-size: 11px;
-  margin-right: 4px;
 }
 .filter-bar .form-group { margin: 0; display: inline-flex; align-items: center; gap: 8px; }
 .filter-bar .control-label {
   font-size: 10.5px;
   margin: 0;
+  white-space: nowrap;
 }
 .filter-bar select {
   appearance: none; -webkit-appearance: none; -moz-appearance: none;
@@ -505,9 +501,33 @@ nav.menu a.active { font-weight: 500; }
   -webkit-appearance: none; appearance: none;
 }
 .btn:hover { border-color: var(--violet); color: var(--violet); }
-/* solid — ink fill, violet on hover (primary CTA) */
-.btn-solid { background: var(--ink); border-color: var(--ink); color: var(--paper); }
-.btn-solid:hover { background: var(--violet); border-color: var(--violet); color: var(--paper); }
+/* solid — canonical primary CTA. Ink gradient with violet glow on top-left
+   and a tinted drop shadow ; lifts on hover. Used everywhere a primary
+   action is offered (Filtrer, Noter, Continuer, Publier…). */
+.btn-solid {
+  background:
+    radial-gradient(120% 80% at 25% 10%, rgba(var(--violet-rgb),.55), transparent 60%),
+    var(--ink);
+  border-color: var(--ink);
+  color: var(--paper-card);
+  box-shadow:
+    0 12px 28px -12px rgba(var(--violet-rgb),.55),
+    0 4px 12px -6px rgba(28, 24, 32, .35),
+    inset 0 1px 0 rgba(255, 255, 255, .08);
+  transition: transform .2s, box-shadow .2s, background .2s, border-color .2s, color .2s;
+}
+.btn-solid:hover {
+  transform: translateY(-2px);
+  background:
+    radial-gradient(120% 80% at 25% 10%, rgba(var(--violet-rgb),.75), transparent 60%),
+    var(--ink);
+  border-color: var(--ink);
+  color: var(--paper-card);
+  box-shadow:
+    0 18px 38px -14px rgba(var(--violet-rgb),.75),
+    0 4px 12px -6px rgba(28, 24, 32, .35),
+    inset 0 1px 0 rgba(255, 255, 255, .12);
+}
 /* ghost — transparent surface */
 .btn-ghost { background: transparent; }
 /* compact — table-row scale (Noter / Devoir) */
@@ -568,7 +588,11 @@ nav.menu a.active { font-weight: 500; }
 /* ----- table card (applied to the DT layout row that holds the table only) ----- */
 .dt-layout-row.dt-layout-table {
   background: var(--paper-card); border: 1px solid var(--rule);
-  border-radius: var(--card-radius); overflow: hidden;
+  border-radius: var(--card-radius);
+  /* `visible` (not `hidden`) so the hover bubble on .cell-mark-val can
+     extend past the top / bottom edges of the table card without being
+     clipped. The wrapper's own background still respects its border-radius. */
+  overflow: visible;
   box-shadow: 0 1px 0 var(--rule-soft);
   margin: 0 0 14px;
 }
@@ -637,6 +661,12 @@ nav.menu a.active { font-weight: 500; }
 .list thead .cols th.dt-ordering-desc .sort .dn { opacity: 1; color: var(--violet); }
 .list thead .cols th.dt-ordering-desc .sort .up { opacity: .2; }
 .list thead .cols th.my-col { color: var(--violet); }
+/* The "Titre" column header stays neutral when sorted — the violet sort cue
+   is reserved for numerical / user-data columns. */
+.list thead .cols th:first-child.dt-ordering-asc,
+.list thead .cols th:first-child.dt-ordering-desc { color: var(--ink-dim); }
+.list thead .cols th:first-child.dt-ordering-asc .sort .up,
+.list thead .cols th:first-child.dt-ordering-desc .sort .dn { color: var(--ink-dim); }
 /* Hide DataTables' native sort indicator (we use our own .sort spans) */
 .list thead .cols th .dt-column-order { display: none !important; }
 
@@ -688,9 +718,9 @@ nav.menu a.active { font-weight: 500; }
 
 /* moyenne cell */
 .cell-avg {
-  font-family: var(--font-ui);
-  font-weight: 600; font-size: 22px;
-  color: var(--violet); letter-spacing: -.01em;
+  font-family: var(--font-display);
+  font-style: italic; font-weight: 500; font-size: 26px;
+  color: var(--ink); letter-spacing: -.02em;
   line-height: 1; font-feature-settings: "tnum" 1;
 }
 .cell-avg.empty {
@@ -789,6 +819,23 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   background: var(--paper-card);
   border-right: 1px solid var(--rule);
   border-bottom: 1px solid var(--rule);
+}
+/* Flipped variant — applied by JS when the default above-placement would
+   clip past the top of the viewport. Bubble sits BELOW the cell with the
+   arrow on top pointing up. */
+.cell-mark .cell-mark-val .bubble.bubble-below {
+  bottom: auto;
+  top: calc(100% + 10px);
+  transform: translate(-50%, -6px);
+}
+.cell-mark .cell-mark-val:hover .bubble.bubble-below {
+  transform: translate(-50%, 0);
+}
+.cell-mark .cell-mark-val .bubble.bubble-below::after {
+  bottom: auto; top: -6px;
+  border-right: 0; border-bottom: 0;
+  border-top: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
 }
 
 /* when cell */
@@ -921,9 +968,23 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 /* ============== RESPONSIVE — table → cards (≤920px) ============== */
 @media (max-width: 920px) {
   .filter-strip, .list-wrap { padding-left: 20px; padding-right: 20px; }
-  .filter-bar { padding: 14px; gap: 8px; }
-  .filter-bar > .lbl, .filter-bar .spacer { display: none; }
-  .filter-bar .form-group { flex-wrap: wrap; }
+  /* Mobile: lay the filter bar out as a 2-col grid so each form-group spans
+     a full row and the Réinitialiser / Filtrer buttons share the last row
+     (equal width, perfectly aligned). */
+  .filter-bar {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 14px;
+  }
+  .filter-bar .spacer { display: none; }
+  .filter-bar .form-group {
+    grid-column: 1 / -1;
+    flex-wrap: wrap;
+    margin: 0;
+  }
+  .filter-bar .form-group .form-select { width: 100%; }
+  .filter-bar .btn { width: 100%; justify-content: center; }
 
   /* Mobile sort bar */
   .mob-sort {
@@ -998,7 +1059,9 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     align-items: center;
     column-gap: 14px; row-gap: 10px;
     padding: 18px 18px 14px;
-    background: var(--paper-card);
+    /* !important to override DataTables' `table.dataTable > tbody > tr
+       { background-color: transparent }` which has higher specificity. */
+    background: var(--paper-card) !important;
     border: 1px solid var(--rule);
     border-radius: 14px;
     margin-bottom: 16px;
@@ -1061,6 +1124,36 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   }
   .cell-mark-val { font-size: 18px; }
   .cell-mark-val .empty, .cell-when-val .empty { font-size: 13px; }
+
+  /* Mobile: each film TR is already its own card, so drop the card styling
+     on the DataTables wrapper to avoid a card-inside-a-card look. */
+  .dt-layout-row.dt-layout-table {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+    margin: 0;
+  }
+
+  /* Mobile: replace the per-column tint with a rounded pill behind the
+     current user's row. The pseudo is anchored to cell-fav and extended
+     just enough to cover the label + the three data cells. */
+  .list tbody td.my-col { background: transparent !important; }
+  .list tbody td.cell-fav.my-col { z-index: 0; }
+  .list tbody td.cell-fav.my-col::after {
+    content: "";
+    position: absolute;
+    /* Anchor to cell-fav for vertical centering on the user row, and scale
+       horizontally with the viewport so the pill always reaches just past
+       the date column (last column = cell-when). The width formula:
+       100vw - 2*page-padding(20) - 2*tr-padding(18) - 2*breathing(4) = 100vw - 84. */
+    left: -100px;
+    width: calc(100vw - 84px);
+    top: -2px; bottom: -2px;
+    border-radius: 10px;
+    z-index: -1;
+  }
 }
 
 
@@ -1103,7 +1196,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   display: grid;
   grid-template-columns: 360px 1fr;
   gap: 64px;
-  padding: 56px 56px 72px;
+  padding: 56px 56px 24px;
   max-width: 1280px;
   margin: 0 auto;
   position: relative;
@@ -1425,7 +1518,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 .reviews {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 24px 56px 80px;
+  padding: 12px 56px 80px;
 }
 .reviews-head {
   display: flex; align-items: baseline; justify-content: space-between;
@@ -1766,7 +1859,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
    with a footer row for the date / venue meta and the submit actions. */
 .mark-studio {
   max-width: 1280px; margin: 0 auto;
-  padding: 24px 56px 80px;
+  padding: 12px 56px 80px;
 }
 .mark-studio-head {
   display: flex; align-items: baseline; justify-content: space-between;
@@ -2080,11 +2173,14 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 }
 .dash .row-bot {
   display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
-  transition: grid-template-columns .35s ease;
+  /* `start` instead of the default `stretch` — the activity card keeps its
+     natural height instead of growing when the graphs column gets taller. */
+  align-items: start;
+  /* Shared height for the two row-bot cards. Each graph card is locked to
+     this height and each new graph stacks below at the same size ; the
+     activity card-body's max-height is derived from it. */
+  --dash-card-h: 637px;
 }
-/* When the user stacks extra graphs, the left column expands; activity keeps
-   its baseline width on the right. */
-.dash .row-bot.has-extra-graphs { grid-template-columns: 2fr 1fr; }
 
 /* ---------- Card (generic) ---------- */
 .dash .card {
@@ -2105,6 +2201,10 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   padding: 14px 18px;
   border-bottom: 1px solid var(--rule);
 }
+/* Align the head/body divider across both cards of the bottom row.
+   The graph head carries pills (32px) that make it taller than a head with
+   only an H2, so we lock the activity head to the same minimum height. */
+.dash .row-bot .card-head { min-height: 61px; }
 .dash .card-head .num {
   font-family: var(--font-display);
   font-style: italic; font-weight: 300; font-size: 32px;
@@ -2354,7 +2454,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 
 /* Graph stack — Chart.js v4 canvas styled to match the v5 mockup */
 .dash .graph-stack { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
-.dash .graph-stack > .card { flex: 1 1 auto; }
+.dash .graph-stack > .card { height: var(--dash-card-h); flex: 0 0 auto; }
 .dash .graph-stack .card-body {
   padding: 14px 18px 10px; min-height: 380px;
   position: relative;
@@ -2382,7 +2482,11 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 .dash .activity { padding-bottom: 14px; }
 .dash .activity .card-body {
   padding: 4px 22px 8px;
-  overflow-y: auto; max-height: 560px;
+  overflow-y: auto;
+  /* Derived from --dash-card-h so the activity total height matches the
+     graph card. 77px = card-head min-height (61) + card padding-bottom (14)
+     + borders (2). */
+  max-height: calc(var(--dash-card-h) - 77px);
 }
 /* on the white card the marker's halo blends with --paper-card, not --paper */
 .dash .activity .act-marker { box-shadow: 0 0 0 4px var(--paper-card); }
@@ -2475,29 +2579,9 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 .wizard-submit-row {
   display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;
 }
-.wizard-submit {
-  background:
-    radial-gradient(120% 80% at 25% 10%, rgba(var(--violet-rgb),.55), transparent 60%),
-    var(--ink) !important;
-  border: 1px solid var(--ink) !important;
-  color: var(--paper-card) !important;
-  box-shadow:
-    0 12px 28px -12px rgba(var(--violet-rgb),.55),
-    0 4px 12px -6px rgba(28, 24, 32, .35),
-    inset 0 1px 0 rgba(255, 255, 255, .08);
-  transition: transform .2s, box-shadow .2s, background .2s;
-  cursor: pointer;
-}
-.wizard-submit:hover {
-  transform: translateY(-2px);
-  background:
-    radial-gradient(120% 80% at 25% 10%, rgba(var(--violet-rgb),.75), transparent 60%),
-    var(--ink) !important;
-  box-shadow:
-    0 18px 38px -14px rgba(var(--violet-rgb),.75),
-    0 4px 12px -6px rgba(28, 24, 32, .35),
-    inset 0 1px 0 rgba(255, 255, 255, .12);
-}
+/* Wizard CTA — the actual visual (gradient + shadow + hover-lift) lives on
+   the canonical `.btn-solid`. Wizard buttons only add the trailing arrow
+   slide animation on top. */
 .wizard-submit .arrow { transition: transform .2s; display: inline-block; margin-left: 4px; }
 .wizard-submit:hover .arrow { transform: translateX(4px); }
 
@@ -2963,7 +3047,10 @@ table.flux { width: 100%; border-collapse: collapse; }
 table.flux thead { display: none; }
 table.flux tbody tr,
 table.flux td.act-cell { background: transparent; }
-table.flux td.act-cell { padding: 0; border: 0; vertical-align: top; }
+/* !important to override DataTables' CDN CSS, which adds a `border-bottom`
+   on every cell via `table.dataTable > tbody > tr > *` and would leave a
+   stray hairline at the bottom of the last activity entry. */
+table.flux td.act-cell { padding: 0; border: 0 !important; vertical-align: top; }
 
 /* ----- one event node ----- */
 .act-node {
@@ -3084,6 +3171,9 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
 /* ----- pager — the bottom info + paging row ; .dt-info / .dt-paging styles
    are global (declared in [LIST_SHOWS]). The page-length selector is not here :
    it lives in .flux-head (see the template). ----- */
+/* The :has(.dt-paging) qualifier scopes this to the full activity flow
+   page (which has pagination) and leaves the dashboard's activity widget
+   untouched (paging:false → no .dt-paging element). */
 #activitylist_wrapper .dt-layout-row:has(.dt-paging) {
   margin: 18px 0 0; padding-top: 18px;
   border-top: 1px solid var(--rule);

@@ -33,8 +33,8 @@
   <div class="login-hero-content">
     <a class="login-brand" href="{{ url_for('main.index') }}">cineapp</a>
     <div class="login-hero-mid">
-      <h1>Tout ce que vous regardez, <em>noté</em> et partagé.</h1>
-      <p>Films, séries et jeux vidéo — le carnet de bord de la bande, avec vos notes, vos favoris et vos devoirs.</p>
+      <h1>Tout ce que vous regardez, <em>notez</em> et partagez.</h1>
+      <p>Films, séries et jeux vidéo — votre carnet de bord avec vos notes, vos favoris et vos devoirs.</p>
     </div>
     <div class="login-stats">
       <div><span class="n">832</span><span class="l">Films</span></div>
@@ -54,7 +54,7 @@
   {% endwith %}
 
   <div class="login-eyebrow">Connexion</div>
-  <h2 class="login-title">Bon retour parmi nous.</h2>
+  <h2 class="login-title">Bievenue !</h2>
 
   <form class="login-form" method="POST" action="{{ url_for('main.login') }}">
     {{ form.hidden_tag() }}
