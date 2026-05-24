@@ -2532,9 +2532,6 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 
 .wizard-stage-wide { max-width: 1280px; }
 
-/* H1 query inline */
-.wizard-h1-query { color: var(--violet); border-bottom: 3px solid var(--warn); padding-bottom: 2px; }
-
 /* Grid of result cards */
 .wizard-results {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));

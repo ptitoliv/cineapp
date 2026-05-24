@@ -91,6 +91,11 @@ class SelectShowForm(Form):
         # Call the parent constructor
         super(SelectShowForm, self).__init__()
 
+        # Keep the raw list available on the form instance — the wizard template
+        # iterates over it to render rich result cards (poster + meta), in
+        # addition to the stringified radio choices built below.
+        self.shows_list = shows_list
+
         # Local variable
         choice_list=[]
         for cur_show in shows_list:

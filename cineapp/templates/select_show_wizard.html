@@ -3,7 +3,7 @@
 
 <header class="page-head">
   <div>
-    <h1>{{ g.messages["label_select"] }}<span class="wizard-h1-query"> {{ query_show }}</span></h1>
+    <h1>{{ g.messages["label_select"] }}</h1>
   </div>
 </header>
 
@@ -15,7 +15,7 @@
     {{ select_form.hidden_tag() }}
 
     <div class="wizard-results">
-      {% for cur_show in shows_list %}
+      {% for cur_show in select_form.shows_list %}
       <label class="wizard-result" style="--i: {{ loop.index0 }}">
         <input type="radio" name="show" value="{{ cur_show.external_id }}">
         <span class="check" aria-hidden="true">✓</span>
