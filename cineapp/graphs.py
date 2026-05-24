@@ -111,7 +111,7 @@ def show_graphs():
 
                 # Fill the dictionnary with distributed_marks by user
                 for cur_user in users:
-                        data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
+                        data[cur_user.nickname] = { "color" : cur_user.theme_color, "data" : [] }
                         for cur_mark in frange(0,20,0.5):
                                 data[cur_user.nickname]["data"].append(basequery.filter(Mark.mark==cur_mark,Mark.user_id==cur_user.id).count())
 
@@ -134,7 +134,7 @@ def show_graphs():
 
                 # Fill the dictionnary with distributed_marks by user
                 for cur_user in users:
-                        data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
+                        data[cur_user.nickname] = { "color" : cur_user.theme_color, "data" : [] }
                         for cur_index in range(0,len(range_mark_array)):
                                 if cur_index < len(range_mark_array)-1:
                                         data[cur_user.nickname]["data"].append(basequery.filter(Mark.mark>=range_mark_array[cur_index],Mark.mark<range_mark_array[cur_index+1],Mark.user_id==cur_user.id).count())
@@ -152,7 +152,7 @@ def show_graphs():
 
                 # Fill the dictionnary with distributed_marks by user
                 for cur_user in users:
-                        data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
+                        data[cur_user.nickname] = { "color" : cur_user.theme_color, "data" : [] }
 
                         # Set the percentage considering the total shows number seen for each user and not globally
                         user_shows_count = basequery.filter(Mark.user_id==cur_user.id).count()
@@ -174,7 +174,7 @@ def show_graphs():
 
                 # Fill the dictionnary with distributed_types by user
                 for cur_user in users:
-                        data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
+                        data[cur_user.nickname] = { "color" : cur_user.theme_color, "data" : [] }
                         for cur_type in types:
                                 data[cur_user.nickname]["data"].append(basequery.filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.type==cur_type.id).count())
         
@@ -190,7 +190,7 @@ def show_graphs():
 
                 # Fill the dictionnary with distributed_origins by user
                 for cur_user in users:
-                        data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
+                        data[cur_user.nickname] = { "color" : cur_user.theme_color, "data" : [] }
                         for cur_origin in origins:
                                 data[cur_user.nickname]["data"].append(basequery.filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.origin==cur_origin.id).count())
 
@@ -207,7 +207,7 @@ def show_graphs():
 
                 # Fill the dictionnary with average mark by user and by type
                 for cur_user in users:
-                        data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
+                        data[cur_user.nickname] = { "color" : cur_user.theme_color, "data" : [] }
                         for cur_type in types:
                                 avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.type==cur_type.id).one()
                                 
@@ -229,7 +229,7 @@ def show_graphs():
 
                 # Fill the dictionnary with average mark by user and by type
                 for cur_user in users:
-                        data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : [] }
+                        data[cur_user.nickname] = { "color" : cur_user.theme_color, "data" : [] }
                         for cur_origin in origins:
                                 avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==cur_user.id,Show.origin==cur_origin.id).one()
                                 
@@ -253,7 +253,7 @@ def show_graphs():
 
                 # Fill the dictionnary with distributed_years by user
                 for cur_user in users:
-                        data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : []}
+                        data[cur_user.nickname] = { "color" : cur_user.theme_color, "data" : []}
                         for cur_year in range(min_year,max_year+1,1):
                                 data[cur_user.nickname]["data"].append(basequery.filter(Mark.mark!=None,Mark.user_id==cur_user.id,db.func.year(Mark.seen_when)==cur_year).count())
 
@@ -271,7 +271,7 @@ def show_graphs():
 
                 # Fill the dictionnary with distributed_years by user
                 for cur_user in users:
-                        data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : []}
+                        data[cur_user.nickname] = { "color" : cur_user.theme_color, "data" : []}
                         for cur_year in range(min_year,max_year+1,1):
                                 data[cur_user.nickname]["data"].append(basequery.filter(Mark.mark!=None,Mark.user_id==cur_user.id,Mark.seen_where=="C",db.func.year(Mark.seen_when)==cur_year).count())
 
@@ -289,7 +289,7 @@ def show_graphs():
 
                 # Fill the dictionnary with average mark for each user by year
                 for cur_user in users:
-                        data[cur_user.nickname] = { "color" : cur_user.graph_color, "data" : []}
+                        data[cur_user.nickname] = { "color" : cur_user.theme_color, "data" : []}
                         for cur_year in range(min_year,max_year+1,1):
                                 avg_query=db.session.query(db.func.avg(Mark.mark).label("average")).join(Show).filter(Show.show_type==g.show_type).filter(Mark.mark!=None,Mark.user_id==cur_user.id,db.func.year(Mark.seen_when)==cur_year).one()
 
