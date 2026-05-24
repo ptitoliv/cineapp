@@ -1045,6 +1045,7 @@ def update_datatable():
                 dict_show["data"].append({"DT_RowData": { "link": url_for('show.display_show',show_type=g.show_type,show_id=cur_show.id), "mark_link": url_for("show.mark_show",show_type=g.show_type,show_id_form=cur_show.id),"homework_link": dict_homework},
                 "id": cur_show.id,"name": cur_show.name, 
                 "director": cur_show.director,
+                "poster_path": cur_show.poster_path,
                 "average" : average_mark,
                 "my_mark": my_mark, 
                 "my_when": my_when,
