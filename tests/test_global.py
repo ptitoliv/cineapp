@@ -334,7 +334,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         original_urlopen = urlopen
         def urlopen_fail_on_poster(url, *args, **kwargs):
-            if 'w185' in str(url):
+            if 'w500' in str(url):
                 raise Exception("Connection timeout")
             return original_urlopen(url, *args, **kwargs)
 

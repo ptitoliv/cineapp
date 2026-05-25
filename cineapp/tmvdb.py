@@ -88,21 +88,31 @@ def get_show(id,fetch_poster=True,show_type=None):
     config_api=tmvdb_connect(os.path.join(app.config['API_URL'], "configuration?api_key=" + app.config['API_KEY'] +"&language=fr"))
     base_url=config_api['images']['secure_base_url']
 
-    # Try to get the poster in French
-    show_poster=tmvdb_connect(os.path.join(app.config['API_URL'],(tmvdb_mode[show_type] + "/" + str(id) + "/images?api_key=" + app.config['API_KEY'] + "&language=fr&include_image_language=fr,null")))
+    # Try to get the poster in French only (textless 'null' posters excluded
+    # on purpose: they tend to outrank the French-language poster by vote
+    # score, surfacing the "anonymous" international artwork instead of the
+    # localized one).
+    show_poster=tmvdb_connect(os.path.join(app.config['API_URL'],(tmvdb_mode[show_type] + "/" + str(id) + "/images?api_key=" + app.config['API_KEY'] + "&language=fr&include_image_language=fr-FR")))
 
     # Fetch poster url !
     try:
-        url = base_url + 'w185' + show_poster['posters'][0]['file_path']
+        url = base_url + 'w500' + show_poster['posters'][0]['file_path']
     except (IndexError,TypeError):
 
-        # No poster with the french or null language= => Fallback in english
-        show_poster=tmvdb_connect(os.path.join(app.config['API_URL'],(tmvdb_mode[show_type] + "/" + str(id) + "/images?api_key=" + app.config['API_KEY'])))
+        # No French poster => fall back to textless ('null') posters
+        show_poster=tmvdb_connect(os.path.join(app.config['API_URL'],(tmvdb_mode[show_type] + "/" + str(id) + "/images?api_key=" + app.config['API_KEY'] + "&language=fr&include_image_language=null")))
 
         try:
-            url = base_url + 'w185' + show_poster['posters'][0]['file_path']
+            url = base_url + 'w500' + show_poster['posters'][0]['file_path']
         except (IndexError,TypeError):
-            pass
+
+            # Still nothing => fall back to the unfiltered list (English / any)
+            show_poster=tmvdb_connect(os.path.join(app.config['API_URL'],(tmvdb_mode[show_type] + "/" + str(id) + "/images?api_key=" + app.config['API_KEY'])))
+
+            try:
+                url = base_url + 'w500' + show_poster['posters'][0]['file_path']
+            except (IndexError,TypeError):
+                pass
 
     # Download the poster and update the database
     if fetch_poster == True:
