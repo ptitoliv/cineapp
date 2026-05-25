@@ -17,7 +17,7 @@ from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, Fav
 from cineapp.tmvdb import search_shows,get_show,download_poster, search_page_number
 from cineapp import igdb as igdb_api
 from cineapp.emails import add_show_notification, mark_show_notification, add_homework_notification, update_show_notification
-from cineapp.utils import frange, get_activity_list, resize_avatar
+from cineapp.utils import frange, get_activity_list, resize_avatar, fts_boolean_query
 from cineapp.push import notification_unsubscribe
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
@@ -880,8 +880,8 @@ def update_datatable():
                         count_shows=shows_query.filter(Mark.mark != None).count()
                                 
                 elif session.get('search_type') == 'filter':
-                            shows=shows_query.filter(match(filter_item.name, filter_item.original_name, filter_item.director, against=(session.get('query')))).filter(filter_field != None).order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
-                            count_shows=shows_query.filter(match(filter_item.name,filter_item.original_name,filter_item.director,against=session.get('query'))).filter(filter_field != None).count()
+                            shows=shows_query.filter(match(filter_item.name, filter_item.original_name, filter_item.director, against=fts_boolean_query(session.get('query'))).in_boolean_mode()).filter(filter_field != None).order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
+                            count_shows=shows_query.filter(match(filter_item.name,filter_item.original_name,filter_item.director,against=fts_boolean_query(session.get('query'))).in_boolean_mode()).filter(filter_field != None).count()
         else:
 
                 app.logger.info('Entering filter_user is Null')
@@ -940,11 +940,11 @@ def update_datatable():
 
                         # Let's build msearch base query
                         if g.show_type=="movie":
-                            basequery = db.session.query(Movie).filter(match(Movie.name, Movie.original_name, Movie.director, against=(session.get('query'))))
+                            basequery = db.session.query(Movie).filter(match(Movie.name, Movie.original_name, Movie.director, against=fts_boolean_query(session.get('query'))).in_boolean_mode())
                         elif g.show_type=="tvshow":
-                            basequery = db.session.query(TVShow).filter(match(TVShow.name, TVShow.original_name, TVShow.director, against=(session.get('query'))))
+                            basequery = db.session.query(TVShow).filter(match(TVShow.name, TVShow.original_name, TVShow.director, against=fts_boolean_query(session.get('query'))).in_boolean_mode())
                         elif g.show_type=="videogame":
-                            basequery = db.session.query(VideoGame).filter(match(VideoGame.name, VideoGame.original_name, VideoGame.director, against=(session.get('query'))))
+                            basequery = db.session.query(VideoGame).filter(match(VideoGame.name, VideoGame.original_name, VideoGame.director, against=fts_boolean_query(session.get('query'))).in_boolean_mode())
 
                         if order_column == "average":
                                 if order_dir == "desc":

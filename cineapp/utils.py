@@ -5,7 +5,7 @@ from flask import current_app
 from cineapp.models import db, Show, Mark, MarkComment, FavoriteShow
 from sqlalchemy.sql.expression import literal, desc
 from datetime import datetime
-import PIL, os
+import PIL, os, re
 from PIL import Image
 
 _HUMANIZE_MONTHS_FR = ["janv.", "févr.", "mars", "avr.", "mai", "juin",
@@ -126,3 +126,13 @@ def resize_avatar(avatar_path):
             os.remove(avatar_path + '.png')
 
         return False
+
+def fts_boolean_query(raw):
+    """
+        Turn a user-supplied search string into a MariaDB FTS boolean-mode
+        query with implicit AND: each token becomes mandatory ('+token').
+        Tokens shorter than 3 chars are dropped (innodb_ft_min_token_size=3)
+        and FTS-reserved operators (+, -, *, ", (, ), ~, @, <, >) are stripped.
+    """
+    tokens = [t for t in re.findall(r'\w+', raw or '', flags=re.UNICODE) if len(t) >= 3]
+    return ' '.join('+%s' % t for t in tokens)
