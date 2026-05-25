@@ -165,7 +165,7 @@ def create_app(config_path=None):
     
     # Login manager init
     lm.init_app(app)
-    lm.login_view = 'login'
+    lm.login_view = 'main.login'
     
     # Session Manager Init
     sess.init_app(app)
