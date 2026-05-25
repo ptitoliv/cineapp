@@ -247,9 +247,16 @@ def show_dashboard():
         if unseen_count > 0:
                 suggestion = unseen_query.offset(randint(0, unseen_count - 1)).limit(1).first()
 
+        # Latest rated shows — feeds the dashboard's "Dernières notes" grid
+        # (one card per mark, with the show poster + the rater).
+        latest_marks = Mark.query.join(Show).filter(
+                Show.show_type == g.show_type,
+                Mark.mark != None
+        ).order_by(Mark.updated_when.desc()).limit(10).all()
+
         # Generate datas for the bar graph
         cur_year=datetime.now().strftime("%Y")
-        
+
         # Set month in French (abbreviated form: janv., févr., mars, …)
         locale.setlocale(locale.LC_ALL, "fr_FR.UTF-8")
         for cur_month in range(1,13,1):
@@ -257,8 +264,8 @@ def show_dashboard():
 
         # Go back to default locale
         locale.setlocale(locale.LC_ALL,locale.getdefaultlocale())
-        
-        return render_template('show_dashboard.html', activity_list=activity_dict["list"], general_stats=general_stats,labels=labels,cur_year=cur_year,stats_dict=stats_dict,dashboard_graph_form=dashboard_graph_form,suggestion=suggestion)
+
+        return render_template('show_dashboard.html', activity_list=activity_dict["list"], general_stats=general_stats,labels=labels,cur_year=cur_year,stats_dict=stats_dict,dashboard_graph_form=dashboard_graph_form,suggestion=suggestion,latest_marks=latest_marks)
 
 @view_bp.route('/activity/show')
 @login_required

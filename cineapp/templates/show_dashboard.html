@@ -8,6 +8,45 @@
 
 	<main class="dash" id="dashboard">
 
+		{% if latest_marks %}
+		<article class="card latest-rated">
+			<header class="card-head">
+				<div class="titles">
+					<h2>Dernières notes</h2>
+				</div>
+			</header>
+			<div class="card-body">
+				<div class="latest-grid">
+					{% for m in latest_marks %}
+					<a class="latest-item" style="--i: {{ loop.index0 }}" href="{{ url_for('show.display_show', show_type=g.show_type, show_id=m.show.id) }}">
+						<div class="latest-poster">
+							<div class="poster-placeholder" aria-hidden="true">
+								{% if g.show_type == "movie" %}<i class="fa-solid fa-film"></i>
+								{% elif g.show_type == "tvshow" %}<i class="fa-solid fa-tv"></i>
+								{% elif g.show_type == "videogame" %}<i class="fa-solid fa-gamepad"></i>
+								{% endif %}
+							</div>
+							{% if m.show.poster_path %}
+							<img src="{{ config.POSTERS_URL }}{{ m.show.poster_path }}" alt="" onerror="this.remove()">
+							{% endif %}
+							<div class="latest-overlay">
+								<span class="title">{{ m.show.name }}</span>
+							</div>
+						</div>
+						<div class="latest-meta">
+							<div class="rater">
+								<span class="ava" style="background: {{ m.user.theme_color }};">{{ m.user.nickname[0]|upper }}</span>
+								<span class="name">{{ m.user.nickname }}</span>
+								<span class="mark" style="color: {{ m.user.theme_color }};">{{ m.mark }}</span>
+							</div>
+						</div>
+					</a>
+					{% endfor %}
+				</div>
+			</div>
+		</article>
+		{% endif %}
+
 		<section class="row-top">
 
 			{# Panel 1 — Moyenne #}
