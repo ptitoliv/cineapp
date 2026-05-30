@@ -49,8 +49,12 @@ def add_mark_comment():
     # Build the dict we're going to send to the frontend
     data_dict = { "user": g.user.serialize(), "mark_comment": mark_comment.serialize(), "mark_comment_number": MarkComment.query.filter(MarkComment.mark_user_id==dest_user,MarkComment.mark_show_id==show_id,MarkComment.deleted_when==None).count()}
 
-    # Format the date for correct JS display
-    data_dict["mark_comment"]["posted_when"] = data_dict["mark_comment"]["posted_when"].strftime("%d/%m/%Y - %H:%M:%S");
+    # Format the date for JS display — must match the Jinja format used
+    # by display_show.html for already-stored comments
+    # (`{{ cur_comment.posted_when.strftime("%d/%m/%Y · %H:%M") }}`),
+    # otherwise the freshly-posted comment renders with a different
+    # punctuation/precision than its neighbours until the next reload.
+    data_dict["mark_comment"]["posted_when"] = data_dict["mark_comment"]["posted_when"].strftime("%d/%m/%Y · %H:%M");
 
     # Let's send the JSON Response to the frontend
     return jsonify(data_dict)
