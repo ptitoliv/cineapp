@@ -105,11 +105,59 @@ body {
   font-weight: 400;
   -webkit-font-smoothing: antialiased;
   min-height: 100vh;
+  --st-accent: #6b3a9e;
+  --st-tint: none;
   background-image:
+    var(--st-tint, none),
     radial-gradient(1200px 600px at 20% -10%, rgba(var(--violet-rgb),.05), transparent 60%),
     radial-gradient(900px 500px at 90% 10%, rgba(176, 72, 96, .035), transparent 60%);
+  /* Make <body> a stacking context so the fixed .show-type-watermark can use
+     z-index: -1 to sit behind all normal-flow content while staying above
+     the body background. Without this, the watermark (z-index: auto, fixed)
+     paints above every normal-flow block on every page. */
+  isolation: isolate;
+}
+body[data-show-type="movie"] {
+  --st-accent: #6b3a9e;
+  --st-tint: radial-gradient(1100px 700px at 80% 110%, rgba(107, 58, 158, .07), transparent 60%);
+}
+body[data-show-type="tvshow"] {
+  --st-accent: #3a6b9e;
+  --st-tint: radial-gradient(1100px 700px at 80% 110%, rgba(58, 107, 158, .07), transparent 60%);
+}
+body[data-show-type="videogame"] {
+  --st-accent: #3a9e6b;
+  --st-tint: radial-gradient(1100px 700px at 80% 110%, rgba(58, 158, 107, .07), transparent 60%);
 }
 ::selection { background: var(--violet); color: var(--paper); }
+
+/* ---------- Show-type watermark (fixed bottom-right) ---------- */
+.show-type-watermark {
+  position: fixed;
+  right: -40px;
+  bottom: -40px;
+  font-size: 440px;
+  line-height: 1;
+  color: var(--st-accent, var(--ink));
+  opacity: .07;
+  pointer-events: none;
+  transform: rotate(-8deg);
+  transform-origin: bottom right;
+  /* Sit behind every page content. body has `isolation: isolate`, so this
+     z-index is local to body's stacking context: the watermark paints above
+     body's background but below all normal-flow blocks. */
+  z-index: -1;
+}
+
+/* ---------- Show-type accent strip (3px under the topbar) ---------- */
+.show-type-strip {
+  height: 3px;
+  width: 100%;
+  background: var(--st-accent);
+}
+@media (max-width: 900px) {
+  .show-type-watermark { font-size: 280px; right: -28px; bottom: -28px; }
+}
 a { color: inherit; text-decoration: none; }
 button { font: inherit; cursor: pointer; }
 
@@ -530,21 +578,28 @@ nav.menu a.active { font-weight: 500; }
 }
 /* ghost — transparent surface */
 .btn-ghost { background: transparent; }
-/* compact — table-row scale (Noter / Devoir) */
+/* compact — table-row scale (Noter / Devoir). Tuned so the natural
+   width fits inside the .cell-mark content area (≈65 px at 7 % column
+   width), letting the button stay perfectly centred without overflowing
+   into the next column. */
 .btn-rate, .btn-homework {
-  gap: 4px; padding: 4px 10px;
-  font-size: 9.5px; letter-spacing: .12em;
+  gap: 3px; padding: 4px 8px;
+  font-size: 9.5px; letter-spacing: .05em;
 }
-/* rate — outline that fills violet on hover */
-.btn-rate { background: var(--paper); }
-.btn-rate:hover { background: var(--violet); border-color: var(--violet); color: var(--paper-card); }
-/* homework — gold tint, pencil glyph, non-actionable (cursor: help) */
+/* rate — Noter pill renders with `btn btn-solid btn-rate`, so it inherits
+   the canonical primary CTA look (ink+violet gradient, lifted hover) from
+   .btn-solid. .btn-rate only contributes the table-row compact sizing
+   above (shared with .btn-homework). */
+/* homework — gold tint, pencil glyph, non-actionable.
+   No hover feedback whatsoever: cursor stays default (overrides the
+   pointer from .btn) and :hover re-states base colours to neutralise the
+   global .btn:hover violet effect. */
 .btn-homework {
   background: rgba(255, 200, 0, .12); border-color: #d49a00; color: #8a6500;
-  cursor: help;
+  cursor: default;
 }
 .btn-homework:hover { background: rgba(255, 200, 0, .12); border-color: #d49a00; color: #8a6500; }
-.btn-homework::before { content: "✎"; font-size: 11px; }
+.btn-homework::before { content: "✎"; font-size: 10px; }
 
 /* ============== [FORMS] — standard field component of the charte ==============
    The plain input/select/label. Distinctive form UIs (filter-pill selects,
@@ -982,15 +1037,31 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     grid-column: 1 / -1;
     flex-wrap: wrap;
     margin: 0;
+    /* Center the floating .control-label above its full-width .form-select,
+       to match the centered headers/rows of the .mob-sort card below. */
+    justify-content: center;
   }
   .filter-bar .form-group .form-select { width: 100%; }
   .filter-bar .btn { width: 100%; justify-content: center; }
+  /* Homework filter has no "Réinitialiser" — only the "Filtrer" submit.
+     Center the leading "Filtrer" caption span and let the lone submit
+     button span the full row, matching the centered card composition. */
+  .filter-bar-homework .lbl {
+    grid-column: 1 / -1;
+    text-align: center;
+  }
+  .filter-bar-homework .btn { grid-column: 1 / -1; }
 
-  /* Mobile sort bar */
+  /* Mobile sort bar — same card aesthetic as .filter-bar above:
+     paper-card surface, 1px rule border, 16px radius, 14px inner padding,
+     20px horizontal gutters and a 14px gap to the list below. */
   .mob-sort {
     display: block;
-    max-width: 1480px; margin: 0 auto;
-    padding: 0 20px 14px;
+    margin: 0 20px 14px;
+    padding: 14px;
+    background: var(--paper-card);
+    border: 1px solid var(--rule);
+    border-radius: 16px;
   }
   .mob-sort-label {
     font-family: var(--font-ui); font-weight: 900;
@@ -998,7 +1069,10 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     text-transform: uppercase; color: var(--ink-dim);
     margin-bottom: 8px;
     display: flex; align-items: center; gap: 10px;
+    justify-content: center;
   }
+  /* Symmetric hairlines flanking the centered "Trier par" label. */
+  .mob-sort-label::before,
   .mob-sort-label::after {
     content: ""; flex: 1; height: 1px; background: var(--rule);
   }
@@ -1007,6 +1081,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     display: flex; align-items: center; flex-wrap: wrap;
     gap: 8px;
     margin-bottom: 8px;
+    justify-content: center;
   }
   .mob-sort-row:last-child { margin-bottom: 0; }
   .mob-sort-row-general { padding-bottom: 6px; border-bottom: 1px dashed var(--rule); margin-bottom: 12px; }
@@ -1045,7 +1120,10 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     background: var(--ink); border-color: var(--ink); color: var(--paper-card);
   }
   .sort-pill .dir { font-size: 10px; opacity: .85; }
-  .sort-pill:not(.is-active) .dir { display: none; }
+  /* Inactive pills show a faint ⇅ placeholder (injected by syncPillsToOrder)
+     so the .dir slot keeps the exact same width whether sorted or not —
+     clicking a sort option no longer shifts neighbouring pills. */
+  .sort-pill:not(.is-active) .dir { opacity: .35; }
 
   /* Card mode for the table */
   .list { display: block; min-width: 0; }
@@ -1153,6 +1231,10 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     top: -2px; bottom: -2px;
     border-radius: 10px;
     z-index: -1;
+    /* Decorative tint pill — must not capture taps meant for the Noter
+       button in the sibling .cell-mark (z-index: -1 alone isn't enough:
+       hit testing still attributes the area to .cell-fav.my-col). */
+    pointer-events: none;
   }
 }
 
@@ -1200,11 +1282,22 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   max-width: 1280px;
   margin: 0 auto;
   position: relative;
+  isolation: isolate;
 }
 .hero::before {
   content: ""; position: absolute; left: 56px; right: 56px; bottom: 0;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--rule) 30%, var(--rule) 70%, transparent);
+  background: linear-gradient(90deg, transparent, var(--ink-dim) 30%, var(--ink-dim) 70%, transparent);
+}
+.hero.show-detail::after {
+  content: ""; position: absolute; inset: 0;
+  background-image: var(--poster-bg, none);
+  background-size: cover;
+  background-position: center top;
+  filter: blur(70px) saturate(140%);
+  opacity: .40;
+  z-index: -1;
+  pointer-events: none;
 }
 
 /* poster */
@@ -1216,7 +1309,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   position: relative;
   box-shadow:
     0 30px 60px -22px rgba(28, 24, 32, .4),
-    0 18px 40px -18px rgba(var(--violet-rgb),.3),
+    0 18px 40px -18px color-mix(in srgb, var(--show-accent, rgb(var(--violet-rgb))) 45%, transparent),
     inset 0 0 0 1px rgba(0, 0, 0, .04);
   transform: rotate(-1.2deg);
   transition: transform .6s cubic-bezier(.2,.7,.2,1);
@@ -1345,7 +1438,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   font-size: 13px;
   margin-bottom: 18px;
 }
-.show-detail .eyebrow .accent { color: var(--violet); font-weight: 900; }
+.show-detail .eyebrow .accent { color: var(--show-accent, var(--violet)); font-weight: 900; }
 .show-detail .title {
   font-family: var(--font-display);
   font-weight: 400; font-size: clamp(48px, 6vw, 92px);
@@ -1375,8 +1468,14 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   margin-bottom: 36px;
   font-weight: 900;
 }
+.show-detail .byline {
+  border-top-color: var(--ink-dim);
+  border-bottom-color: var(--ink-dim);
+}
+.show-detail .byline label { color: var(--ink-mid); }
 .byline > div { display: flex; flex-direction: column; gap: 6px; }
-.byline label { color: var(--ink-dim); font-weight: 900; }
+.byline label { color: var(--ink-dim); font-weight: 900; display: inline-flex; align-items: center; gap: 7px; }
+.byline label i { font-size: 11px; opacity: .8; }
 .byline value {
   color: var(--ink);
   font-family: var(--font-body);
@@ -1579,9 +1678,13 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 }
 
 .review-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+/* One single header line carrying everything: name + (optional) devoir
+   badge + giver + date + where + favstar + comment-count. Wraps only
+   if the viewport truly can't fit it. comment-count is pinned to the
+   right via margin-left:auto (see rule below). */
 .review-meta {
   display: flex; flex-wrap: wrap; align-items: center;
-  gap: 14px;
+  gap: 8px 12px;
   font-family: var(--font-ui);
   font-size: 12px; letter-spacing: .14em;
   text-transform: uppercase;
@@ -1616,17 +1719,45 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 }
 .review-comment.empty {
   color: var(--ink-dim); font-size: 14px; font-style: italic;
+  display: flex; align-items: center; gap: 8px;
 }
-.review-comment.empty::before { content: "—  "; opacity: .5; }
+.review-comment.empty i { font-size: 14px; opacity: .6; }
 .review-comment :is(p, ul, ol, blockquote) { margin: 0 0 10px; }
 .review-comment :is(p, ul, ol, blockquote):last-child { margin-bottom: 0; }
-.review-homework {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 3px 9px; background: rgba(255, 200, 0, .12);
-  border: 1px solid #d49a00; border-radius: 999px;
-  font-family: var(--font-ui); font-weight: 900;
-  font-size: 9.5px; letter-spacing: .12em;
-  text-transform: uppercase; color: #8a6500;
+/* Compact homework attribution chip : the giver's circular avatar with
+   a small 📝 sticker in the lower-right corner. Sits inline in the
+   review meta row so it costs almost no horizontal space. Hover/long-
+   press surfaces "Devoir par <nickname>" via the title attribute. */
+.review-devoir-ava {
+  position: relative;
+  width: 22px; height: 22px;
+  flex: 0 0 22px;
+  border-radius: 50%;
+  display: inline-grid; place-items: center;
+  font-family: var(--font-display);
+  font-style: italic; font-weight: 600; font-size: 11px;
+  letter-spacing: -.02em;
+  color: #fefdfa;
+  background: var(--paper-soft);
+  overflow: visible;
+  cursor: help;
+}
+.review-devoir-ava > img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover;
+  border-radius: 50%;
+}
+.review-devoir-ava .badge {
+  position: absolute;
+  right: -4px; bottom: -4px;
+  width: 14px; height: 14px;
+  background: rgba(255, 200, 0, .95);
+  border: 1px solid #d49a00;
+  border-radius: 50%;
+  display: grid; place-items: center;
+  font-size: 8px; line-height: 1;
+  color: #8a6500;
+  font-style: normal;
 }
 
 .score-block {
@@ -1696,11 +1827,15 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 }
 .thread-empty {
   padding: 22px 0 8px;
-  display: flex; align-items: center; justify-content: center; gap: 10px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
   font-family: var(--font-display);
   font-style: italic; font-weight: 400; font-size: 15.5px;
   color: var(--ink-dim);
   text-align: center;
+}
+.thread-empty .thread-empty-illu {
+  width: 96px; height: 68px;
+  color: var(--ink-dim); opacity: .55;
 }
 .thread-empty .quote {
   font-family: var(--font-display);
@@ -2089,9 +2224,21 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   .hero::before { left: 20px; right: 20px; }
   .reviews { padding: 20px 20px 60px; max-width: 100%; }
 
-  /* review-header — 3 cols : avatar 48px / body / score (compact on right) */
+  /* Stack the show action buttons (Mettre à jour / Noter / Publier) as
+     full-width, centered pills — same rhythm as the Filtrer submit on
+     the list pages. The first action sits inside an inline <form>, so
+     stretch that too. */
+  .show-actions { flex-direction: column; align-items: stretch; gap: 10px; }
+  .show-actions > form { display: block !important; width: 100%; }
+  .show-actions .btn { width: 100%; justify-content: center; }
+
+  /* review-header — 3 cols : avatar 48px / body / score (fixed width on
+     the right). The score column has a fixed width so the left separator
+     always lands at the same X regardless of what the slot holds
+     ("15.5" / "Pas notée" / "📝 Devoir"). Width 110px so "📝 Devoir"
+     stays on a single line at the .btn font size. */
   .review-header {
-    grid-template-columns: 48px 1fr auto;
+    grid-template-columns: 48px 1fr 110px;
     gap: 12px; padding: 18px;
   }
   .avatar-large { width: 48px; height: 48px; font-size: 20px; }
@@ -2112,6 +2259,8 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     border-left: 1px solid var(--rule);
     border-top: 0;
   }
+  /* Buttons span the fixed score column so the separator stays put. */
+  .score-block .btn { width: 100%; padding: 7px 8px; white-space: nowrap; }
   .score { font-size: 32px; }
   .score-empty { padding: 6px 10px; font-size: 10px; }
 
@@ -2970,7 +3119,9 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   font-family: var(--font-body); font-style: italic;
   font-size: 14px; color: var(--ink-dim);
   padding: 20px 4px;
+  display: flex; align-items: center; gap: 8px;
 }
+.hw-col-empty i { font-size: 16px; opacity: .7; }
 
 /* ----- section bands : "À voir" / "Notés" ----- */
 .hw-section-head {
@@ -2995,7 +3146,9 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 .hw-row {
   position: relative;
   display: grid;
-  grid-template-columns: 56px 1fr 156px;
+  /* 56 / 1fr / 172 mirrors the display_show .review-header grid so the
+     score column lands in the exact same slot on both pages. */
+  grid-template-columns: 56px 1fr 172px;
   gap: 22px;
   align-items: center;
   padding: 20px 24px;
@@ -3082,7 +3235,18 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 }
 
 /* ----- status : Noter / En cours / mark ----- */
-.hw-status { display: flex; align-items: center; justify-content: flex-end; }
+/* Score / action column — mirrors the .score-block pattern from the
+   show-detail review card: thin rule on the left, content centered, fills
+   the full row height for a clean vertical separator. */
+.hw-status {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 8px;
+  border-left: 1px solid var(--rule);
+  padding-left: 28px;
+  align-self: stretch;
+}
+.hw-status .btn { width: 100%; justify-content: center; }
 .hw-pending {
   font-family: var(--font-ui); font-weight: 900;
   font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
@@ -3091,9 +3255,11 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   border: 1px dashed #d49a00; border-radius: 999px;
   background: rgba(255, 200, 0, .10);
 }
+/* Identical typography to display_show .score so the score lands in the
+   same visual slot whether you are reading a review or a homework. */
 .hw-mark {
   font-family: var(--font-ui); font-weight: 600;
-  font-size: 40px; line-height: 1; letter-spacing: -.02em;
+  font-size: 56px; line-height: 1; letter-spacing: -.015em;
   color: var(--violet); font-feature-settings: "tnum" 1;
 }
 
@@ -3114,11 +3280,14 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 
 /* ----- empty state ----- */
 .hw-empty {
-  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  display: flex; flex-direction: column; align-items: center; gap: 18px;
   padding: 90px 20px;
   text-align: center;
 }
-.hw-empty i { font-size: 40px; color: var(--ink-dim); opacity: .5; }
+.hw-empty .hw-empty-illu {
+  width: 160px; height: 120px;
+  color: var(--ink-dim); opacity: .55;
+}
 .hw-empty p {
   font-family: var(--font-display);
   font-style: italic; font-weight: 500; font-size: 24px;
@@ -3127,21 +3296,28 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 
 @media (max-width: 720px) {
   .hw-wrap { padding: 8px 18px 60px; }
+  /* Mirror the mobile .review-header layout (display_show reviews) :
+     poster / body / score-block on a single row. The 3rd column has a
+     fixed width so the separator always lands at the same X regardless
+     of what the slot holds ("13" / "15.5" / "Noter →" / "En cours"). */
   .hw-row {
-    grid-template-columns: 48px 1fr;
-    gap: 12px 16px;
+    grid-template-columns: 48px 1fr 96px;
+    gap: 12px 14px;
     padding: 16px;
   }
   .hw-poster { width: 48px; }
   .hw-title { font-size: 19px; }
-  .hw-transfer { flex-wrap: wrap; gap: 8px 12px; }
-  .hw-arrow { min-width: 24px; }
+  .hw-transfer { flex-wrap: wrap; gap: 6px 10px; }
+  .hw-arrow { min-width: 20px; }
+  /* Compact score column (matches .score-block mobile rules). */
   .hw-status {
-    grid-column: 1 / -1;
-    justify-content: flex-start;
-    margin-top: 4px; padding-top: 12px;
-    border-top: 1px dashed var(--rule-soft);
+    padding-left: 14px;
+    gap: 2px;
   }
+  /* Buttons span the column so the separator stays at a fixed X. */
+  .hw-status .btn { width: 100%; padding: 7px 8px; }
+  .hw-mark { font-size: 32px; }
+  .hw-pending { padding: 6px 10px; font-size: 10px; }
   .hw-cancel { top: 10px; right: 10px; }
 }
 

@@ -25,6 +25,7 @@
 {% set rgb_b = color[5:7] | int(base=16) %}
 .review.user-{{ u.id }} { --halo: rgba({{ rgb_r }},{{ rgb_g }},{{ rgb_b }}, .14); }
 .avatar-large.user-{{ u.id }},
+.review-devoir-ava.user-{{ u.id }},
 .subcomment.user-{{ u.id }} .ava { background: {{ color }}; }
 .subcomment.user-{{ u.id }} .body { border-left: 3px solid {{ color }}; }
 {% endfor %}
@@ -47,7 +48,7 @@
 </nav>
 {% endif %}
 
-<section class="hero show-detail">
+<section class="hero show-detail"{% if show.poster_path %} style="--poster-bg: url('{{ config.POSTERS_URL }}{{ show.poster_path }}')"{% endif %}>
   {# ----- Left column: poster ----- #}
   <div class="poster-wrap">
     <div class="poster">
@@ -99,32 +100,32 @@
     <div class="byline">
       {% if show.director %}
       <div>
-        <label>{{ g.messages["label_director"] }}</label>
+        <label><i class="fa-solid fa-user-pen" aria-hidden="true"></i>{{ g.messages["label_director"] }}</label>
         <value>{{ show.director }}</value>
       </div>
       {% endif %}
 
       {% if show is movie or show is tvshow %}
       <div>
-        <label>{{ g.messages["label_release_date"] }}</label>
+        <label><i class="fa-solid fa-calendar" aria-hidden="true"></i>{{ g.messages["label_release_date"] }}</label>
         <value>{{ show.release_date|date_format("%d/%m/%Y") if show.release_date else '—' }}</value>
       </div>
       {% endif %}
 
       {% if show is movie and show.duration %}
       <div>
-        <label>Durée</label>
+        <label><i class="fa-solid fa-clock" aria-hidden="true"></i>Durée</label>
         <value>{{ show.duration|minutes_to_human_duration }}</value>
       </div>
       {% endif %}
 
       {% if show is tvshow and show.production_status_obj %}
       <div>
-        <label>Production</label>
+        <label><i class="fa-solid fa-circle-info" aria-hidden="true"></i>Production</label>
         <value><span class="pill-status {{ show.production_status_obj.style }}">{{ show.production_status_obj.translated_status }}</span></value>
       </div>
       <div>
-        <label>Saisons</label>
+        <label><i class="fa-solid fa-layer-group" aria-hidden="true"></i>Saisons</label>
         <value>{{ show.nb_seasons or '—' }}</value>
       </div>
       {% endif %}
@@ -132,13 +133,13 @@
       {% if show is videogame %}
       {% if show.platforms %}
       <div>
-        <label>Plateformes</label>
+        <label><i class="fa-solid fa-gamepad" aria-hidden="true"></i>Plateformes</label>
         <value>{{ show.platforms }}</value>
       </div>
       {% endif %}
       {% if show.publisher %}
       <div>
-        <label>Éditeur</label>
+        <label><i class="fa-solid fa-building" aria-hidden="true"></i>Éditeur</label>
         <value>{{ show.publisher }}</value>
       </div>
       {% endif %}
@@ -146,13 +147,13 @@
 
       {% if show.origin_object %}
       <div>
-        <label>Origine</label>
+        <label><i class="fa-solid fa-globe" aria-hidden="true"></i>Origine</label>
         <value>{{ show.origin_object.origin }}</value>
       </div>
       {% endif %}
 
       <div>
-        <label>Fiche externe</label>
+        <label><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>Fiche externe</label>
         <value>{% if show.url %}<a href="{{ show.url }}" target="_blank" rel="noopener">→ ouvrir</a>{% else %}—{% endif %}</value>
       </div>
     </div>
@@ -321,14 +322,15 @@
       <div class="review-body">
         <div class="review-meta">
           <span class="review-name">{{ u.nickname }}</span>
+          {% if cur_mark["homework_who"] %}
+          <span class="review-devoir-ava user-{{ cur_mark["homework_who"].id }}" title="Devoir par {{ cur_mark["homework_who"].nickname }}" aria-label="Devoir donné par {{ cur_mark["homework_who"].nickname }}">
+            {{ cur_mark["homework_who"].nickname[0]|upper }}{% if cur_mark["homework_who"].avatar %}<img src="{{ config.AVATARS_URL }}{{ cur_mark["homework_who"].avatar }}" alt="" onerror="this.remove()">{% endif %}
+            <span class="badge" aria-hidden="true">📝</span>
+          </span>
+          {% endif %}
           {% if cur_mark["seen_when"] %}<span class="review-when">{{ cur_mark["seen_when"] }}</span>{% endif %}
           {% if cur_mark["seen_where"] %}<span class="review-where">{{ cur_mark["seen_where"] }}</span>{% endif %}
           {% if u_fav %}<span class="review-favstar" data-star-type="{{ u_fav.star_type }}" title="{{ u_fav.star_type_obj.star_message }}">★</span>{% endif %}
-          {% if cur_mark["mark"] == "homework_in_progress" %}
-            <span class="review-homework">📝 Devoir
-            {% if cur_mark["homework_who"] %} · par {{ cur_mark["homework_who"].nickname }}{% endif %}
-            </span>
-          {% endif %}
           {# comment-count pill: toggle thread #}
           <button type="button" class="comment-count" data-review-id="{{ u.id }}" title="Déplier / replier les commentaires">
             <span class="emoji">💬</span>
@@ -340,7 +342,7 @@
         {% if cur_mark["comment"] %}
         <div class="review-comment">{{ cur_mark["comment"]|safe }}</div>
         {% else %}
-        <div class="review-comment empty">Pas de commentaire</div>
+        <div class="review-comment empty"><i class="fa-solid fa-comment-slash" aria-hidden="true"></i> Pas de commentaire</div>
         {% endif %}
       </div>
 
@@ -367,8 +369,13 @@
     <div class="thread" id="comment_toolbar_{{ u.id }}">
       {% if not comments %}
       <div class="thread-empty">
-        <span class="quote">“</span>
-        <span class="msg">Pas encore de réactions sur cette note.</span>
+        <svg class="thread-empty-illu" viewBox="0 0 140 100" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M26 22 h88 q12 0 12 12 v34 q0 12 -12 12 h-58 l-18 16 v-16 h-12 q-12 0 -12 -12 v-34 q0 -12 12 -12 z" />
+          <circle cx="58" cy="52" r="2.4" fill="currentColor" stroke="none" opacity=".5" />
+          <circle cx="70" cy="52" r="2.4" fill="currentColor" stroke="none" opacity=".5" />
+          <circle cx="82" cy="52" r="2.4" fill="currentColor" stroke="none" opacity=".5" />
+        </svg>
+        <span class="msg">Pas de commentaire écrit</span>
       </div>
       {% endif %}
       {% if comments %}
@@ -637,5 +644,33 @@ $(document).ready(function() {
     if (e.keyCode === 13) edit_comment('text', $(this));
   });
 });
+</script>
+<script>
+(function () {
+  var img = document.querySelector('.hero.show-detail .poster-image');
+  if (!img) return;
+  function compute() {
+    try {
+      var canvas = document.createElement('canvas');
+      var W = 30, H = 45;
+      canvas.width = W; canvas.height = H;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, W, H);
+      var data = ctx.getImageData(0, 0, W, H).data;
+      var r = 0, g = 0, b = 0, n = 0;
+      for (var i = 0; i < data.length; i += 4) {
+        if (data[i + 3] < 200) continue;
+        var lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        if (lum < 30 || lum > 225) continue;
+        r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
+      }
+      if (!n) return;
+      var color = 'rgb(' + Math.round(r / n) + ',' + Math.round(g / n) + ',' + Math.round(b / n) + ')';
+      document.documentElement.style.setProperty('--show-accent', color);
+    } catch (e) { /* CORS / poster manquant — fallback silencieux. */ }
+  }
+  if (img.complete && img.naturalWidth) compute();
+  else img.addEventListener('load', compute);
+})();
 </script>
 {% endblock %}

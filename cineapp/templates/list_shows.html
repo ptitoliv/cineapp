@@ -203,7 +203,7 @@ $(document).ready(function() {
 
   function renderMyMark(data, type, row) {
     if (row.my_mark == null) {
-      return '<a class="btn btn-rate" href="' + row.DT_RowData.mark_link + '">Noter</a>';
+      return '<a class="btn btn-solid btn-rate" href="' + row.DT_RowData.mark_link + '">Noter</a>';
     }
     // my_comment is already CKEditor-sanitized HTML — inject as-is (matches legacy popover).
     var bubble = row.my_comment
@@ -263,25 +263,25 @@ $(document).ready(function() {
   // Build the columns config dynamically — same data shape as legacy.
   // Director is shown inside the title cell (.tdir) so we don't render a separate column.
   var columns = [
-    { data: 'name', className: 't-title', width: '36%', render: renderTitle },
+    { data: 'name', className: 't-title', width: '32%', render: renderTitle },
     { data: 'average', className: 't-avg', width: '8%', orderable: true, render: renderAvg },
     {% if not g.user.is_guest %}
     { data: 'my_fav', className: 'cell-fav my-col user-mine user-{{ g.user.id }}', width: '4%', orderable: true,
       render: function (data, type, row) { return renderFavStar(row.my_fav); },
       createdCell: function (td) { td.setAttribute('data-user', {{ g.user.nickname | tojson }}); }
     },
-    { data: 'my_mark', className: 'cell-mark my-col', width: '5%', render: renderMyMark },
-    { data: 'my_when', className: 'cell-when my-col', width: '5%', render: renderMyWhen },
+    { data: 'my_mark', className: 'cell-mark my-col', width: '7%', render: renderMyMark },
+    { data: 'my_when', className: 'cell-when my-col', width: '4%', render: renderMyWhen },
     {% endif %}
     {% for cur_user in users %}{% if g.user.id != cur_user.id %}
     { data: 'other_favs.{{ cur_user.id }}', className: 'cell-fav user-{{ cur_user.id }}', width: '4%', orderable: true,
       render: renderOtherFav({{ cur_user.id }}),
       createdCell: function (td) { td.setAttribute('data-user', {{ cur_user.nickname | tojson }}); }
     },
-    { data: 'other_marks.{{ cur_user.id }}', className: 'cell-mark', width: '5%',
+    { data: 'other_marks.{{ cur_user.id }}', className: 'cell-mark', width: '7%',
       render: renderOtherMark({{ cur_user.id }}, userClass({{ cur_user.id }}))
     },
-    { data: 'other_when.{{ cur_user.id }}', className: 'cell-when', width: '5%',
+    { data: 'other_when.{{ cur_user.id }}', className: 'cell-when', width: '4%',
       render: renderOtherWhen({{ cur_user.id }})
     },
     {% endif %}{% endfor %}
@@ -336,8 +336,11 @@ $(document).ready(function() {
         $p.addClass('is-active');
         $dir.text(match[1] === 'asc' ? '↑' : '↓');
       } else {
+        // Faint ⇅ placeholder so the .dir slot keeps its width — pill
+        // dimensions are stable whether sorted or not, and the icon also
+        // signals "this column is sortable".
         $p.removeClass('is-active');
-        $dir.text('');
+        $dir.text('⇅');
       }
     });
   }

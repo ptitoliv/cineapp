@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block content %}
 
-<section class="hero show-detail">
+<section class="hero show-detail"{% if show.poster_path %} style="--poster-bg: url('{{ config.POSTERS_URL }}{{ show.poster_path }}')"{% endif %}>
   {# ----- Left column: poster ----- #}
   <div class="poster-wrap">
     <div class="poster">
@@ -36,32 +36,32 @@
     <div class="byline">
       {% if show.director %}
       <div>
-        <label>{{ g.messages["label_director"] }}</label>
+        <label><i class="fa-solid fa-user-pen" aria-hidden="true"></i>{{ g.messages["label_director"] }}</label>
         <value>{{ show.director }}</value>
       </div>
       {% endif %}
 
       {% if show is movie or show is tvshow %}
       <div>
-        <label>{{ g.messages["label_release_date"] }}</label>
+        <label><i class="fa-solid fa-calendar" aria-hidden="true"></i>{{ g.messages["label_release_date"] }}</label>
         <value>{{ show.release_date|date_format("%d/%m/%Y") if show.release_date else '—' }}</value>
       </div>
       {% endif %}
 
       {% if show is movie and show.duration %}
       <div>
-        <label>Durée</label>
+        <label><i class="fa-solid fa-clock" aria-hidden="true"></i>Durée</label>
         <value>{{ show.duration|minutes_to_human_duration }}</value>
       </div>
       {% endif %}
 
       {% if show is tvshow and production_status %}
       <div>
-        <label>Production</label>
+        <label><i class="fa-solid fa-circle-info" aria-hidden="true"></i>Production</label>
         <value><span class="pill-status {{ production_status.style }}">{{ production_status.translated_status }}</span></value>
       </div>
       <div>
-        <label>Saisons</label>
+        <label><i class="fa-solid fa-layer-group" aria-hidden="true"></i>Saisons</label>
         <value>{{ show.nb_seasons or '—' }}</value>
       </div>
       {% endif %}
@@ -69,13 +69,13 @@
       {% if show is videogame %}
       {% if show.platforms %}
       <div>
-        <label>Plateformes</label>
+        <label><i class="fa-solid fa-gamepad" aria-hidden="true"></i>Plateformes</label>
         <value>{{ show.platforms }}</value>
       </div>
       {% endif %}
       {% if show.publisher %}
       <div>
-        <label>Éditeur</label>
+        <label><i class="fa-solid fa-building" aria-hidden="true"></i>Éditeur</label>
         <value>{{ show.publisher }}</value>
       </div>
       {% endif %}
@@ -83,14 +83,14 @@
 
       {% if show.origin_object %}
       <div>
-        <label>Origine</label>
+        <label><i class="fa-solid fa-globe" aria-hidden="true"></i>Origine</label>
         <value>{{ show.origin_object.origin }}</value>
       </div>
       {% endif %}
 
       {% if show.url %}
       <div>
-        <label>Fiche externe</label>
+        <label><i class="fa-solid fa-arrow-up-right-from-square" aria-hidden="true"></i>Fiche externe</label>
         <value><a href="{{ show.url }}" target="_blank" rel="noopener">→ ouvrir</a></value>
       </div>
       {% endif %}
@@ -174,6 +174,34 @@
     // Hide the spinner if the page is restored from the bfcache (browser back).
     $(window).on('pageshow', function() { $('#container_overlay').hide(); });
   });
+</script>
+<script>
+(function () {
+  var img = document.querySelector('.hero.show-detail .poster-image');
+  if (!img) return;
+  function compute() {
+    try {
+      var canvas = document.createElement('canvas');
+      var W = 30, H = 45;
+      canvas.width = W; canvas.height = H;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, W, H);
+      var data = ctx.getImageData(0, 0, W, H).data;
+      var r = 0, g = 0, b = 0, n = 0;
+      for (var i = 0; i < data.length; i += 4) {
+        if (data[i + 3] < 200) continue;
+        var lum = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        if (lum < 30 || lum > 225) continue;
+        r += data[i]; g += data[i + 1]; b += data[i + 2]; n++;
+      }
+      if (!n) return;
+      var color = 'rgb(' + Math.round(r / n) + ',' + Math.round(g / n) + ',' + Math.round(b / n) + ')';
+      document.documentElement.style.setProperty('--show-accent', color);
+    } catch (e) { /* CORS / poster manquant — fallback silencieux. */ }
+  }
+  if (img.complete && img.naturalWidth) compute();
+  else img.addEventListener('load', compute);
+})();
 </script>
 
 {% endblock %}

@@ -43,7 +43,16 @@
   <script src="{{ url_for('static', filename='sw_main.js') }}"></script>
 </head>
 
-<body{% block body_class %}{% endblock %}>
+<body data-show-type="{{ g.show_type or '' }}"{% block body_class %}{% endblock %}>
+
+{% if g.show_type and g.user.is_authenticated and not g.user.is_guest %}
+<div class="show-type-watermark" aria-hidden="true">
+  {% if g.show_type == "movie" %}<i class="fa-solid fa-film"></i>
+  {% elif g.show_type == "tvshow" %}<i class="fa-solid fa-tv"></i>
+  {% elif g.show_type == "videogame" %}<i class="fa-solid fa-gamepad"></i>
+  {% endif %}
+</div>
+{% endif %}
 
 {% block topbar %}
 <header class="topbar">
@@ -121,6 +130,7 @@
     {% endif %}
   </div>
 </header>
+{% if g.show_type %}<div class="show-type-strip" aria-hidden="true"></div>{% endif %}
 {% endblock %}
 
 {% block flash %}

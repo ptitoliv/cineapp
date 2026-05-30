@@ -10,7 +10,7 @@
 {% set show = hw.show %}
 {% set giver = hw.homework_who_user %}
 {% set receiver = hw.user %}
-{% set is_mine = receiver.id == g.user.id and hw.mark is none %}
+{% set is_mine = receiver.id == g.user.id %}
 {% set can_cancel = hw.homework_who == g.user.id and hw.mark is none %}
 <article class="hw-row{% if is_mine %} is-mine{% endif %}">
   <a class="hw-poster" href="{{ url_for('show.display_show', show_id=show.id, show_type=g.show_type) }}">
@@ -45,7 +45,7 @@
   <div class="hw-status">
     {% if hw.mark is none %}
       {% if receiver.id == g.user.id %}
-      <a class="btn btn-solid" href="{{ url_for('show.mark_show', show_id_form=show.id, show_type=g.show_type) }}">Noter <span class="arrow">→</span></a>
+      <a class="btn btn-solid" href="{{ url_for('show.mark_show', show_id_form=show.id, show_type=g.show_type) }}">Noter</a>
       {% else %}
       <span class="hw-pending">En cours</span>
       {% endif %}
@@ -84,7 +84,7 @@
 
 <section class="filter-strip">
   {% from "_formhelpers.html" import render_field %}
-  <form class="filter-bar" method="post" role="form" action="{{ url_for('homework.list_homeworks') }}">
+  <form class="filter-bar filter-bar-homework" method="post" role="form" action="{{ url_for('homework.list_homeworks') }}">
     {{ homework_filter_form.hidden_tag() }}
     <span class="lbl">Filtrer</span>
     {{ render_field(homework_filter_form.from_user_filter) }}
@@ -97,7 +97,17 @@
 <section class="hw-wrap">
   {% if homeworks|length == 0 %}
   <div class="hw-empty">
-    <i class="fa-regular fa-folder-open" aria-hidden="true"></i>
+    <svg class="hw-empty-illu" viewBox="0 0 160 120" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path d="M80 30 q-32 -8 -56 0 v74 q26 -8 56 0 z" />
+      <path d="M80 30 q32 -8 56 0 v74 q-26 -8 -56 0 z" />
+      <line x1="80" y1="30" x2="80" y2="104" />
+      <line x1="34" y1="52" x2="68" y2="50" />
+      <line x1="34" y1="64" x2="68" y2="62" />
+      <line x1="34" y1="76" x2="60" y2="74" />
+      <line x1="92" y1="50" x2="126" y2="52" />
+      <line x1="92" y1="62" x2="126" y2="64" />
+      <line x1="92" y1="74" x2="118" y2="76" />
+    </svg>
     <p>Aucun devoir disponible</p>
   </div>
   {% else %}
@@ -113,7 +123,7 @@
         {% for cur_homework in pending %}{{ hw_row(cur_homework) }}{% endfor %}
       </div>
       {% else %}
-      <p class="hw-col-empty">Aucun devoir à voir</p>
+      <p class="hw-col-empty"><i class="fa-regular fa-circle" aria-hidden="true"></i> Aucun devoir à voir</p>
       {% endif %}
     </div>
 
@@ -128,7 +138,7 @@
         {% for cur_homework in done %}{{ hw_row(cur_homework) }}{% endfor %}
       </div>
       {% else %}
-      <p class="hw-col-empty">Aucun devoir noté</p>
+      <p class="hw-col-empty"><i class="fa-regular fa-circle-check" aria-hidden="true"></i> Aucun devoir noté</p>
       {% endif %}
     </div>
   </div>
