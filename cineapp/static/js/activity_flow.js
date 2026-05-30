@@ -11,12 +11,7 @@
    length menu wiring) — only the rendering is shared.
    ========================================================================== */
 
-function escapeHtml(s) {
-  if (s === undefined || s === null) return "";
-  return String(s)
-    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
-}
+// escapeHtml lives in static/js/utils.js (loaded from base.html).
 
 // Type pill — taxonomy shared with the dashboard and the full feed.
 function activity_kind(row) {

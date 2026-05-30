@@ -37,13 +37,6 @@ $(document).ready(function () {
   var lastDay  = null;     // day label of the last rendered message
   var $lastGroup = null;   // current group element, for fast consecutive appends
 
-  function escapeHtml(s) {
-    if (s === undefined || s === null) return '';
-    return String(s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
-  }
-
   // The route formats date as "Aujourd'hui - HH:MM" or "DD/MM/YYYY - HH:MM".
   function renderMessage(data) {
     var parts  = (data.date || '').split(' - ');

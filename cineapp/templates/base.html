@@ -41,6 +41,9 @@
 
   <!-- Service Worker helpers -->
   <script src="{{ url_for('static', filename='sw_main.js') }}"></script>
+
+  <!-- Shared front-end helpers (escapeHtml, …) -->
+  <script src="{{ url_for('static', filename='js/utils.js') }}"></script>
 </head>
 
 <body data-show-type="{{ g.show_type or '' }}"{% block body_class %}{% endblock %}>

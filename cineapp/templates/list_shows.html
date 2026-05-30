@@ -166,13 +166,6 @@ $(document).ready(function() {
   // each user's color class is just `user-<id>` — actual color is set in CSS above
   function userClass(uid) { return 'user-' + uid; }
 
-  function escapeHtml(s) {
-    if (s == null) return '';
-    return String(s)
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
-  }
-
   function renderTitle(data, type, row) {
     var placeholder = '<span class="poster-placeholder sm" aria-hidden="true"><i class="fa-solid ' + POSTER_ICON + '"></i></span>';
     var poster = row.poster_path
