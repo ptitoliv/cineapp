@@ -149,12 +149,6 @@ body[data-show-type="videogame"] {
   z-index: -1;
 }
 
-/* ---------- Show-type accent strip (3px under the topbar) ---------- */
-.show-type-strip {
-  height: 3px;
-  width: 100%;
-  background: var(--st-accent);
-}
 @media (max-width: 900px) {
   .show-type-watermark { font-size: 280px; right: -28px; bottom: -28px; }
 }
@@ -167,6 +161,17 @@ button { font: inherit; cursor: pointer; }
   background: rgba(246, 243, 240, .92);
   backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--rule);
+}
+/* Show-type accent (3px) pinned to the bottom of the STICKY topbar so the
+   coloured separator stays visible while scrolling. It used to be a separate
+   non-sticky .show-type-strip div that scrolled out of view. Shown only when a
+   show-type is active (data-show-type non-empty), matching the old condition. */
+body:not([data-show-type=""]) .topbar::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 100%;
+  height: 3px;
+  background: var(--st-accent);
 }
 .topbar-inner {
   max-width: 1480px;
