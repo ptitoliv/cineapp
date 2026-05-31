@@ -12,6 +12,10 @@
    under the [LIST_SHOWS] section. Only the rules that depend on User.id
    (and therefore can't be in a static stylesheet) are emitted here.
    ========================================================================== */
+/* Table min-width floor, scaled to the number of user columns, so the
+   intermediate-width band (921–1280px) scrolls horizontally instead of
+   compressing columns below their header width (see [LIST_SHOWS] band rule). */
+.list-wrap { --list-min-width: {{ 370 + (users|length) * 250 }}px; }
 {% for cu in users %}
 {% set color = cu.theme_color %}
 .cell-mark-val.user-{{ cu.id }},
@@ -107,7 +111,10 @@
     <table class="list" id="showslist" width="100%">
       <thead>
         <tr class="users">
-          <th colspan="2" data-dt-order="disable"></th>
+          {# Split into two single cells (was colspan=2) so the Title column
+             can be frozen on its own in the narrow band — see styles.css. #}
+          <th data-dt-order="disable"></th>
+          <th data-dt-order="disable"></th>
           {% if not g.user.is_guest %}
           <th colspan="3" class="user-{{ g.user.id }}" data-dt-order="disable">
             <div class="ulabel">
@@ -352,15 +359,22 @@ $(document).ready(function() {
     }
   });
 
-  // Bubble placement — default position is above the cell. If the cell sits
-  // near the top of the viewport and the bubble would clip, flip it below.
-  // Delegated event because DataTables re-renders the cells on every draw.
+  // Bubble placement — the bubble is position:fixed (see styles.css) so it is
+  // never clipped by an ancestor's overflow (the table card scrolls
+  // horizontally in the 921–1280px band). We therefore set its viewport
+  // coordinates here on hover: centered on the cell, above it by default, and
+  // flipped below when the above-placement would clip past the top of the
+  // viewport. Delegated event because DataTables re-renders cells on every draw.
   $('#showslist').on('mouseenter', '.cell-mark-val.has-comment', function () {
     var bubble = this.querySelector('.bubble');
     if (!bubble) return;
-    var cellTop = this.getBoundingClientRect().top;
+    var cell = this.getBoundingClientRect();
     var bubbleH = bubble.offsetHeight || 80;
-    bubble.classList.toggle('bubble-below', cellTop < bubbleH + 24);
+    var below = cell.top < bubbleH + 24;
+    bubble.classList.toggle('bubble-below', below);
+    bubble.style.left = (cell.left + cell.width / 2) + 'px';
+    bubble.style.top = below ? (cell.bottom + 10) + 'px'
+                             : (cell.top - bubbleH - 10) + 'px';
   });
 });
 </script>

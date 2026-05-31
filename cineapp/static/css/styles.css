@@ -837,10 +837,13 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 }
 .cell-mark-val.has-comment { cursor: help; }
 
-/* hover bubble for comments (BS3 popover preserved) */
+/* hover bubble for comments (BS3 popover preserved).
+   position: fixed (not absolute) + JS-set top/left (see list_shows.html) so the
+   bubble is never clipped by an ancestor's overflow — notably the table card,
+   which becomes a horizontal scroller in the 921–1280px band. */
 .cell-mark .cell-mark-val .bubble {
-  position: absolute;
-  bottom: calc(100% + 10px); left: 50%;
+  position: fixed;
+  top: 0; left: 0;
   transform: translate(-50%, 6px);
   width: 240px; pointer-events: none;
   opacity: 0; transition: opacity .15s, transform .15s;
@@ -877,10 +880,9 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 }
 /* Flipped variant — applied by JS when the default above-placement would
    clip past the top of the viewport. Bubble sits BELOW the cell with the
-   arrow on top pointing up. */
+   arrow on top pointing up. JS sets the actual top; here we only flip the
+   entry-animation direction and (below) the arrow. */
 .cell-mark .cell-mark-val .bubble.bubble-below {
-  bottom: auto;
-  top: calc(100% + 10px);
   transform: translate(-50%, -6px);
 }
 .cell-mark .cell-mark-val:hover .bubble.bubble-below {
@@ -1014,10 +1016,38 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   box-shadow: 0 4px 12px rgba(28, 24, 32, .12) !important;
 }
 
-/* horizontal scroll fallback for narrow desktop */
+/* horizontal scroll for narrow desktop (921–1280px) — frozen Title column.
+   Below this band the table is the full width its content needs; the card
+   becomes the horizontal scroller so the Title column can stick to the card's
+   own left edge (not the page). The min-width floor is computed per user-count
+   in the template (var --list-min-width) so columns never compress below their
+   header width — that was the source of the header text overlapping its
+   neighbour. */
 @media (max-width: 1280px) and (min-width: 921px) {
   .list-wrap { padding: 0 24px 24px; }
-  .list { min-width: 1100px; }
+  .list { min-width: var(--list-min-width, 1100px); }
+
+  /* the table card is the horizontal scroll container */
+  .dt-layout-row.dt-layout-table { overflow-x: auto; }
+
+  /* freeze the Title column (header rows + body) on the left while the user
+     columns scroll underneath. Opaque backgrounds + a right hairline make it
+     read as a fixed panel. */
+  .list thead .users th:first-child,
+  .list thead .cols th:first-child,
+  .list tbody td.t-title {
+    position: sticky; left: 0; z-index: 4;
+  }
+  .list thead .users th:first-child { background: var(--paper-soft); }
+  .list thead .cols th:first-child { background: var(--paper-card); }
+  .list tbody td.t-title { background: var(--paper-card); }
+  .list tbody tr:hover td.t-title { background: var(--paper-soft); }
+  .list thead .users th:first-child::after,
+  .list thead .cols th:first-child::after,
+  .list tbody td.t-title::after {
+    content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 1px;
+    background: var(--rule);
+  }
 }
 
 /* ============== RESPONSIVE — table → cards (≤920px) ============== */
