@@ -198,26 +198,6 @@ class VideoGame(Show):
                 'polymorphic_identity':'videogame'
         }
 
-        def release_date_for(self, region_id):
-            for rd in self.release_dates:
-                if rd.region_id == region_id:
-                    return rd
-            return None
-
-        @property
-        def primary_release_date(self):
-            """
-                Get the highest priority release date (Region.priority desc)
-                Need to feel the global field Show.Release date for datatables sort
-            """
-            best = None
-            for rd in self.release_dates:
-                if rd.release_date is None or rd.region is None:
-                    continue
-                if best is None or rd.region.priority > best.region.priority:
-                    best = rd
-            return best
-
         def __next__(self):
             """
                 Return the next item into the database
@@ -251,11 +231,6 @@ class VideoGameReleaseDate(db.Model):
     release_platform = db.Column(db.String(200))
 
     region = db.relationship('Region', lazy='joined')
-
-    def __repr__(self):
-        return '<VideoGameReleaseDate vg=%r region=%r date=%r release_platform=%s>' % (
-            self.videogame_id, self.region_id, self.release_date, self.release_platform
-        )
 
 class ProductionStatus(db.Model):
 
