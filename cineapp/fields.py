@@ -54,20 +54,3 @@ class CKTextAreaWidget(widgets.TextArea):
 
 class CKTextAreaField(fields.TextAreaField):
     widget = CKTextAreaWidget()
-
-# Widget which returns a complete search bar with a glyphicon button
-class SearchButtonWidget(widgets.SubmitInput):
-
-    html_params = staticmethod(widgets.html_params)
-    input_type = 'submit'
-
-    def __call__(self, field, **kwargs):
-        kwargs.setdefault('id', field.id)
-        kwargs.setdefault('type', self.input_type)
-        kwargs.setdefault('value', field.label.text)
-
-        return Markup('<button %s><i class="glyphicon glyphicon-search"></i></button>' % self.html_params(name=field.name, **kwargs))
-
-# SearchButtonField used for display the previous widget
-class SearchButtonField(fields.BooleanField):
-    widget = SearchButtonWidget()
