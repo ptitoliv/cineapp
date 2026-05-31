@@ -913,8 +913,26 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   padding: 12px 4px;
   margin: 0;
 }
-#showslist_wrapper > .dt-layout-row:not(.dt-layout-table):first-child { padding-top: 0; padding-bottom: 18px; }
-#showslist_wrapper > .dt-layout-row:not(.dt-layout-table):last-child { padding-top: 18px; padding-bottom: 0; }
+/* Top info row gets the same separator treatment as the activity feed's
+   .flux-head: a hairline rule with breathing room before the table, which
+   otherwise sat glued (~12px, no rule) under the info line. */
+#showslist_wrapper > .dt-layout-row:not(.dt-layout-table):first-child {
+  padding-top: 0; padding-bottom: 16px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--rule);
+}
+/* Cancel DataTables' default 0.75em top/bottom margin on the table card so the
+   gaps above and below are exact (the CDN rule outweighs our .dt-layout-table
+   margin). */
+#showslist_wrapper > .dt-layout-row.dt-layout-table { margin-top: 0; margin-bottom: 0; }
+/* Bottom info + paging row gets the same separator treatment as the activity
+   feed's pager (border-top rule + breathing room), instead of sitting glued
+   ~12px under the table. */
+#showslist_wrapper > .dt-layout-row:not(.dt-layout-table):last-child {
+  padding-top: 18px; padding-bottom: 0;
+  margin-top: 18px;
+  border-top: 1px solid var(--rule);
+}
 
 /* Afficher [100] films par page */
 .dt-length { color: var(--ink-dim); }
