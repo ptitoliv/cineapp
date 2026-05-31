@@ -181,24 +181,18 @@ def create_app(config_path=None):
     socketio.init_app(app)
     from cineapp.chat import register_socketio_handlers
     register_socketio_handlers(socketio)
-
+       
+    # Create missing directories if they don't exist
+    for cur_dir in [ app.config['LOGDIR'], app.config['AVATARS_FOLDER'], app.config['POSTERS_PATH'] ]:
+        try:
+            if not os.path.isdir(cur_dir):
+                os.makedirs(cur_dir,0o755)
+        except:
+            raise OSError("Impossible de créer " + cur_dir)
+          
     ##################
     # Logging system #
     ##################
-    
-    # Create the log directory if it doesn't exists
-    try:
-        if not os.path.isdir(app.config['LOGDIR']):
-            os.makedirs(app.config['LOGDIR'],0o755)
-    except:
-        raise OSError("Impossible de créer " + app.config['LOGDIR'])
-    
-    # Create the avatar directory if it doesn't exists
-    try:
-        if not os.path.isdir(app.config['AVATARS_FOLDER']):
-            os.makedirs(app.config['AVATARS_FOLDER'],0o755)
-    except:
-        raise OSError("Impossible de créer " + app.config['AVATARS_FOLDER'])
     
     # Open a file rotated every 100MB
     file_handler = RotatingFileHandler(os.path.join(app.config['LOGDIR'],'cineapp.log'), 'a', 100 * 1024 * 1024, 10)

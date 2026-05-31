@@ -52,10 +52,8 @@ def build_login_medley():
             the deck and the placeholders split to its two ends, so the
             rotated medley grid keeps real posters in its visible core and
             pushes placeholders into the corners clipped by the rotation. """
-        try:
-                present = set(os.listdir(app.config['POSTERS_PATH']))
-        except OSError:
-                present = set()
+        # POSTERS_PATH is created at startup (see create_app), so listdir is safe.
+        present = set(os.listdir(app.config['POSTERS_PATH']))
 
         # Array that will contains real posters
         real_posters = []
