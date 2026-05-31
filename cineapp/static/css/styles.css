@@ -540,7 +540,15 @@ nav.menu a.active { font-weight: 500; }
 .filter-bar select:hover, .filter-bar select:focus {
   border-color: var(--violet); color: var(--violet); outline: none;
 }
-.filter-bar .spacer { flex: 1; }
+/* Filter-bar action group — shared by every .filter-bar (movie list, homework
+   list, …). The submit / reset buttons are wrapped in .filter-actions so they
+   stay grouped and pushed to the right on one row; when the bar wraps at
+   intermediate widths they drop to their own centred line (see the
+   921–1280px band) instead of being stranded next to a half-empty row. */
+.filter-bar .filter-actions {
+  margin-left: auto;
+  display: inline-flex; align-items: center; gap: 10px;
+}
 /* ============== [BUTTONS] — one .btn pill ; modifiers carry colour & size ==============
    Used everywhere via class="btn", "btn btn-solid", "btn btn-ghost", etc. */
 .btn {
@@ -1050,6 +1058,12 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   .list-wrap { padding: 0 24px 24px; }
   .list { min-width: var(--list-min-width, 1100px); }
 
+  /* Filter bar: in this band the selects no longer fit on one row with the
+     actions. Centre every wrapped row (selects + the action group on its own
+     full-width line) so nothing sits offset against the rest. */
+  .filter-bar { justify-content: center; }
+  .filter-bar .filter-actions { flex-basis: 100%; justify-content: center; }
+
   /* the table card is the horizontal scroll container */
   .dt-layout-row.dt-layout-table { overflow-x: auto; }
 
@@ -1085,7 +1099,6 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     gap: 10px;
     padding: 14px;
   }
-  .filter-bar .spacer { display: none; }
   .filter-bar .form-group {
     grid-column: 1 / -1;
     flex-wrap: wrap;
@@ -1096,14 +1109,19 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   }
   .filter-bar .form-group .form-select { width: 100%; }
   .filter-bar .btn { width: 100%; justify-content: center; }
-  /* Homework filter has no "Réinitialiser" — only the "Filtrer" submit.
-     Center the leading "Filtrer" caption span and let the lone submit
-     button span the full row, matching the centered card composition. */
+  /* The grouped actions span the full row and lay their buttons in equal
+     columns — two side by side (movie list) or one full-width (homework) via
+     grid-auto-flow, so the same rule fits every .filter-bar. */
+  .filter-bar .filter-actions {
+    grid-column: 1 / -1;
+    margin-left: 0;
+    display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 10px;
+  }
+  /* Homework filter opens with a "Filtrer" caption — center it on its own row. */
   .filter-bar-homework .lbl {
     grid-column: 1 / -1;
     text-align: center;
   }
-  .filter-bar-homework .btn { grid-column: 1 / -1; }
 
   /* Mobile sort bar — same card aesthetic as .filter-bar above:
      paper-card surface, 1px rule border, 16px radius, 14px inner padding,

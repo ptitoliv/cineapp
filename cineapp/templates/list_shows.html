@@ -64,9 +64,10 @@
       {{ render_field(filter_form.where) }}
     {% endif %}
     {{ render_field(filter_form.favorite) }}
-    <span class="spacer"></span>
-    <a class="btn btn-ghost" href="{{ url_for('main.reset_list') }}">↺ Réinitialiser</a>
-    {{ render_field(filter_form.submit_filter, label_visible=false, parse_class=false, group=false, div=false, class_="btn btn-solid") }}
+    <div class="filter-actions">
+      <a class="btn btn-ghost" href="{{ url_for('main.reset_list') }}">↺ Réinitialiser</a>
+      {{ render_field(filter_form.submit_filter, label_visible=false, parse_class=false, group=false, div=false, class_="btn btn-solid") }}
+    </div>
   </form>
 </section>
 

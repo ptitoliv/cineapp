@@ -89,8 +89,9 @@
     <span class="lbl">Filtrer</span>
     {{ render_field(homework_filter_form.from_user_filter) }}
     {{ render_field(homework_filter_form.to_user_filter) }}
-    <span class="spacer"></span>
-    {{ render_field(homework_filter_form.submit_homework, label_visible=false, parse_class=false, group=false, div=false, class_="btn btn-solid") }}
+    <div class="filter-actions">
+      {{ render_field(homework_filter_form.submit_homework, label_visible=false, parse_class=false, group=false, div=false, class_="btn btn-solid") }}
+    </div>
   </form>
 </section>
 
