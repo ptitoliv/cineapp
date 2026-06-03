@@ -1688,7 +1688,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert u"Aucun résultat" in rv.data.decode("utf-8")
 
         # Fill the videogame title
-        rv=self.client.post('/videogame/add/select',data=dict(search="Sonic",submit_search=True))
+        rv=self.client.post('/videogame/add/select',data=dict(search="Sonic the Hedgehog",submit_search=True))
         parsed_html=BeautifulSoup(rv.data,"html.parser")
 
         # --- Edge case: navigate to page 2 (L117: has_prev = True) ---

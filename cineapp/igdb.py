@@ -98,7 +98,7 @@ def search_games(query, page=1):
     """
 
     offset = (page - 1) * IGDB_PAGE_SIZE
-    body = 'search "%s"; fields name,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name; limit %d; offset %d;' % (query.replace('"', '\\"'), IGDB_PAGE_SIZE, offset)
+    body = 'fields name,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name,release_dates.date,release_dates.platform.name,game_localizations.cover.url,game_localizations.region.name; where name ~ *"%s"* ; sort first_release_date asc ; limit %d; offset %d ;' % (query.replace('"', '\\"'), IGDB_PAGE_SIZE, offset)
 
     results = _igdb_request("games", body)
     if results is None:
