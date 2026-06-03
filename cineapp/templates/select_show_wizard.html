@@ -29,11 +29,12 @@
           {% if cur_show.poster_path %}
           <img src="{{ cur_show.poster_path }}" alt="" onerror="this.remove()">
           {% endif %}
+          {% if cur_show.release_date %}<span class="year-stamp">{{ cur_show.release_date[:4] }}</span>{% endif %}
         </span>
         <span class="meta">
           <span class="title">{{ cur_show.name }}</span>
           {% if cur_show.director %}<span class="director">de {{ cur_show.director }}</span>{% endif %}
-          {% if cur_show.release_date %}<span class="year">{{ cur_show.release_date[:4] }}</span>{% endif %}
+          {% if cur_show.platforms %}<span class="platforms"><i class="fa-solid fa-gamepad" aria-hidden="true"></i>{{ cur_show.platforms }}</span>{% endif %}
         </span>
       </label>
       {% endfor %}

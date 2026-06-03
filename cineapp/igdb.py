@@ -91,6 +91,102 @@ def _translate(text):
 
 IGDB_PAGE_SIZE = 20
 
+def find_poster(game):
+    """
+        Select the cover URL for a game and return it as a full https URL in
+        t_cover_big size (or None). The European localized cover (region id 4)
+        is preferred, with a fallback to the game's main cover. Shared by
+        search_games (display) and get_game (download) so both show the same cover.
+    """
+
+    cover_url = None
+
+    # Prefer a European localized cover (Europe has id 4 in IGDB)
+    for cur_cover in game.get("game_localizations", []) or []:
+        region = cur_cover.get("region")
+        cover = cur_cover.get("cover")
+        if isinstance(region, dict) and region.get("id") == 4 and isinstance(cover, dict) and cover.get("url"):
+            cover_url = cover.get("url")
+            break
+
+    # Fall back to the main cover
+    if not cover_url and isinstance(game.get("cover"), dict):
+        cover_url = game.get("cover").get("url")
+
+    if not cover_url:
+        return None
+
+    return "https:" + cover_url.replace("t_thumb", "t_cover_big")
+
+
+def _platforms_by_release(game):
+    """
+        Return the game's platform names as a comma-separated string, ordered by
+        ascending release date (earliest first), using the per-platform dates in
+        release_dates. Platforms with no known release date come last, keeping
+        their original order. Requires release_dates.date, release_dates.platform.name
+        and platforms.name in the queried fields.
+    """
+
+    # Step 1: find the earliest release date for each platform.
+    # We look at every release_dates entry and, for each platform name, we keep
+    # the smallest (earliest) date we have seen so far.
+    # There are several release date by platform ==> Let's keep the earliest one
+    
+    earliest_date = {}
+    for release in game.get("release_dates", []) or []:
+        platform = release.get("platform")
+        if not isinstance(platform, dict) or not platform.get("name"):
+            continue
+
+        platform_name = platform["name"]
+        date = release.get("date")
+
+        if platform_name not in earliest_date:
+            # First time we see this platform: store its date (which may be None).
+            earliest_date[platform_name] = date
+        elif date is not None:
+            # We already know this platform: keep the date only if it is earlier.
+            known_date = earliest_date[platform_name]
+            if known_date is None or date < known_date:
+                earliest_date[platform_name] = date
+
+    # Step 2: build the list of all platform names, without duplicates and
+    # keeping the order in which we meet them.
+    names = []
+    for platform in game.get("platforms", []) or []:
+        if isinstance(platform, dict) and platform.get("name"):
+            if platform["name"] not in names:
+                names.append(platform["name"])
+
+    # Some platforms may only appear in release_dates: add them at the end.
+    for name in earliest_date:
+        if name not in names:
+            names.append(name)
+
+    # Step 3: split the platforms in two groups.
+    # - dated: platforms that have a release date.
+    # - undated: platforms without any date, kept in their original order.
+    # For the dated ones we remember their original position, so that two
+    # platforms sharing the same date stay in their original order.
+    dated = []
+    undated = []
+    for position, name in enumerate(names):
+        date = earliest_date.get(name)
+        if date is None:
+            undated.append(name)
+        else:
+            dated.append((date, position, name))
+
+    # Sorting the tuples compares the date first, then the original position.
+    dated.sort()
+
+    # Dated platforms first (earliest first), undated platforms last.
+    ordered_names = [name for (date, position, name) in dated] + undated
+
+    return ", ".join(ordered_names)
+
+
 def search_games(query, page=1):
 
     """
@@ -114,14 +210,8 @@ def search_games(query, page=1):
             except (ValueError, OSError):
                 pass
 
-        # Extract platforms
-        platforms = ""
-        if "platforms" in game and game["platforms"]:
-            platform_names = []
-            for p in game["platforms"]:
-                if isinstance(p, dict) and "name" in p:
-                    platform_names.append(p["name"])
-            platforms = ", ".join(platform_names)
+        # Extract platforms, ordered by ascending release date
+        platforms = _platforms_by_release(game)
 
         # Extract developer
         developer = ""
@@ -137,12 +227,8 @@ def search_games(query, page=1):
         if not developer:
             developer = "Inconnu"
 
-        # Build cover URL for display
-        poster_path = None
-        if "cover" in game and game["cover"] and isinstance(game["cover"], dict):
-            cover_url = game["cover"].get("url")
-            if cover_url:
-                poster_path = "https:" + cover_url.replace("t_thumb", "t_cover_big")
+        # Build cover URL for display (same selection logic as get_game)
+        poster_path = find_poster(game)
 
         game_obj = VideoGame(
             name=game.get("name", "Inconnu"),
@@ -223,14 +309,8 @@ def get_game(external_id):
                                         release_platform=release_platform_string)
             )
                                           
-    # Fill the platform lists for which the game has been released on
-    platforms = ""
-    if "platforms" in game and game["platforms"]:
-        platform_names = []
-        for p in game["platforms"]:
-            if isinstance(p, dict) and "name" in p:
-                platform_names.append(p["name"])
-        platforms = ", ".join(platform_names)
+    # Fill the platform list, ordered by ascending release date
+    platforms = _platforms_by_release(game)
 
     # Populate developer and publisher fields
     developer = ""
@@ -255,22 +335,13 @@ def get_game(external_id):
     if not publisher:
         publisher = "Inconnu"
 
-    # Let's find a European cover. If not, let's fall back to the main one
-    cover_url = None
-    for cur_cover in game.get("game_localizations", []) or []:
-        if cur_cover.get("region").get("id") == 4: # Europe has id 4 in IGDB
-                cover_url=cur_cover.get("cover").get("url")
-                break
-
-
-    if not cover_url and isinstance(game.get("cover"), dict):
-        cover_url = game.get("cover").get("url")
+    # Pick the cover (European localized if available, else the main one) and
+    # download it. Same selection logic as the search results via find_poster.
+    cover_url = find_poster(game)
 
     poster_path = None
-    if cover_url:
-        cover_url = "https:" + cover_url.replace("t_thumb", "t_cover_big")
-        if download_poster(cover_url):
-            poster_path = os.path.basename(cover_url)
+    if cover_url and download_poster(cover_url):
+        poster_path = os.path.basename(cover_url)
 
     # Look for a French alternative title
     original_name = game.get("name")
