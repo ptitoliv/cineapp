@@ -3055,11 +3055,9 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   color: var(--ink);
   background: var(--paper-card);
   border-radius: 7px;
-  transform: rotate(-4deg);
   box-shadow: 0 4px 12px -4px rgba(28, 24, 32, .45);
-  transition: transform .25s ease, background-color .25s ease, color .25s ease;
+  transition: background-color .25s ease, color .25s ease;
 }
-.wizard-result:hover .year-stamp { transform: rotate(0); }
 .wizard-result:has(input[type="radio"]:checked) .year-stamp {
   background: var(--violet); color: var(--paper);
 }
