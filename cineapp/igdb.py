@@ -402,10 +402,12 @@ def download_poster(url):
 
 def search_page_number(query):
     """
-        Function that returns how many result pages we're going to handle for a specific query
+        Return how many result pages a query yields. Counts with the same
+        `where name ~ "..."` clause as search_games, so the page count and the
+        displayed results always agree.
     """
     import math
-    body = 'search "%s";' % query.replace('"', '\\"')
+    body = 'where name ~ *"%s"*;' % query.replace('"', '\\"')
 
     result = _igdb_request("games/count", body)
     if result is None or "count" not in result:
