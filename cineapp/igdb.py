@@ -336,12 +336,16 @@ def get_game(external_id):
         publisher = "Inconnu"
 
     # Pick the cover (European localized if available, else the main one) and
-    # download it. Same selection logic as the search results via find_poster.
+    # download it. Same selection logic as the search results via find_poster,
+    # but download the higher-resolution 2x variant since this poster is the one
+    # shown on the confirm step and the display page (the wizard keeps t_cover_big).
     cover_url = find_poster(game)
 
     poster_path = None
-    if cover_url and download_poster(cover_url):
-        poster_path = os.path.basename(cover_url)
+    if cover_url:
+        cover_url = cover_url.replace("t_cover_big", "t_cover_big_2x")
+        if download_poster(cover_url):
+            poster_path = os.path.basename(cover_url)
 
     # Look for a French alternative title
     original_name = game.get("name")
