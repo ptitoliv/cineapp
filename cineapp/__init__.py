@@ -7,7 +7,7 @@ from flask_login import login_user, logout_user, current_user, login_required, L
 from flask import Flask, session, g
 from flask_session import Session
 from flask_babel import Babel
-import logging, sys, os
+import logging, sys, os, locale
 from logging.handlers import RotatingFileHandler
 from flask_socketio import SocketIO
 from flask_migrate  import Migrate
@@ -200,7 +200,17 @@ def create_app(config_path=None):
     app.logger.setLevel(logging.INFO)
     app.logger.addHandler(file_handler)
     app.logger.info('Cineapp startup')
-    
+
+    # Set the process locale up front so strftime (the date_format filter) renders
+    # French month/day names everywhere, instead of only after the dashboard sets
+    # it. We only touch LC_TIME (dates) and fall back gracefully if the locale isn't
+    # generated on the host.
+    app_locale = app.config.get('LOCALE', 'fr_FR.UTF-8')
+    try:
+        locale.setlocale(locale.LC_TIME, app_locale)
+    except locale.Error:
+        app.logger.warning("Locale '%s' indisponible sur le système, dates non localisées", app_locale)
+
     # Blueprint Registration
     from .shows import show_bp
     from .homeworks import homework_bp

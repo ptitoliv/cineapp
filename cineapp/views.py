@@ -6,7 +6,7 @@ standard_library.install_aliases()
 from builtins import next
 from builtins import str
 from builtins import range
-import urllib.request, urllib.parse, urllib.error, hashlib, re, os, locale, json, copy, time,html2text
+import urllib.request, urllib.parse, urllib.error, hashlib, re, os, json, copy, time,html2text
 from datetime import datetime
 from flask import Blueprint, render_template, flash, redirect, url_for, g, request, session, abort, current_app as app
 from flask_login import login_user, logout_user, current_user, login_required
@@ -255,13 +255,10 @@ def show_dashboard():
         # Generate datas for the bar graph
         cur_year=datetime.now().strftime("%Y")
 
-        # Set month in French (abbreviated form: janv., févr., mars, …)
-        locale.setlocale(locale.LC_ALL, "fr_FR.UTF-8")
+        # Month labels in French (abbreviated: janv., févr., mars…) — the process
+        # locale is set at startup (see create_app), so %b is already localized.
         for cur_month in range(1,13,1):
                 labels.append(datetime.strptime(str(cur_month), "%m").strftime("%b"))
-
-        # Go back to default locale
-        locale.setlocale(locale.LC_ALL,locale.getdefaultlocale())
 
         return render_template('show_dashboard.html', activity_list=activity_dict["list"], general_stats=general_stats,labels=labels,cur_year=cur_year,stats_dict=stats_dict,dashboard_graph_form=dashboard_graph_form,suggestion=suggestion,latest_marks=latest_marks)
 
