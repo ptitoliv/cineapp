@@ -1527,11 +1527,6 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   margin-bottom: 36px;
   font-weight: 900;
 }
-.show-detail .byline {
-  border-top-color: var(--ink-dim);
-  border-bottom-color: var(--ink-dim);
-}
-.show-detail .byline label { color: var(--ink-mid); }
 .byline > div { display: flex; flex-direction: column; gap: 6px; }
 .byline label { color: var(--ink-dim); font-weight: 900; display: inline-flex; align-items: center; gap: 7px; }
 .byline label i { font-size: 11px; opacity: .8; }
@@ -1559,7 +1554,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 
 .synopsis {
   font-family: var(--font-body);
-  font-weight: 350; font-size: 19px;
+  font-weight: 420; font-size: 20px;
   line-height: 1.55; letter-spacing: -.005em;
   color: var(--ink);
   margin-bottom: 40px;
@@ -1570,7 +1565,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   content: "“"; position: absolute; left: -8px; top: -22px;
   font-family: var(--font-display);
   font-size: 96px; line-height: 1; font-style: italic; font-weight: 500;
-  color: var(--violet); opacity: .35;
+  color: var(--violet); opacity: .55;
 }
 .synopsis-translated {
   font-size: 10px;
