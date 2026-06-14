@@ -187,6 +187,40 @@ def _platforms_by_release(game):
     return ", ".join(ordered_names)
 
 
+def _pick_display_name(game):
+    """
+        Choose the title to display for a game, preferring a French/European
+        title over IGDB's default name (usually English):
+          1. A French alternative title (alternative_names whose comment mentions
+             France/French).
+          2. The European localized title (game_localizations.name for the Europe
+             region, id 4 — the same region find_poster prefers for covers).
+          3. The game's default name.
+
+        Requires game_localizations.name, game_localizations.region,
+        alternative_names.name and alternative_names.comment in the queried
+        fields. Shared by search_games (wizard list) and get_game (persisted
+        title) so both show the same name.
+    """
+
+    # 1. French alternative title.
+    for alt in game.get("alternative_names", []) or []:
+        name = alt.get("name")
+        comment = (alt.get("comment") or "").lower()
+        if name and ("french" in comment or "france" in comment or "français" in comment or "francais" in comment):
+            return name
+
+    # 2. European localized title (Europe has id 4 in IGDB).
+    for loc in game.get("game_localizations", []) or []:
+        name = loc.get("name")
+        region = loc.get("region")
+        if name and isinstance(region, dict) and region.get("id") == 4:
+            return name
+
+    # 3. Default name.
+    return game.get("name")
+
+
 def search_games(query, page=1):
 
     """
@@ -194,7 +228,7 @@ def search_games(query, page=1):
     """
 
     offset = (page - 1) * IGDB_PAGE_SIZE
-    body = 'fields name,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name,release_dates.date,release_dates.platform.name,game_localizations.cover.url,game_localizations.region.name; where name ~ *"%s"* ; sort first_release_date asc ; limit %d; offset %d ;' % (query.replace('"', '\\"'), IGDB_PAGE_SIZE, offset)
+    body = 'fields name,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name,release_dates.date,release_dates.platform.name,alternative_names.name,alternative_names.comment,game_localizations.cover.url,game_localizations.name,game_localizations.region.name; where name ~ *"%s"* ; sort first_release_date asc ; limit %d; offset %d ;' % (query.replace('"', '\\"'), IGDB_PAGE_SIZE, offset)
 
     results = _igdb_request("games", body)
     if results is None:
@@ -231,7 +265,7 @@ def search_games(query, page=1):
         poster_path = find_poster(game)
 
         game_obj = VideoGame(
-            name=game.get("name", "Inconnu"),
+            name=_pick_display_name(game),
             release_date=release_date,
             director=developer,
             external_id=game.get("id"),
@@ -250,7 +284,7 @@ def get_game(external_id):
         Get full game details from IGDB
     """
 
-    body = 'fields name,summary,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name,url,alternative_names.name,alternative_names.comment,release_dates.date,release_dates.region,release_dates.release_region.region,release_dates.platform.name,game_localizations.cover.url,game_localizations.region.name,game_localizations.region.identifier; where id = %s;' % str(external_id)
+    body = 'fields name,summary,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name,url,alternative_names.name,alternative_names.comment,release_dates.date,release_dates.region,release_dates.release_region.region,release_dates.platform.name,game_localizations.cover.url,game_localizations.name,game_localizations.region.name,game_localizations.region.identifier; where id = %s;' % str(external_id)
 
     results = _igdb_request("games", body)
     if not results or len(results) == 0:
@@ -347,14 +381,10 @@ def get_game(external_id):
         if download_poster(cover_url):
             poster_path = os.path.basename(cover_url)
 
-    # Look for a French alternative title
+    # Pick the display title: European localized title, else a French alternative
+    # title, else the original name (same logic as the wizard via search_games).
     original_name = game.get("name")
-    display_name = original_name
-    for alt in game.get("alternative_names", []) or []:
-        comment = (alt.get("comment") or "").lower()
-        if "french" in comment or "france" in comment or "français" in comment or comment.strip() == "fr":
-            display_name = alt.get("name") or display_name
-            break
+    display_name = _pick_display_name(game)
 
     # Translate overview
     translated_overview, overview_translated = _translate(game.get("summary", ""))

@@ -1746,6 +1746,33 @@ class FlaskrTestCase(unittest.TestCase):
             assert videogame.external_id is not None
             assert videogame.external_source == "igdb"
             assert videogame.overview is not None and videogame.overview != ""
+            # Sonic has neither a European localized title nor a French alternative
+            # name => _pick_display_name falls back to the original name (branch 3).
+            assert videogame.name == "Sonic the Hedgehog"
+            assert videogame.original_name == "Sonic the Hedgehog"
+
+        # --- Title localization: European localized title wins (branch 1) ---
+        # Super Mario Strikers (IGDB id 2256) is titled "Mario Smash Football" in
+        # the European localization (region id 4) while its default IGDB name is
+        # "Super Mario Strikers".
+        rv=self.client.post('/videogame/add/confirm',data=dict(show_id="2256",origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+        assert u"Jeu vidéo ajouté" in rv.data.decode("utf-8")
+        with self.app.app_context():
+            mario = VideoGame.query.filter_by(external_id=2256, external_source="igdb").first()
+            assert mario is not None
+            assert mario.name == "Mario Smash Football"
+            assert mario.original_name == "Super Mario Strikers"
+
+        # --- Title localization: French alternative name (branch 2) ---
+        # Oddworld: Abe's Oddysee (IGDB id 999) has no European localized title but
+        # a French alternative name "Oddworld : L'Odyssée d'Abe".
+        rv=self.client.post('/videogame/add/confirm',data=dict(show_id="999",origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+        assert u"Jeu vidéo ajouté" in rv.data.decode("utf-8")
+        with self.app.app_context():
+            oddworld = VideoGame.query.filter_by(external_id=999, external_source="igdb").first()
+            assert oddworld is not None
+            assert oddworld.name == u"Oddworld : L'Odyssée d'Abe"
+            assert oddworld.original_name == u"Oddworld: Abe's Oddysee"
 
         # --- Composite UNIQUE (external_source, external_id): a videogame may share external_id with a movie ---
         # Les Tuche (TMDB id 66129, external_source='tmvdb') was added in test_03; mock IGDB so the videogame
