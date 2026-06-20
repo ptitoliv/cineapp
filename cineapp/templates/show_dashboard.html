@@ -81,7 +81,7 @@
 			<article class="card amber">
 				<header class="card-head">
 					<div class="titles">
-						<h2>Statistiques générales</h2>
+						<h2>{{ g.messages["label_stats_title"] }}</h2>
 					</div>
 				</header>
 				<div class="card-body" id="shows">
@@ -89,15 +89,15 @@
 						<div class="cata">
 							<div class="cata-stat">
 								<span class="num">{{ general_stats["shows"] }}</span>
-								<span class="lbl">fiches en base</span>
+								<span class="lbl">{{ g.messages["label_stats_in_base"] }}</span>
 							</div>
 							<div class="cata-stat">
 								<span class="num">{{ stats_dict[g.user.id]["shows_total"] }}</span>
-								<span class="lbl">notées par toi · <span class="pct">{% if general_stats["shows"] %}{{ (stats_dict[g.user.id]["shows_total"] * 100 // general_stats["shows"]) }}{% else %}0{% endif %} %</span></span>
+								<span class="lbl">{{ g.messages["label_stats_marked_by_you"] }} · <span class="pct">{% if general_stats["shows"] %}{{ (stats_dict[g.user.id]["shows_total"] * 100 // general_stats["shows"]) }}{% else %}0{% endif %} %</span></span>
 							</div>
 							<div class="cata-stat">
 								<span class="num">{{ general_stats["shows_marked"] }}</span>
-								<span class="lbl">vues par le groupe · <span class="pct">{% if general_stats["shows"] %}{{ (general_stats["shows_marked"] * 100 // general_stats["shows"]) }}{% else %}0{% endif %} %</span></span>
+								<span class="lbl">{{ g.messages["label_stats_seen_by_group"] }} · <span class="pct">{% if general_stats["shows"] %}{{ (general_stats["shows_marked"] * 100 // general_stats["shows"]) }}{% else %}0{% endif %} %</span></span>
 							</div>
 						</div>
 						{% if suggestion %}
