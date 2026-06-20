@@ -24,6 +24,7 @@
 {% set rgb_g = color[3:5] | int(base=16) %}
 {% set rgb_b = color[5:7] | int(base=16) %}
 .review.user-{{ u.id }} { --halo: rgba({{ rgb_r }},{{ rgb_g }},{{ rgb_b }}, .14); }
+.review.user-{{ u.id }} .score { color: {{ color }}; }
 .avatar-large.user-{{ u.id }},
 .review-devoir-ava.user-{{ u.id }},
 .subcomment.user-{{ u.id }} .ava { background: {{ color }}; }
