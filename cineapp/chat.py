@@ -66,7 +66,7 @@ def transmit_message(message,notify=False):
 				print(e)
 
 	# Send the message
-	emit('message', { 'user': message.posted_by.nickname, 'date': message_date_formatted, 'avatar': message.posted_by.avatar, 'msg' : message.message }, broadcast=True)
+	emit('message', { 'user': message.posted_by.nickname, 'date': message_date_formatted, 'avatar': message.posted_by.avatar, 'color': message.posted_by.theme_color, 'msg' : message.message }, broadcast=True)
 
 @chat_bp.route('/chat')
 @login_required

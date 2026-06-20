@@ -4,9 +4,9 @@
    chat.html — the Trollbox : one global real-time room
 
    Consumes the chat blueprint : the /chat_ws SocketIO namespace, its
-   `message` event ({ user, date, avatar, msg }) and the `chat_message` emit.
+   `message` event ({ user, date, avatar, color, msg }) and the `chat_message` emit.
    Messages are grouped by author and split by day entirely client-side.
-   Per-user colours are derived from the nickname (the event carries none).
+   Per-user colours come from the event (User.theme_color from the DB).
    Static styles : styles.css [CHAT].
    =========================================================================== #}
 
