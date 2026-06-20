@@ -112,7 +112,7 @@
 							<img class="cata-suggestion-poster" src="{{ config.POSTERS_URL }}{{ suggestion.poster_path }}" alt="{{ suggestion.name }}" onerror="this.style.display='none'">
 							{% endif %}
 							<div class="cata-suggestion-overlay">
-								<span class="cata-suggestion-head">À voir</span>
+								<span class="cata-suggestion-head">{{ g.messages["label_suggestion"] }}</span>
 								<span class="title">{{ suggestion.name }}</span>
 								<span class="meta">
 									{% if suggestion.director %}<span class="director">de {{ suggestion.director }}</span>{% endif %}
