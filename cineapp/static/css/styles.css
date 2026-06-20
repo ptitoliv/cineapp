@@ -2566,11 +2566,18 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   display: flex; flex-direction: column; gap: 4px;
   color: #fefdfa;
 }
+/* Solid badge pinned top-left so the label stays legible over any poster
+   (it used to be a small amber caption on the bottom scrim and washed out
+   on bright artwork). */
 .dash .cata-suggestion-head {
+  position: absolute; top: 12px; left: 12px; z-index: 1;
   font-family: var(--font-ui); font-weight: 900;
-  font-size: 9px; letter-spacing: .26em; text-transform: uppercase;
-  color: var(--warn);
-  margin-bottom: 2px;
+  font-size: 10px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--ink);
+  background: var(--warn);
+  padding: 5px 11px 4px;
+  border-radius: 999px;
+  box-shadow: 0 3px 12px -3px rgba(28, 24, 32, .6);
 }
 .dash .cata-suggestion .title {
   font-family: var(--font-display);
