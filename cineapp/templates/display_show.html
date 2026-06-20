@@ -102,7 +102,7 @@
       {% if show.director %}
       <div>
         <label><i class="fa-solid fa-user-pen" aria-hidden="true"></i>{{ g.messages["label_director"] }}</label>
-        <value>{% if show is videogame %}{{ show.director }}{% else %}{% for dir in show.director.split(' / ') %}{{ dir }}{% if not loop.last %}<br>{% endif %}{% endfor %}{% endif %}</value>
+        <value>{% for dir in show.director.split(' / ') %}{{ dir }}{% if not loop.last %}<br>{% endif %}{% endfor %}</value>
       </div>
       {% endif %}
 
