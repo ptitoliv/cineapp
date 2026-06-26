@@ -1,10 +1,9 @@
-from __future__ import print_function
 from cineapp import lm
 from flask_login import login_required
 from flask import Blueprint, jsonify, session, g, url_for, request, current_app as app
 from pywebpush import webpush, WebPushException
 from cineapp.models import PushNotification
-import json, traceback, sys, datetime, time
+import json, traceback, datetime, time
 from cineapp.auth import guest_control
 from cineapp.models import db
 
@@ -48,8 +47,8 @@ def notification_send(subscriptions,chat_url,chat_message):
         )
         except WebPushException as ex:
             # If there is an error let's log it
-            print(traceback.print_exc(file=sys.stdout));
-            print(("I'm sorry, Dave, but I can't do that: {}", repr(ex)))
+            app.logger.error("Web push notification failed: %s", repr(ex))
+            app.logger.error(traceback.format_exc())
     
 def notification_unsubscribe(sub):
     try:

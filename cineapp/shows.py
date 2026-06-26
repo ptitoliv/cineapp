@@ -498,7 +498,7 @@ def display_show(show_id):
                 except Exception as e:
                     db.session.rollback()
                     app.logger.error("Impossible de mettre à jour les paramètres de la série: %s" % e)
-                    app.logger.error("%s" % traceback.print_exc())
+                    app.logger.error(traceback.format_exc())
                     flash("Impossible de synchroniser les données de la série","warning")
 
         # Browse all users

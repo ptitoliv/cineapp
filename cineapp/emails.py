@@ -106,7 +106,7 @@ def add_homework_notification(mark):
         except Exception as e: # pragma: no cover
             # We couldn't send the mail
             app.logger.error("Impossible d\'envoyer la notification de devoir : %s", e)
-            app.logger.error("%s" % traceback.print_exc())
+            app.logger.error(traceback.format_exc())
             return 1
     else:
         # Display a message that the user doesn't want to be notified
@@ -126,7 +126,7 @@ def delete_homework_notification(mark):
         except Exception as e: # pragma: no cover
             # We couldn't send the mail
             app.logger.error("Impossible d\'envoyer la notification d\'annulation du devoir : %s", e)
-            app.logger.error("%s" % traceback.print_exc())
+            app.logger.error(traceback.format_exc())
             return 1
     else:
         # Display a message that the user don't want to be notified
