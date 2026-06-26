@@ -157,7 +157,25 @@ def create_app(config_path=None):
                 # Let's import it from environnment
                 if os.environ.get(cur_item) != None:
                         app.config[cur_item] = os.environ.get(cur_item)
-    
+
+    # Allow the production SECRET_KEY to be injected through the environment
+    # instead of being stored in plaintext in the config file on disk.
+    if os.environ.get("SECRET_KEY"):
+        app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+
+    # Harden the session / remember cookies on real deployments only. DEBUG is
+    # the dev/prod discriminator (dev config keeps DEBUG=True), and TESTING is
+    # excluded so the HTTP test client still receives the session cookie.
+    # Assigned directly (not setdefault): Flask pre-populates the SESSION_COOKIE_*
+    # keys with insecure defaults (Secure=False, SameSite=None), so setdefault
+    # would never upgrade them.
+    if not app.config.get("DEBUG") and not app.config.get("TESTING"):
+        app.config["SESSION_COOKIE_SECURE"] = True
+        app.config["SESSION_COOKIE_HTTPONLY"] = True
+        app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
+        app.config["REMEMBER_COOKIE_SECURE"] = True
+        app.config["REMEMBER_COOKIE_HTTPONLY"] = True
+
     # Database Initialization
     from cineapp.models import db
     db.init_app(app)
