@@ -52,9 +52,9 @@ function activity_phrase(row) {
   return "";
 }
 
-// Optional quote body : the review HTML (marks — already CKEditor-sanitized,
-// injected raw like the list-page bubble) or the sub-comment text (comments —
-// plain text, escaped).
+// Optional quote body : the review HTML (marks — server-side sanitized on
+// write via sanitize_comment(), so injected raw like the list-page bubble) or
+// the sub-comment text (comments — plain text, escaped).
 function activity_quote(row) {
   if (row.action_type === "comments" && row.comment && row.comment.message) {
     return '<div class="act-quote">' + escapeHtml(row.comment.message) + '</div>';

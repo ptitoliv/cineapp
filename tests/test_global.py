@@ -645,6 +645,18 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note mise" in str(rv.data)
 
+        # --- Stored XSS regression: a malicious comment must be sanitized on
+        # write (sanitize_comment) so the display page never renders a script
+        # payload, while legitimate CKEditor formatting is preserved ---
+        rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment='<p>Bon <strong>film</strong></p><img src=x onerror=alert(1)><script>alert(2)</script>',seen_where="C",submit_mark=1),follow_redirects=True)
+        assert "Note mise" in str(rv.data)
+        rv=self.client.get('/movie/display/1',follow_redirects=True)
+        page=rv.data.decode("utf-8")
+        assert "onerror=alert(1)" not in page
+        assert "<img src=x" not in page
+        assert "<script>alert(2)" not in page
+        assert "<strong>film</strong>" in page
+
         # --- Edge case: GET mark page for already marked show (L709-710) ---
         rv=self.client.get('/movie/mark/1',follow_redirects=True)
         parsed_html=BeautifulSoup(rv.data,"html.parser")

@@ -62,6 +62,7 @@ monotonic==1.6
 msgspec==0.19.0
 multidict==6.6.3
 mysqlclient==2.2.7
+nh3==0.3.6
 nose2==0.15.1
 packaging==25.0
 pbr==6.1.1

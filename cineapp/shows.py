@@ -17,7 +17,7 @@ from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, Fav
 from cineapp.tmvdb import search_shows,get_show,download_poster, search_page_number
 from cineapp import igdb as igdb_api
 from cineapp.emails import add_show_notification, mark_show_notification, add_homework_notification, update_show_notification
-from cineapp.utils import frange, get_activity_list, resize_avatar, fts_boolean_query
+from cineapp.utils import frange, get_activity_list, resize_avatar, fts_boolean_query, sanitize_comment
 from cineapp.push import notification_unsubscribe
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
@@ -681,7 +681,7 @@ def mark_show(show_id_form):
                                         seen_when=form.seen_when.data,
                                         seen_where=form.seen_where.data,
                                         mark=form.mark.data,
-                                        comment=form.comment.data,
+                                        comment=sanitize_comment(form.comment.data),
                                         updated_when=datetime.now()
                                 )       
                 
@@ -690,7 +690,7 @@ def mark_show(show_id_form):
                         else:
                                 # Update Show
                                 marked_show.mark=form.mark.data
-                                marked_show.comment=form.comment.data
+                                marked_show.comment=sanitize_comment(form.comment.data)
                                 marked_show.seen_when=form.seen_when.data
                                 marked_show.seen_where=form.seen_where.data
 

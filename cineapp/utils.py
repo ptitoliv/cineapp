@@ -5,11 +5,32 @@ from flask import current_app
 from cineapp.models import db, Show, Mark, MarkComment, FavoriteShow
 from sqlalchemy.sql.expression import literal, desc
 from datetime import datetime
-import PIL, os, re
+import PIL, os, re, nh3
 from PIL import Image
 
 _HUMANIZE_MONTHS_FR = ["janv.", "févr.", "mars", "avr.", "mai", "juin",
                       "juil.", "août", "sept.", "oct.", "nov.", "déc."]
+
+# Tags the CKEditor5 toolbar (Bold / Italic / Font / List) can legitimately
+# emit. Everything else — and every attribute except a span's inline style
+# (used by the Font color/size/family features) — is stripped.
+_COMMENT_ALLOWED_TAGS = {"p", "br", "strong", "b", "i", "em", "u", "s",
+                         "ul", "ol", "li", "span"}
+_COMMENT_ALLOWED_ATTRS = {"span": {"style"}}
+
+def sanitize_comment(html):
+    """
+        Server-side sanitization of a CKEditor-authored rating comment.
+        CKEditor only runs in the browser, so any HTTP client can POST
+        arbitrary markup; we strip everything outside a small formatting
+        allow-list before the value is stored and later rendered with `|safe`
+        (display_show.html) or injected raw into the activity feed
+        (activity_flow.js). Prevents stored XSS (CWE-79).
+    """
+    if html is None:
+        return None
+    return nh3.clean(html, tags=_COMMENT_ALLOWED_TAGS,
+                     attributes=_COMMENT_ALLOWED_ATTRS)
 
 def humanize_when(dt):
     """
