@@ -890,6 +890,18 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_avg_desc)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
         assert rv.status_code == 200
 
+        # --- ORDER BY injection guard (I-1): a malicious sort column and
+        #     direction are allow-listed back to a safe default → the raw
+        #     text(f"{order_column} {order_dir}") fragment stays valid SQL
+        #     (no 500), instead of a syntax error / blind injection. ---
+        args_inject = dict(args)
+        args_inject['order'] = [{'column': 0, 'dir': 'asc; SELECT 1'}]
+        args_inject['columns'] = list(args['columns'])
+        args_inject['columns'][0] = dict(args['columns'][0], data='name); DROP TABLE movie;--')
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_inject)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+        assert "data" in json.loads(rv.data)
+
         # --- Filter: origin/type + sort by average asc ---
         rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_avg_asc)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
         assert rv.status_code == 200

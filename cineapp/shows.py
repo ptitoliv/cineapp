@@ -774,6 +774,16 @@ def update_datatable():
             order_column=columns[order_by[0]['column']]['data']
             order_dir=order_by[0]['dir']
 
+        # Sanitize the client-supplied sort inputs before they reach any raw
+        # ORDER BY fragment (text(f"{order_column} {order_dir}") below) — guards
+        # against ORDER BY SQL injection (CWE-89). order_dir is a strict enum;
+        # order_column may only be a column identifier (optionally suffixed with
+        # `.N` for the per-user columns), so any payload with spaces, quotes or
+        # parentheses falls back to the default sort.
+        order_dir = "desc" if order_dir == "desc" else "asc"
+        if not re.match(r'^[a-z_]+(\.\d+)?$', order_column):
+            order_column = "name"
+
         # Guess which is the sort column
         m=re.match('other_(.*)\.(.*)',order_column)
 
