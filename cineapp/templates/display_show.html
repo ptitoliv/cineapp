@@ -501,7 +501,9 @@ $(document).ready(function() {
     var avaSrc = data.user.avatar ? "{{ config.AVATARS_URL }}" + data.user.avatar : null;
     var avaImg = avaSrc ? '<img src="' + avaSrc + '" alt="" onerror="this.remove()">' : '';
     var isMine = data.user.id === {{ g.user.id if g.user.is_authenticated else 0 }};
-    var safeMsg = String(data.mark_comment.message).replace(/'/g, '&#39;');
+    var safeMsg = String(data.mark_comment.message)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
     var cid = data.mark_comment.markcomment_id;
     var classes = 'subcomment ' + (isMine ? 'is-mine user-mine ' : '') + 'user-' + data.user.id;
     var editForm = '<div class="comment_edit_form" id="comment_edit_form_' + cid + '" style="display:none;">'
@@ -523,7 +525,7 @@ $(document).ready(function() {
          +       '<span class="who">' + nick + '</span>'
          +       '<span class="when">' + data.mark_comment.posted_when + '</span>'
          +     '</div>'
-         +     '<div class="text comment_nonedit_text" id="comment_nonedit_text_' + cid + '">' + data.mark_comment.message + '</div>'
+         +     '<div class="text comment_nonedit_text" id="comment_nonedit_text_' + cid + '">' + safeMsg + '</div>'
          +     editForm
          +     tools
          +   '</div>'
