@@ -463,13 +463,13 @@ $(document).ready(function() {
     var starType = $(this).data('star');
     if (starType) {
       $.post(
-        "{{ url_for('favorites.set_favorite_show', show=show.id, user=g.user.id) if not g.user.is_guest else '#' }}",
+        "{{ url_for('favorites.set_favorite_show', show=show.id) if not g.user.is_guest else '#' }}",
         { star_type: starType },
         function (data) { favoriteUpdate(data, 'set'); }
       );
     } else {
       $.post(
-        "{{ url_for('favorites.delete_favorite_show', show=show.id, user=g.user.id) if not g.user.is_guest else '#' }}",
+        "{{ url_for('favorites.delete_favorite_show', show=show.id) if not g.user.is_guest else '#' }}",
         function (data) { favoriteUpdate(data, 'delete'); }
       );
     }

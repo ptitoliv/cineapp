@@ -14,9 +14,13 @@ from sqlalchemy.orm.exc import FlushError
 
 favorites_bp = Blueprint('favorites', __name__) 
 
-@favorites_bp.route('/json/favshow/set/<int:show>/<int:user>', methods=['POST'])
+@favorites_bp.route('/json/favshow/set/<int:show>', methods=['POST'])
 @login_required
-def set_favorite_show(show,user):
+def set_favorite_show(show):
+
+    # A favorite always belongs to the logged-in user; derive the id server-side
+    # instead of trusting a client-supplied one (IDOR hardening).
+    user = g.user.id
 
     # Fetch the star level
     star_type=request.form["star_type"]
@@ -32,10 +36,6 @@ def set_favorite_show(show,user):
     # Check if the show exists
     if Show.query.get(show) is None:
         return jsonify({ "status": "danger", "message": u"%s" % g.messages["flash_not_exists"] })
-
-    # Check if we own that favorite object
-    if g.user.id != favorite_show.user_id:
-        return jsonify({ "status": "danger", "message": u"%s" % g.messages["flash_favorite_add_denied"] })
 
     # Add the object into the database
     try:
@@ -57,9 +57,12 @@ def set_favorite_show(show,user):
         app.logger.error("Erreur générale sur l'ajout du favori")
         return jsonify({ "status": "danger", "message": u"%s" % g.messages["flash_favorite_add_failed"] })
 
-@favorites_bp.route('/json/favshow/delete/<int:show>/<int:user>', methods=['POST'])
+@favorites_bp.route('/json/favshow/delete/<int:show>', methods=['POST'])
 @login_required
-def delete_favorite_show(show,user):
+def delete_favorite_show(show):
+
+    # A favorite always belongs to the logged-in user (IDOR hardening).
+    user = g.user.id
 
     # Update the database with the new status for the show
     favorite_show = FavoriteShow.query.get((show,user))
@@ -67,10 +70,6 @@ def delete_favorite_show(show,user):
     # Check if we have something to delete before continue
     if favorite_show is None:
         return jsonify({ "status": "danger", "message": u"%s" % g.messages["flash_favorite_unknown"] })
-
-    # Check if we own that favorite object
-    if g.user.id != favorite_show.user_id:
-        return jsonify({ "status": "danger", "message": u"%s" % g.messages["flash_favorite_delete_denied"] })
 
     # Add the object into the database
     try:

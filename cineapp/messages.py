@@ -42,8 +42,6 @@ tvshow_messages = { 'label_add': "Ajout d\'une série",
                     'flash_favorite_delete_failed': "La série n\'est pas enregistrée comme favori", 
                     'flash_favorite_unknown': "Favori inexistant pour cette série pour cet utilisateur", 
                     'flash_favorite_unavailable': "La série n\'est pas enregistré comme un favori", 
-                    'flash_favorite_add_denied': "Vous n\'êtes pas autorisé à ajouter cette série en favori pour cet utilisateur", 
-                    'flash_favorite_delete_denied': "Vous n\'êtes pas autorisé à supprimer cette série en favori pour cet utilisateur", 
                     'flash_favorite_delete': "Série supprimée des favoris",
                     'flash_favorite_delete_failed': "Impossible de supprimer la série des favoris" }
 
@@ -90,8 +88,6 @@ videogame_messages = { 'label_add': "Ajout d\'un jeu vidéo",
                     'flash_favorite_delete_failed': "Impossible de supprimer le jeu vidéo des favoris",
                     'flash_favorite_unknown': "Favori inexistant pour ce jeu vidéo pour cet utilisateur",
                     'flash_favorite_unavailable': "Le jeu vidéo n\'est pas enregistré comme un favori",
-                    'flash_favorite_add_denied': "Vous n\'êtes pas autorisé à ajouter ce jeu vidéo en favori pour cet utilisateur",
-                    'flash_favorite_delete_denied': "Vous n\'êtes pas autorisé à supprimer ce jeu vidéo en favori pour cet utilisateur",
                     'flash_favorite_delete': "Jeu vidéo supprimé des favoris",
                     'flash_favorite_delete_failed': "Le jeu vidéo n\'est pas enregistré comme favori" }
 
@@ -138,8 +134,6 @@ movie_messages = { 'label_add': "Ajout d\'un film",
                     'flash_favorite_delete_failed': "Impossible de supprimer la série des favoris",
                     'flash_favorite_unknown': "Favori inexistant pour ce film pour cet utilisateur", 
                     'flash_favorite_unavailable': "Le film n\'est pas enregistré comme un favori", 
-                    'flash_favorite_add_denied': "Vous n\'êtes pas autorisé à ajouter ce film en favori pour cet utilisateur", 
-                    'flash_favorite_delete_denied': "Vous n\'êtes pas autorisé à supprimer ce film en favori pour cet utilisateur", 
                     'flash_favorite_delete': "Film supprimé des favoris",
                     'flash_favorite_delete_failed': "Le film n\'est pas enregistré comme favori" }
 

@@ -903,7 +903,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # --- Filter: favorite ---
         # First set a favorite
-        rv=self.client.post('/json/favshow/set/1/1',data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
+        rv=self.client.post('/json/favshow/set/1',data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
         response_fav=json.loads(rv.data)
         assert response_fav["status"] == "success"
 
@@ -917,7 +917,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert rv.status_code == 200
 
         # Clean up favorite
-        rv=self.client.post('/json/favshow/delete/1/1',follow_redirects=True)
+        rv=self.client.post('/json/favshow/delete/1',follow_redirects=True)
 
         # --- Reload list with session dict (filter still active) ---
         rv=self.client.post('/filter',data=dict(submit_filter=True,origin="F"),follow_redirects=True)
@@ -1477,45 +1477,33 @@ class FlaskrTestCase(unittest.TestCase):
         assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
 
         # Add a show as favorite
-        rv=self.client.post('/json/favshow/set/1/1',data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
+        rv=self.client.post('/json/favshow/set/1',data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
         response_args=json.loads(rv.data)
         assert response_args["status"] == "success"
 
         # Change the favorite type
-        rv=self.client.post('/json/favshow/set/1/1',data=dict({'star_type': 'mustsee_star'}),follow_redirects=True)
+        rv=self.client.post('/json/favshow/set/1',data=dict({'star_type': 'mustsee_star'}),follow_redirects=True)
         response_args=json.loads(rv.data)
         assert response_args["status"] == "success"
 
         # Change the favorite type but with an incorrect one
-        rv=self.client.post('/json/favshow/set/1/1',data=dict({'star_type': 'bad_star'}),follow_redirects=True)
+        rv=self.client.post('/json/favshow/set/1',data=dict({'star_type': 'bad_star'}),follow_redirects=True)
         response_args=json.loads(rv.data)
         assert response_args["status"] == "danger"
-
-        # Try to add a forbidden favortie
-        rv=self.client.post('/json/favshow/set/1/42',data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
-        response_args=json.loads(rv.data)
-        assert response_args["status"] == "danger"
-        assert "Vous n'êtes pas autorisé à ajouter ce film en favori pour cet utilisateur" in response_args["message"]
 
         # Try to add a favorite on an unknown show
-        rv=self.client.post('/json/favshow/set/42/1',data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
+        rv=self.client.post('/json/favshow/set/42',data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
         response_args=json.loads(rv.data)
         assert "Le film n\'existe pas" in response_args["message"]
 
         # Try to delete an incorrect favortie
-        rv=self.client.post('/json/favshow/delete/42/1',follow_redirects=True)
+        rv=self.client.post('/json/favshow/delete/42',follow_redirects=True)
         response_args=json.loads(rv.data)
         assert response_args["status"] == "danger"
         assert "Favori inexistant" in response_args["message"]
 
-        # Try to delete an unauthorized favortie
-        rv=self.client.post('/json/favshow/delete/1/2',follow_redirects=True)
-        response_args=json.loads(rv.data)
-        assert response_args["status"] == "danger"
-        assert "Vous n'êtes pas autorisé à supprimer ce film en favori pour cet utilisateur" in response_args["message"]
-
         # Finally delete a correct favorite
-        rv=self.client.post('/json/favshow/delete/1/1',follow_redirects=True)
+        rv=self.client.post('/json/favshow/delete/1',follow_redirects=True)
         response_args=json.loads(rv.data)
         assert response_args["status"] == "success"
 
@@ -2312,17 +2300,17 @@ class FlaskrTestCase(unittest.TestCase):
             videogame_id = videogame.id
 
         # Add a videogame as favorite
-        rv=self.client.post('/json/favshow/set/%s/1' % videogame_id,data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
+        rv=self.client.post('/json/favshow/set/%s' % videogame_id,data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
         response_args=json.loads(rv.data)
         assert response_args["status"] == "success"
 
         # Change the favorite type
-        rv=self.client.post('/json/favshow/set/%s/1' % videogame_id,data=dict({'star_type': 'mustsee_star'}),follow_redirects=True)
+        rv=self.client.post('/json/favshow/set/%s' % videogame_id,data=dict({'star_type': 'mustsee_star'}),follow_redirects=True)
         response_args=json.loads(rv.data)
         assert response_args["status"] == "success"
 
         # Delete the favorite
-        rv=self.client.post('/json/favshow/delete/%s/1' % videogame_id, follow_redirects=True)
+        rv=self.client.post('/json/favshow/delete/%s' % videogame_id, follow_redirects=True)
         response_args=json.loads(rv.data)
         assert response_args["status"] == "success"
 
