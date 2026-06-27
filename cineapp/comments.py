@@ -5,6 +5,7 @@ from cineapp import lm
 from cineapp.models import db
 from flask import Blueprint, render_template, flash, redirect, url_for, g, request, session, jsonify, current_app as app
 from flask_login import login_required
+from cineapp.auth import guest_control
 from cineapp.models import User, MarkComment, Mark
 from datetime import datetime
 from .emails import mark_comment_notification
@@ -15,6 +16,7 @@ comments_bp = Blueprint('comments', __name__)
 
 @comments_bp.route('/json/add_mark_comment', methods=['POST'])
 @login_required
+@guest_control
 def add_mark_comment():
 
     # Fetch the important informations we need to fill the chat message object
@@ -68,6 +70,7 @@ def add_mark_comment():
 @comments_bp.route('/json/delete_mark_comment', methods=['POST'], endpoint="delete_mark_comment")
 @comments_bp.route('/json/edit_mark_comment', methods=['POST'], endpoint="edit_mark_comment")
 @login_required
+@guest_control
 def update_mark_comment():
 
     # Check if the comment exists

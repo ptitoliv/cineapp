@@ -1360,9 +1360,47 @@ class FlaskrTestCase(unittest.TestCase):
         response_args=json.loads(rv.data)["data"]
         assert "Les Tuche" in response_args[0]["name"]
 
-        # Test that guest control is working trying to access a forbidden page
-        rv=self.client.get('/movie/add', follow_redirects=True)
-        assert "Accès interdit pour les invités" in rv.data.decode('utf-8')
+        # Every @guest_control-protected view must reject a guest with the
+        # "Accès interdit" flash. One representative URL per guarded view (the
+        # mutating JSON endpoints — favorites/comments — included). Keep this
+        # list in sync whenever a @guest_control route is added or removed.
+        guarded_routes = [
+            ("GET",  "/users/add"),
+            ("GET",  "/dashboard"),
+            ("GET",  "/activity/show"),
+            ("POST", "/activity/update"),
+            ("GET",  "/movie/add"),
+            ("GET",  "/movie/add/select/1"),
+            ("POST", "/movie/add/confirm"),
+            ("POST", "/movie/update"),
+            ("GET",  "/movie/mark/1"),
+            ("POST", "/movie/mark/publish/1"),
+            ("POST", "/homework/add/1/2"),
+            ("POST", "/homework/delete/1/2"),
+            ("GET",  "/homework/list"),
+            ("GET",  "/my/profile"),
+            ("GET",  "/my/password"),
+            ("GET",  "/graph/mark"),
+            ("POST", "/graph/json/graph_by_year"),
+            ("GET",  "/chat"),
+            ("POST", "/json/add_mark_comment"),
+            ("POST", "/json/delete_mark_comment"),
+            ("POST", "/json/favshow/set/1"),
+            ("POST", "/json/favshow/delete/1"),
+            ("POST", "/notifications/subscribe"),
+        ]
+        for method, path in guarded_routes:
+            rv = self.client.open(path, method=method, follow_redirects=True)
+            assert "Accès interdit pour les invités" in rv.data.decode('utf-8'), \
+                "guest_control missing/not blocking on %s %s" % (method, path)
+
+        # A guest must not reach the chat over SocketIO: the connect handler
+        # rejects the connection. Use a throwaway flask client so the shared
+        # self.client session/state stays clean for the rest of the suite.
+        guest_client = self.app.test_client()
+        guest_client.post('/login', data=dict(username="guest", password="guest"), follow_redirects=True)
+        guest_ws = socketio.test_client(self.app, flask_test_client=guest_client, namespace='/chat_ws')
+        assert not guest_ws.is_connected(namespace='/chat_ws')
 
         # Guest switching show_type redirects to the shows list (views.py:109)
         rv=self.client.get('/switch/tvshow', follow_redirects=True)

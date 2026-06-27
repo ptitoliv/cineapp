@@ -6,6 +6,7 @@ from cineapp import lm
 from cineapp.models import db
 from flask import Blueprint, render_template, flash, redirect, url_for, g, request, session, jsonify, current_app as app
 from flask_login import login_required
+from cineapp.auth import guest_control
 from cineapp.models import User, FavoriteShow, Show
 from datetime import datetime
 from .emails import favorite_update_notification
@@ -16,6 +17,7 @@ favorites_bp = Blueprint('favorites', __name__)
 
 @favorites_bp.route('/json/favshow/set/<int:show>', methods=['POST'])
 @login_required
+@guest_control
 def set_favorite_show(show):
 
     # A favorite always belongs to the logged-in user; derive the id server-side
@@ -59,6 +61,7 @@ def set_favorite_show(show):
 
 @favorites_bp.route('/json/favshow/delete/<int:show>', methods=['POST'])
 @login_required
+@guest_control
 def delete_favorite_show(show):
 
     # A favorite always belongs to the logged-in user (IDOR hardening).

@@ -83,6 +83,10 @@ def register_socketio_handlers(socketio):
 
 		user = session.get("user", None)
 
+		# Guests must not read the chat history via a direct socket connection
+		if user is None:
+			return False
+
 		# Let's send the last 100 Messages on the socketio
 		chat_messages = ChatMessage.query.order_by(desc(ChatMessage.posted_when)).limit(100).all()
 
