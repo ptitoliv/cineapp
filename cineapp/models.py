@@ -70,7 +70,6 @@ class User(db.Model):
         return {
             "id": self.id,
             "nickname": self.nickname,
-            "password": self.password,
             "email": self.email,
             "avatar": self.avatar,
             "notifications": self.notifications,

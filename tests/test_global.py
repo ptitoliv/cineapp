@@ -758,6 +758,8 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Comment the movie
         rv=self.client.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment="plop"),follow_redirects=True)
+        # The serialized user in the JSON response must never leak the password hash
+        assert "password" not in json.loads(rv.data)["user"]
         rv=self.client.get('/movie/display/1', follow_redirects=True)
         assert "plop" in str(rv.data)
 
