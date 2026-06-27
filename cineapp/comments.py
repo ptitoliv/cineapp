@@ -5,7 +5,7 @@ from cineapp import lm
 from cineapp.models import db
 from flask import Blueprint, render_template, flash, redirect, url_for, g, request, session, jsonify, current_app as app
 from flask_login import login_required
-from cineapp.models import User, MarkComment
+from cineapp.models import User, MarkComment, Mark
 from datetime import datetime
 from .emails import mark_comment_notification
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
@@ -34,6 +34,12 @@ def add_mark_comment():
     # If the message is empty don't add it and return an error status
     if not comment:
         return jsonify( { "error":"Vous ne pouvez pas insérer un commentaire vide", "mark_comment": mark_comment.serialize() } )
+
+    # IDOR guard: dest_user / show_id are client-supplied, so a comment must be
+    # attached to a mark that actually exists. Without this check an authenticated
+    # user could fabricate comments on arbitrary (user, show) pairs.
+    if Mark.query.get((dest_user, show_id)) is None:
+        return jsonify( { "error":u"La note ciblée n'existe pas", "mark_comment": mark_comment.serialize() } )
 
     # Add the object into the database
     try:

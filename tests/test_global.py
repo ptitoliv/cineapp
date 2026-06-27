@@ -742,6 +742,11 @@ class FlaskrTestCase(unittest.TestCase):
         response_args=json.loads(rv.data)
         assert response_args["error"] == "Vous ne pouvez pas insérer un commentaire vide"
 
+        # IDOR: try to comment on a mark that doesn't exist (no Mark(1,999))
+        rv=self.client.post('/json/add_mark_comment',data=dict(show_id=999,dest_user=1,comment="injecté"),follow_redirects=True)
+        response_args=json.loads(rv.data)
+        assert response_args["error"] == "La note ciblée n'existe pas"
+
         # Comment the movie
         rv=self.client.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment="plop"),follow_redirects=True)
         rv=self.client.get('/movie/display/1', follow_redirects=True)
