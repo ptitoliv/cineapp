@@ -202,7 +202,10 @@
         {% if marked_flag %}Mettre à jour la note{% else %}{% if show is movie %}Noter ce film{% elif show is tvshow %}Noter cette série{% elif show is videogame %}Noter ce jeu vidéo{% endif %}{% endif %}
       </a>
       {% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE and g.user.notifications["notif_slack"] %}
-      <a class="btn btn-solid" href="{{ url_for('show.publish_mark', show_type=g.show_type, show_id=show.id) }}">↑ Publier sur Slack</a>
+      <form method="post" action="{{ url_for('show.publish_mark', show_type=g.show_type, show_id=show.id) }}" style="display:inline;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <button type="submit" class="btn btn-solid">↑ Publier sur Slack</button>
+      </form>
       {% endif %}
     </div>
     {% endif %}
@@ -344,13 +347,19 @@
       <div class="score-block">
         {% if cur_mark["mark"] is none %}
           {% if g.user.id != u.id and not g.user.is_guest %}
-          <a class="btn btn-solid" href="{{ url_for('homework.add_homework', show_id=show.id, user_id=u.id) }}">📝 Devoir</a>
+          <form method="post" action="{{ url_for('homework.add_homework', show_id=show.id, user_id=u.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-solid">📝 Devoir</button>
+          </form>
           {% else %}
           <span class="score-empty">Pas notée</span>
           {% endif %}
         {% elif cur_mark["mark"] == "homework_in_progress" %}
           {% if cur_mark["homework_who"].id == g.user.id %}
-          <a class="btn btn-solid" href="{{ url_for('homework.delete_homework', show_id=show.id, user_id=u.id) }}">✕ Annuler</a>
+          <form method="post" action="{{ url_for('homework.delete_homework', show_id=show.id, user_id=u.id) }}" style="display:inline;">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-solid">✕ Annuler</button>
+          </form>
           {% else %}
           <span class="score-empty">Devoir en cours</span>
           {% endif %}
@@ -459,7 +468,7 @@ $(document).ready(function() {
         function (data) { favoriteUpdate(data, 'set'); }
       );
     } else {
-      $.get(
+      $.post(
         "{{ url_for('favorites.delete_favorite_show', show=show.id, user=g.user.id) if not g.user.is_guest else '#' }}",
         function (data) { favoriteUpdate(data, 'delete'); }
       );

@@ -8,6 +8,7 @@ __pycache__/
 
 # Distribution / packaging
 .Python
+venv/
 env/
 build/
 develop-eggs/
@@ -63,3 +64,16 @@ target/
 
 # Vim swapfiles
 *.swp
+
+# Static content
+cineapp/static/avatars/
+cineapp/static/posters/
+
+# Temp content
+flask_session/
+
+# Local analysis reports (may contain sensitive findings — keep out of git)
+SECURITY_AUDIT.md
+DESIGN_SCALING_PROPOSAL.md
+Audit_Securite_CineApp.pptx
+.venv_pptx/

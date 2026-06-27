@@ -57,7 +57,7 @@ def set_favorite_show(show,user):
         app.logger.error("Erreur générale sur l'ajout du favori")
         return jsonify({ "status": "danger", "message": u"%s" % g.messages["flash_favorite_add_failed"] })
 
-@favorites_bp.route('/json/favshow/delete/<int:show>/<int:user>', methods=['GET'])
+@favorites_bp.route('/json/favshow/delete/<int:show>/<int:user>', methods=['POST'])
 @login_required
 def delete_favorite_show(show,user):
 

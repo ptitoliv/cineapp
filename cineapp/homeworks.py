@@ -33,7 +33,7 @@ from flask import current_app as app
 
 homework_bp = Blueprint('homework',__name__,url_prefix='/homework')
 
-@homework_bp.route('/add/<int:show_id>/<int:user_id>')
+@homework_bp.route('/add/<int:show_id>/<int:user_id>', methods=['POST'])
 @login_required
 @guest_control
 def add_homework(show_id,user_id):
@@ -74,7 +74,7 @@ def add_homework(show_id,user_id):
 
         return redirect(url_for('show.display_show',show_id=show_id,show_type=g.show_type))
 
-@homework_bp.route('/delete/<int:show_id>/<int:user_id>')
+@homework_bp.route('/delete/<int:show_id>/<int:user_id>', methods=['POST'])
 @login_required
 @guest_control
 def delete_homework(show_id,user_id):

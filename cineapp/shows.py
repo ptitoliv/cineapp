@@ -1083,7 +1083,7 @@ def display_show_random():
         # Redirect to the movie sheet selected randomly
         return redirect(url_for('show.display_show',show_type=g.show_type,show_id=ids_list[random_id].id))
 
-@show_bp.route('/mark/publish/<int:show_id>', methods=['GET'])
+@show_bp.route('/mark/publish/<int:show_id>', methods=['POST'])
 @login_required
 @guest_control
 def publish_mark(show_id):

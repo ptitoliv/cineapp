@@ -685,13 +685,13 @@ class FlaskrTestCase(unittest.TestCase):
         assert "has-error" in rv.data.decode("utf-8")
 
         # --- Publish mark on Slack ---
-        rv=self.client.get('/movie/mark/publish/1', follow_redirects=True)
+        rv=self.client.post('/movie/mark/publish/1', follow_redirects=True)
         assert "Slack" in rv.data.decode("utf-8")
 
         # --- Publish mark with Slack disabled ---
         temp_slack_token=self.app.config["SLACK_TOKEN"]
         self.app.config["SLACK_TOKEN"]=None
-        rv=self.client.get('/movie/mark/publish/1', follow_redirects=True)
+        rv=self.client.post('/movie/mark/publish/1', follow_redirects=True)
         assert "désactivées" in rv.data.decode("utf-8")
         self.app.config["SLACK_TOKEN"]=temp_slack_token
 
@@ -711,7 +711,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Impossible" in rv.data.decode("utf-8")
 
         # --- Publish mark with bad token (line 1071) ---
-        rv=self.client.get('/movie/mark/publish/1', follow_redirects=True)
+        rv=self.client.post('/movie/mark/publish/1', follow_redirects=True)
         assert "Impossible" in rv.data.decode("utf-8")
 
         # --- Mark with Slack token None (slack_result == -1, line 687) ---
@@ -912,7 +912,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert rv.status_code == 200
 
         # Clean up favorite
-        rv=self.client.get('/json/favshow/delete/1/1',follow_redirects=True)
+        rv=self.client.post('/json/favshow/delete/1/1',follow_redirects=True)
 
         # --- Reload list with session dict (filter still active) ---
         rv=self.client.post('/filter',data=dict(submit_filter=True,origin="F"),follow_redirects=True)
@@ -1378,7 +1378,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Give an homework from user 1 to user 2
         with mail.record_messages() as outbox:
-            rv=self.client.get('/homework/add/1/2',follow_redirects=True)
+            rv=self.client.post('/homework/add/1/2',follow_redirects=True)
             assert "Devoir ajouté" in rv.data.decode('utf-8')
             assert "Attribution d'un devoir" in outbox[0].subject
 
@@ -1393,7 +1393,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Give an homework from user 1 to user 2 for a show already with a mark
         with mail.record_messages() as outbox:
-            rv=self.client.get('/homework/add/8/2',follow_redirects=True)
+            rv=self.client.post('/homework/add/8/2',follow_redirects=True)
             assert "Impossible de créer le devoir. Une note existe déjà" in rv.data.decode('utf-8')
 
         # List homeworks
@@ -1407,39 +1407,39 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Les Tuche" in rv.data.decode('utf-8')
 
         # Give an incorrect homework
-        rv=self.client.get('/homework/add/8/10',follow_redirects=True)
+        rv=self.client.post('/homework/add/8/10',follow_redirects=True)
         assert "Impossible de créer le devoir" in rv.data.decode('utf-8')
 
         # Delete an homework
         with mail.record_messages() as outbox:
-            rv=self.client.get('/homework/delete/1/2',follow_redirects=True)
+            rv=self.client.post('/homework/delete/1/2',follow_redirects=True)
             assert "Devoir annulé" in rv.data.decode('utf-8')
             assert "Annulation d'un devoir" in outbox[0].subject
 
         # Delete an incorrect homework
-        rv=self.client.get('/homework/delete/8/10',follow_redirects=True)
+        rv=self.client.post('/homework/delete/8/10',follow_redirects=True)
         assert "Ce devoir n&#39;existe pas" in rv.data.decode('utf-8')
 
         # Delete an unauthorized homework
-        rv=self.client.get('/homework/delete/8/1',follow_redirects=True)
+        rv=self.client.post('/homework/delete/8/1',follow_redirects=True)
         assert "Vous n&#39;avez pas le droit de supprimer ce devoir" in rv.data.decode('utf-8')
 
         # Delete an homework already with a mark
         with mail.record_messages() as outbox:
-            rv=self.client.get('/homework/delete/8/2',follow_redirects=True)
+            rv=self.client.post('/homework/delete/8/2',follow_redirects=True)
             assert "Impossible de supprimer le devoir - Une note existe déjà" in rv.data.decode('utf-8')
 
         # Add and remove an homework for a user who doesn't want notification
-        rv=self.client.get('/homework/add/1/%s' % nonotif_user.id,follow_redirects=True)
+        rv=self.client.post('/homework/add/1/%s' % nonotif_user.id,follow_redirects=True)
         assert "Devoir ajouté" in rv.data.decode('utf-8')
         assert "Aucune notification à envoyer" in rv.data.decode('utf-8')
 
-        rv=self.client.get('/homework/delete/1/%s' % nonotif_user.id,follow_redirects=True)
+        rv=self.client.post('/homework/delete/1/%s' % nonotif_user.id,follow_redirects=True)
         assert "Devoir annulé" in rv.data.decode('utf-8')
         assert "Aucune notification à envoyer" in rv.data.decode('utf-8')
 
         # --- Homework completion: give movie homework to toto (user 4) then complete it ---
-        rv=self.client.get('/homework/add/1/4',follow_redirects=True)
+        rv=self.client.post('/homework/add/1/4',follow_redirects=True)
         assert "Devoir ajouté" in rv.data.decode('utf-8')
 
         rv=self.client.get('/logout', follow_redirects=True)
@@ -1498,19 +1498,19 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Le film n\'existe pas" in response_args["message"]
 
         # Try to delete an incorrect favortie
-        rv=self.client.get('/json/favshow/delete/42/1',follow_redirects=True)
+        rv=self.client.post('/json/favshow/delete/42/1',follow_redirects=True)
         response_args=json.loads(rv.data)
         assert response_args["status"] == "danger"
         assert "Favori inexistant" in response_args["message"]
 
         # Try to delete an unauthorized favortie
-        rv=self.client.get('/json/favshow/delete/1/2',follow_redirects=True)
+        rv=self.client.post('/json/favshow/delete/1/2',follow_redirects=True)
         response_args=json.loads(rv.data)
         assert response_args["status"] == "danger"
         assert "Vous n'êtes pas autorisé à supprimer ce film en favori pour cet utilisateur" in response_args["message"]
 
         # Finally delete a correct favorite
-        rv=self.client.get('/json/favshow/delete/1/1',follow_redirects=True)
+        rv=self.client.post('/json/favshow/delete/1/1',follow_redirects=True)
         response_args=json.loads(rv.data)
         assert response_args["status"] == "success"
 
@@ -2274,13 +2274,13 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Give a homework from user 1 to user 2
         with mail.record_messages() as outbox:
-            rv=self.client.get('/homework/add/%s/2' % videogame_id, follow_redirects=True)
+            rv=self.client.post('/homework/add/%s/2' % videogame_id, follow_redirects=True)
             assert "Devoir ajouté" in rv.data.decode('utf-8')
             assert "Attribution d'un devoir" in outbox[0].subject
 
         # Delete the homework
         with mail.record_messages() as outbox:
-            rv=self.client.get('/homework/delete/%s/2' % videogame_id, follow_redirects=True)
+            rv=self.client.post('/homework/delete/%s/2' % videogame_id, follow_redirects=True)
             assert "Devoir annulé" in rv.data.decode('utf-8')
             assert "Annulation d'un devoir" in outbox[0].subject
 
@@ -2317,7 +2317,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert response_args["status"] == "success"
 
         # Delete the favorite
-        rv=self.client.get('/json/favshow/delete/%s/1' % videogame_id, follow_redirects=True)
+        rv=self.client.post('/json/favshow/delete/%s/1' % videogame_id, follow_redirects=True)
         response_args=json.loads(rv.data)
         assert response_args["status"] == "success"
 

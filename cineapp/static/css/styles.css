@@ -3363,8 +3363,9 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   width: 24px; height: 24px; border-radius: 50%;
   display: grid; place-items: center;
   border: 1px solid var(--rule); background: var(--paper);
-  color: var(--ink-dim); font-size: 11px;
-  text-decoration: none;
+  color: var(--ink-dim); font: inherit; font-size: 11px;
+  text-decoration: none; cursor: pointer;
+  -webkit-appearance: none; appearance: none;
   transition: border-color .15s, color .15s, background .15s;
 }
 .hw-cancel:hover {

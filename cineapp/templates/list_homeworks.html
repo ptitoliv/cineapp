@@ -55,7 +55,10 @@
   </div>
 
   {% if can_cancel %}
-  <a class="hw-cancel" href="{{ url_for('homework.delete_homework', show_id=show.id, user_id=receiver.id) }}" title="Annuler le devoir" aria-label="Annuler le devoir">✕</a>
+  <form method="post" action="{{ url_for('homework.delete_homework', show_id=show.id, user_id=receiver.id) }}" style="display:contents;">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <button type="submit" class="hw-cancel" title="Annuler le devoir" aria-label="Annuler le devoir">✕</button>
+  </form>
   {% endif %}
 </article>
 {% endmacro %}
