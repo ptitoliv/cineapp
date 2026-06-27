@@ -2,10 +2,12 @@
 from __future__ import print_function
 from builtins import str
 import json, os, time, requests, deepl
+from io import BytesIO
 from datetime import datetime
 from igdb.wrapper import IGDBWrapper
 from sqlalchemy.orm.attributes import set_committed_value
 from cineapp.models import VideoGame, VideoGameReleaseDate, Region
+from cineapp.utils import is_allowed_image
 from flask import current_app as app, flash
 
 # Wrapper cache
@@ -418,6 +420,11 @@ def download_poster(url):
     try:
         resp = requests.get(url)
         if resp.status_code != 200:
+            return False
+
+        # Validate the real image content before storing it — posters are served
+        # from the public /static/posters — instead of trusting the response.
+        if not is_allowed_image(BytesIO(resp.content)):
             return False
 
         local_path = os.path.join(app.config['POSTERS_PATH'], os.path.basename(url))

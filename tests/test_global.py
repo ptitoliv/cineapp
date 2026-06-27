@@ -562,7 +562,9 @@ class FlaskrTestCase(unittest.TestCase):
         avatar_tests={  "test_avatar.png" : "Avatar correctement mis à jour",
                         "test_avatar2.png" : "Avatar correctement mis à jour",
                         "test_avatar3.xlsx" : "Extension d&#39;image incorrecte",
-                        "test_avatar4.png": "Impossible de redimensionner l&#39;image"
+                        # A non-image file named .png (spoofed type) is now rejected on
+                        # real content (Pillow), not on the client Content-Type (M-6).
+                        "test_avatar4.png": "Extension d&#39;image incorrecte"
                       }
 
         # Do the update twice in order to test the old avatar deletion

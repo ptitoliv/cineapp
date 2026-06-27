@@ -103,8 +103,8 @@ def create_app(config_path=None):
             { "graph_endpoint": "graphs.average_by_year", "graph_label": u"Moyenne par année", "movie": True, "tvshow": True, "videogame": True  }
         ]
     
-    # Upload image control
-    app.config['ALLOWED_MIMETYPES'] = [ 'image/png', 'image/jpeg']
+    # Upload image control (real content is validated via Pillow, see
+    # cineapp.utils.is_allowed_image — no Content-Type allow-list needed)
     app.config['MAX_CONTENT_LENGTH'] = 1 * 1024 * 1024
     
     # Initialize path with default values if necessary

@@ -4,9 +4,11 @@ from future import standard_library
 standard_library.install_aliases()
 from builtins import str
 import json, sys, time, urllib.request, urllib.parse, urllib.error, os, math
+from io import BytesIO
 from urllib.request import urlopen
 from datetime import datetime
 from cineapp.models import Movie,TVShow, ProductionStatus
+from cineapp.utils import is_allowed_image
 from flask import current_app as app
 
 # Conversion from show_type
@@ -31,10 +33,15 @@ def download_poster(url):
     """ Function that downloads the poster from the tvmdb and update the database with the correct path
     """
     try:
-        img = urlopen(url)
-        localFile = open(os.path.join(app.config['POSTERS_PATH'], os.path.basename(url)), 'wb')
-        localFile.write(img.read())
-        localFile.close()
+        data = urlopen(url).read()
+
+        # Validate the real image content before storing it — posters are served
+        # from the public /static/posters — instead of trusting the response.
+        if not is_allowed_image(BytesIO(data)):
+            return False
+
+        with open(os.path.join(app.config['POSTERS_PATH'], os.path.basename(url)), 'wb') as localFile:
+            localFile.write(data)
 
     except Exception as e:
         return False

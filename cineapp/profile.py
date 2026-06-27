@@ -9,7 +9,7 @@ from flask_wtf import Form
 from cineapp import lm
 from cineapp.forms import UserForm, PasswordForm
 from cineapp.models import db, User
-from cineapp.utils import frange, get_activity_list, resize_avatar
+from cineapp.utils import frange, get_activity_list, resize_avatar, is_allowed_image
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
 from sqlalchemy import desc, or_, and_, Table, text
@@ -51,10 +51,12 @@ def edit_user_profile():
                         # Save the file using the nickname hash
                         if new_avatar.filename != '':
 
-                                # Check if the image has the correct mimetype ==> If not,abort the update
-                                if new_avatar.content_type not in app.config['ALLOWED_MIMETYPES']:
+                                # Validate the real image content (Pillow) rather than the
+                                # client-supplied Content-Type, which is trivially spoofable.
+                                if not is_allowed_image(new_avatar.stream):
                                         flash('Extension d\'image incorrecte',"danger")
                                         return redirect(url_for('profile.edit_user_profile'))
+                                new_avatar.stream.seek(0)
 
                                 # Define the future old avatar to remove
                                 old_avatar = g.user.avatar

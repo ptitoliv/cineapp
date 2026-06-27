@@ -148,6 +148,24 @@ def resize_avatar(avatar_path):
 
         return False
 
+_ALLOWED_IMAGE_FORMATS = {"PNG", "JPEG"}
+
+def is_allowed_image(fp):
+    """
+        True if `fp` (a file-like object) decodes as an image of an allowed
+        format. Validates the REAL content via Pillow instead of trusting a
+        client-supplied Content-Type (avatar upload) or a remote API response
+        (poster download). `img.load()` forces decoding so truncated / garbage
+        payloads are rejected, not just mislabelled ones (CWE-434 hardening).
+    """
+    try:
+        with Image.open(fp) as img:
+            fmt = img.format
+            img.load()
+        return fmt in _ALLOWED_IMAGE_FORMATS
+    except Exception:
+        return False
+
 def fts_boolean_query(raw):
     """
         Turn a user-supplied search string into a MariaDB FTS boolean-mode
