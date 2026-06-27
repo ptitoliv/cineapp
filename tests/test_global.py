@@ -202,9 +202,16 @@ class FlaskrTestCase(unittest.TestCase):
         # Login as guest
         rv=self.client.post('/login',data=dict(username="guest",password="guest"), follow_redirects=True)
         assert '<span id="topbar-username">Guest</span>' in str(str(rv.data))
-        
+
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Se connecter" in str(str(rv.data))
+
+        # `next` is not honored at all (no open redirect / CWE-601): even a
+        # malicious target never takes us off-site — login lands on the dashboard.
+        rv=self.client.post('/login?next=http://evil.example/phish',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=False)
+        assert "evil.example" not in rv.location
+        assert "/dashboard" in rv.location
+        rv=self.client.get('/logout', follow_redirects=True)
 
     def test_04_add_movie(self):
         with self.app.app_context():

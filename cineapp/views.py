@@ -91,7 +91,7 @@ def login():
                         user = User(guest=True)
                         # User authenticated => Let's login it
                         login_user(user)
-                        return redirect(request.args.get('next') or url_for('show.list_shows',show_type=g.show_type))
+                        return redirect(url_for('show.list_shows',show_type=g.show_type))
 
                 user=User.query.filter_by(nickname=form.username.data).first()
                 if user is None:
@@ -109,7 +109,7 @@ def login():
                         # We need to use a session since g object is not available because before_request is not executed on sockets event
                         session["user"] = user
 
-                        return redirect(request.args.get('next') or url_for('main.index'))
+                        return redirect(url_for('main.show_dashboard'))
                 return redirect(url_for('main.index'))
         
         return render_template('login.html', title='Sign In', form=form, medley=build_login_medley())
