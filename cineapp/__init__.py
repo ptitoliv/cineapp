@@ -11,6 +11,7 @@ import logging, sys, os, locale
 from logging.handlers import RotatingFileHandler
 from flask_socketio import SocketIO
 from flask_migrate  import Migrate
+from flask_wtf.csrf import CSRFProtect
 from datetime import datetime
 from cineapp.messages import tvshow_messages, movie_messages, videogame_messages
 from cineapp.forms import SearchShowForm
@@ -23,6 +24,7 @@ lm = LoginManager()
 sess = Session()
 babel = Babel()
 socketio=SocketIO()
+csrf = CSRFProtect()
 
 def create_app(config_path=None):
 
@@ -187,7 +189,12 @@ def create_app(config_path=None):
     
     # Session Manager Init
     sess.init_app(app)
-    
+
+    # CSRF protection (app-wide). Honors WTF_CSRF_ENABLED, which the test suite
+    # turns off; the AJAX/JSON endpoints read the token from the X-CSRFToken
+    # header injected by the global $.ajaxSetup in base.html.
+    csrf.init_app(app)
+
     # Mail engine init
     from cineapp.emails import mail
     mail.init_app(app)

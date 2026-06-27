@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="csrf-token" content="{{ csrf_token() }}">
 
   <title>{% block title %}{% if show %}{{ show.name }} — CineApp{% else %}CineApp{% endif %}{% endblock %}</title>
 
@@ -29,6 +30,17 @@
   <!-- jQuery + plugins -->
   <script src="https://code.jquery.com/jquery-3.7.1.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-cookie/1.4.1/jquery.cookie.min.js"></script>
+
+  <!-- Attach the CSRF token to every non-safe AJAX request (Flask-WTF CSRFProtect) -->
+  <script>
+    $.ajaxSetup({
+      beforeSend: function (xhr, settings) {
+        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type)) {
+          xhr.setRequestHeader('X-CSRFToken', $('meta[name="csrf-token"]').attr('content'));
+        }
+      }
+    });
+  </script>
 
   <!-- DataTables JS -->
   <script src="https://cdn.datatables.net/v/dt/dt-2.3.3/fh-4.0.3/r-3.0.6/datatables.min.js" crossorigin="anonymous"></script>
