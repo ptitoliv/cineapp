@@ -1,4 +1,4 @@
-"""Add external_source column and composite unique key on (external_source, external_id)
+"""Add external_source column and composite unique key on (external_source, external_id, show_type)
 
 Revision ID: c7e3f1a2b456
 Revises: 84ac4dea159a
@@ -20,7 +20,11 @@ def upgrade():
     # Backfill: at this point in history all shows came from the TheMovieDB integration (cineapp/tmvdb.py)
     op.execute("UPDATE shows SET external_source = 'tmvdb' WHERE external_id IS NOT NULL")
 
-    op.create_unique_constraint('uq_shows_external', 'shows', ['external_source', 'external_id'])
+    # external_id is only unique within a (source, type): TheMovieDB uses
+    # independent id namespaces for movies and TV shows, so a movie and a
+    # tvshow can legitimately share external_source='tmvdb' + external_id.
+    # show_type is the discriminator that keeps them apart.
+    op.create_unique_constraint('uq_shows_external', 'shows', ['external_source', 'external_id', 'show_type'])
 
 
 def downgrade():

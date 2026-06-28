@@ -101,7 +101,7 @@ class Show(db.Model):
     __tablename__ = "shows"
     __table_args__ = (
         db.Index('idx_show_fulltext_search','name','original_name','director', mysql_prefix="FULLTEXT"),
-        db.UniqueConstraint('external_source', 'external_id', name='uq_shows_external'),
+        db.UniqueConstraint('external_source', 'external_id', 'show_type', name='uq_shows_external'),
         {'mysql_charset': 'utf8', 'mysql_collate': 'utf8_general_ci'}
     )
 

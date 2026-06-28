@@ -1106,6 +1106,23 @@ class FlaskrTestCase(unittest.TestCase):
             assert tvshow_ww.director == "Inconnu"
             assert tvshow_ww.production_status is None
 
+        # --- Regression: a movie and a TV show may share the same external_id.
+        # TheMovieDB uses independent id namespaces for movies and TV shows, so
+        # id 95 is BOTH the movie "Armageddon" and the series "Buffy contre les
+        # vampires". Adding the series after the movie must NOT trip the
+        # uq_shows_external unique key (which now spans show_type) — both rows
+        # must persist. Before the fix this second add raised an IntegrityError. ---
+        rv=self.client.post('/movie/add/confirm',data=dict(show_id="95",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+        assert rv.status_code == 200
+        rv=self.client.post('/tvshow/add/confirm',data=dict(show_id="95",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+        assert rv.status_code == 200
+
+        with self.app.app_context():
+            armageddon = Movie.query.filter_by(external_source="tmvdb", external_id=95).one()
+            buffy = TVShow.query.filter_by(external_source="tmvdb", external_id=95).one()
+            assert "Armageddon" in armageddon.name
+            assert "Buffy" in buffy.name
+
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Se connecter" in str(rv.data)
 
@@ -1428,16 +1445,17 @@ class FlaskrTestCase(unittest.TestCase):
 
         with self.app.app_context():
 
-            # Add additionl data in order to test that we can't remove an homework 
-            # given by another user
+            # Add additionl data in order to test that we can't remove an homework
+            # given by another user. show_id 10 = this "A guy" movie (TheMovieDB
+            # collision test in test_12 now adds 2 shows upstream, shifting the id).
             movie=Movie(name="Movie",original_name="Original Movie", release_date="2000-01-01", origin="F", director="A guy", duration=142)
-            mark=Mark(user_id=1,show_id=8,homework_who=2,homework_when=datetime.now())
+            mark=Mark(user_id=1,show_id=10,homework_who=2,homework_when=datetime.now())
             db.session.add(movie)
             db.session.add(mark)
             db.session.commit()
 
             # Add a movie already with a mark
-            mark=Mark(user_id=2,show_id=8,homework_who=1,homework_when=datetime.now(),mark=14,seen_where="C",seen_when=datetime.now())
+            mark=Mark(user_id=2,show_id=10,homework_who=1,homework_when=datetime.now(),mark=14,seen_where="C",seen_when=datetime.now())
             db.session.add(movie)
             db.session.add(mark)
             db.session.commit()
@@ -1466,7 +1484,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Give an homework from user 1 to user 2 for a show already with a mark
         with mail.record_messages() as outbox:
-            rv=self.client.post('/homework/add/8/2',follow_redirects=True)
+            rv=self.client.post('/homework/add/10/2',follow_redirects=True)
             assert "Impossible de créer le devoir. Une note existe déjà" in rv.data.decode('utf-8')
 
         # List homeworks
@@ -1480,7 +1498,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Les Tuche" in rv.data.decode('utf-8')
 
         # Give an incorrect homework
-        rv=self.client.post('/homework/add/8/10',follow_redirects=True)
+        rv=self.client.post('/homework/add/10/10',follow_redirects=True)
         assert "Impossible de créer le devoir" in rv.data.decode('utf-8')
 
         # Delete an homework
@@ -1490,16 +1508,16 @@ class FlaskrTestCase(unittest.TestCase):
             assert "Annulation d'un devoir" in outbox[0].subject
 
         # Delete an incorrect homework
-        rv=self.client.post('/homework/delete/8/10',follow_redirects=True)
+        rv=self.client.post('/homework/delete/10/10',follow_redirects=True)
         assert "Ce devoir n&#39;existe pas" in rv.data.decode('utf-8')
 
         # Delete an unauthorized homework
-        rv=self.client.post('/homework/delete/8/1',follow_redirects=True)
+        rv=self.client.post('/homework/delete/10/1',follow_redirects=True)
         assert "Vous n&#39;avez pas le droit de supprimer ce devoir" in rv.data.decode('utf-8')
 
         # Delete an homework already with a mark
         with mail.record_messages() as outbox:
-            rv=self.client.post('/homework/delete/8/2',follow_redirects=True)
+            rv=self.client.post('/homework/delete/10/2',follow_redirects=True)
             assert "Impossible de supprimer le devoir - Une note existe déjà" in rv.data.decode('utf-8')
 
         # Add and remove an homework for a user who doesn't want notification
