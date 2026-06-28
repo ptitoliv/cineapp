@@ -493,9 +493,20 @@ nav.menu a.active { font-weight: 500; }
   .page-head { padding-top: 18px; padding-bottom: 24px; }
 }
 
+/* Below ~600px the two footer lines no longer fit side by side and the base
+   space-between row wraps them into a ragged left-aligned block. Stack them as
+   a single centred column instead. */
+@media (max-width: 600px) {
+  .foot {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 10px;
+  }
+}
+
 @media (max-width: 480px) {
   .page-head h1 { font-size: 36px; }
-  .foot { padding: 24px 20px; flex-direction: column; align-items: flex-start; }
 }
 
 
@@ -2189,6 +2200,12 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   font-family: var(--font-body); font-size: 15px; line-height: 1.7;
   color: var(--ink);
 }
+/* Let the editor toolbar wrap to a second row on narrow screens instead of
+   clipping its rightmost buttons (lists) off-screen (mobile < ~410px). */
+.mark-studio .mark-critique .ck.ck-toolbar,
+.mark-studio .mark-critique .ck.ck-toolbar > .ck-toolbar__items {
+  flex-wrap: wrap;
+}
 
 /* ---- footer : meta + actions ---- */
 .mark-studio .mark-foot {
@@ -2702,7 +2719,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 .dash .activity .act-marker { box-shadow: 0 0 0 4px var(--paper-card); }
 .dash .activity .act-node:hover .act-marker {
   box-shadow: 0 0 0 4px var(--paper-card),
-              0 0 0 8px color-mix(in srgb, currentColor 22%, transparent);
+              0 0 0 var(--act-halo) color-mix(in srgb, currentColor 22%, transparent);
 }
 /* the hover lift reads against the white card via --paper-soft */
 .dash .activity .act-node:hover .act-body { background: var(--paper-soft); }
@@ -3451,16 +3468,21 @@ table.flux td.act-cell { padding: 0; border: 0 !important; vertical-align: top; 
 
 /* ----- one event node ----- */
 .act-node {
+  /* marker width + hover-halo spread are fluid : the media queries below
+     shrink them as the viewport narrows so the pill never collides with the
+     text block. The marker column is the pill width + 4px of slack. */
+  --act-mk-w: 112px;
+  --act-halo: 8px;
   position: relative;
-  display: grid; grid-template-columns: 116px 1fr; gap: 22px;
+  display: grid; grid-template-columns: calc(var(--act-mk-w) + 4px) 1fr; gap: 30px;
   padding: 9px 0;
 }
 /* the dorsal spine — each node draws its own 2px segment at the centre of the
-   116px marker column ; the segments stack into one continuous line, clipped
+   marker column ; the segments stack into one continuous line, clipped
    at the first and last marker so it never pokes past the timeline */
 .act-node::before {
   content: ""; position: absolute;
-  left: 57px; top: 0; bottom: 0; width: 2px;
+  left: calc((var(--act-mk-w) + 4px) / 2 - 1px); top: 0; bottom: 0; width: 2px;
   background: var(--rule);
 }
 table.flux tbody tr:first-child .act-node::before { top: 24px; }
@@ -3471,7 +3493,7 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
   align-self: start; justify-self: center;
   position: relative; margin-top: 3px;
   display: inline-flex; align-items: center; justify-content: center;
-  width: 112px; padding: 5px 6px; border-radius: 999px;
+  width: var(--act-mk-w); padding: 5px 6px; border-radius: 999px;
   background: var(--paper-card);
   border: 1px solid currentColor;
   box-shadow: 0 0 0 4px var(--paper);
@@ -3488,7 +3510,7 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
 .act-node:hover .act-marker {
   transform: scale(1.05);
   box-shadow: 0 0 0 4px var(--paper),
-              0 0 0 8px color-mix(in srgb, currentColor 22%, transparent);
+              0 0 0 var(--act-halo) color-mix(in srgb, currentColor 22%, transparent);
 }
 
 /* ----- event body ----- */
@@ -3579,7 +3601,11 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
 @media (max-width: 920px) {
   .flux-wrap { padding: 0 20px 16px; }
   .flux-head { flex-wrap: wrap; gap: 10px; }
-  .act-node { gap: 14px; }
+  /* shrink the pill as the viewport narrows so its hover halo never reaches
+     the text block (the larger desktop pill would collide at this width) */
+  .act-node { --act-mk-w: 84px; --act-halo: 4px; gap: 18px; }
+  .act-marker { font-size: 8px; letter-spacing: .08em; padding: 4px 5px; margin-top: 2px; }
+  .act-body { padding-left: 10px; margin-left: -10px; }
   .act-head { gap: 14px; }
 }
 
@@ -3978,12 +4004,16 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
   color: rgba(243, 239, 245, .66);
   max-width: 432px;
 }
-.login-stats { display: flex; gap: 12px; flex-wrap: wrap; }
+/* Grid with equal columns: the three pills always share the same width (sized
+   to the widest, "Jeux vidéo") and never wrap, at any viewport width. */
+.login-stats { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); gap: 12px; max-width: 470px; }
 .login-stats > div {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 10px;
-  padding: 11px 19px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 13px 12px 14px;
   border-radius: 999px;
   background: rgba(255, 255, 255, .08);
   border: 1px solid rgba(243, 239, 245, .17);
@@ -4007,6 +4037,7 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
   letter-spacing: .14em;
   text-transform: uppercase;
   color: var(--violet-soft);
+  white-space: nowrap;
 }
 
 /* ---------- right : login panel ---------- */
@@ -4131,14 +4162,24 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
 
 @media (max-width: 1000px) {
   .login-page { display: block; overflow: auto; }
-  .login-hero { min-height: 500px; }
-  .login-hero-content { padding: 40px 28px; }
+  /* Stacked layout: let the hero shrink to its content (the old 500px floor
+     left a big empty band before the panel) and centre everything for a tidy,
+     symmetric mobile hero instead of the desktop left-aligned column. */
+  .login-hero { min-height: auto; }
+  .login-hero-content { padding: 40px 28px; align-items: center; text-align: center; }
   .login-panel {
     max-width: none;
     border-left: 0;
     border-top: 1px solid var(--rule);
     padding: 40px 28px;
   }
+
+  /* Same equal-width grid, but the pills stack (number over label) and the
+     whole row is capped and centred. Still no wrap, down to the smallest phones. */
+  .login-stats { display: grid; width: min(340px, 100%); margin: 28px auto 0; gap: 8px; }
+  .login-stats > div { flex-direction: column; align-items: center; gap: 3px; padding: 10px 8px; }
+  .login-stats .n { font-size: 21px; }
+  .login-stats .l { font-size: 8.5px; letter-spacing: .08em; white-space: nowrap; }
 }
 
 /* ==========================================================================
