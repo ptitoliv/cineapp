@@ -16,11 +16,16 @@ class StartupPurgeTestCase(unittest.TestCase):
     rather than by calling the helper directly.
     """
 
-    CONFIG_PATH = 'configs/settings_tests_local.cfg'
-
     @classmethod
     def setUpClass(cls):
-        # Build the schema once on the shared test database.
+
+        # Pick the config the same way as the rest of the suite: the CI database
+        # under CI, the local one otherwise. Resolved once and reused everywhere.
+        if os.getenv("CI") == "True":
+            cls.CONFIG_PATH = 'tests/ressources/settings_tests_ci.cfg'
+        else:
+            cls.CONFIG_PATH = 'configs/settings_tests_local.cfg'
+
         cls.app = create_app(cls.CONFIG_PATH)
         with cls.app.app_context():
             db.drop_all()
