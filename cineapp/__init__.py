@@ -26,6 +26,32 @@ babel = Babel()
 socketio=SocketIO(async_mode='threading')
 csrf = CSRFProtect()
 
+def maybe_purge_on_startup(app, db):
+    """One-shot startup purge, gated by the CINEAPP_PURGE environment variable.
+
+    When CINEAPP_PURGE is truthy, every server-side session and every push
+    subscription is wiped before the app starts serving. It lives here (not in
+    run.py) so it behaves identically under the dev server and under gunicorn,
+    which both build the app through create_app(). Set the variable for a single
+    launch only: every worker that starts with it set will purge again. Returns
+    the number of purged push subscriptions, or None when the variable is unset.
+    """
+    if os.environ.get("CINEAPP_PURGE", "").strip().lower() not in ("1", "true", "yes", "on"):
+        return None
+
+    from cineapp.models import PushNotification
+    with app.app_context():
+        purged_subs = PushNotification.query.delete()
+        db.session.commit()
+
+    # Wipe every stored session (the filesystem/cachelib backend exposes clear()).
+    app.session_interface.cache.clear()
+
+    app.logger.warning(
+        "CINEAPP_PURGE actif : %d abonnement(s) push supprimé(s) et toutes les sessions vidées",
+        purged_subs)
+    return purged_subs
+
 def create_app(config_path=None):
 
     # Leg's create the application
@@ -225,6 +251,11 @@ def create_app(config_path=None):
     app.logger.setLevel(logging.INFO)
     app.logger.addHandler(file_handler)
     app.logger.info('Cineapp startup')
+
+    # Optional one-shot data purge (all sessions + all push subscriptions),
+    # gated by the CINEAPP_PURGE environment variable so it works the same way
+    # under the dev server (run.py) and under gunicorn.
+    maybe_purge_on_startup(app, db)
 
     # Set the process locale up front so strftime (the date_format filter) renders
     # French month/day names everywhere, instead of only after the dashboard sets
