@@ -2608,6 +2608,23 @@ class FlaskrTestCase(unittest.TestCase):
             db.session.delete(survivor)
             db.session.commit()
 
+        # --- notification_send: a failing purge delete is caught + rolled back (push.py:68-70) ---
+        with self.app.app_context():
+            rollback_sub = PushNotification(endpoint_id="https://fcm.googleapis.com/fcm/send/rollback-endpoint-410", public_key="rb-pub", auth_token="rb-auth", session_id="rollback-session-410", user_id=1)
+            db.session.add(rollback_sub)
+            db.session.commit()
+
+        rollback_serialized = [{"endpoint": "https://fcm.googleapis.com/fcm/send/rollback-endpoint-410", "keys": {"p256dh": "rb-pub", "auth": "rb-auth"}}]
+        with self.app.app_context():
+            with patch('cineapp.push.webpush', side_effect=WebPushException("Gone", response=gone_response)), \
+                 patch('cineapp.push.db.session.commit', side_effect=Exception("purge commit failed")):
+                notification_send(rollback_serialized, "/chat", "ptitoliv: Hello !")
+            # The delete was rolled back on the commit failure, so the row stays.
+            survivor = PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/rollback-endpoint-410").first()
+            assert survivor is not None
+            db.session.delete(survivor)
+            db.session.commit()
+
     def test_37_chat(self):
 
         """
