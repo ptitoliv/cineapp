@@ -3,7 +3,9 @@ A small application for rating movies
 
 # gunicorn start
 
-`gunicorn -u www -g www --worker-class eventlet -w 1 -D  cineapp:app`
+`gunicorn -u www -g www -w 1 --threads 100 -D cineapp:app`
+
+SocketIO runs in `threading` async mode; WebSocket transport is provided by the `simple-websocket` package (no eventlet/gevent).
 
 Be careful just having one worker. If there is more than one, SocketIO will generate a lot of bad requests with 400 error code.
 

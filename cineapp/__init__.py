@@ -23,7 +23,7 @@ from past.builtins import basestring
 lm = LoginManager()
 sess = Session()
 babel = Babel()
-socketio=SocketIO()
+socketio=SocketIO(async_mode='threading')
 csrf = CSRFProtect()
 
 def create_app(config_path=None):
