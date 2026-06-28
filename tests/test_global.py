@@ -2202,8 +2202,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Find the videogame id
         with self.app.app_context():
-            videogame = VideoGame.query.filter(VideoGame.name.like('%Sonic%')).first()
-            videogame_id = videogame.id
+            videogame_id = VideoGame.query.filter(VideoGame.name.like('%Sonic%')).first().id
 
         # We are logged => mark the videogame
         rv=self.client.post('/videogame/mark/%s' % videogame_id,data=dict(mark=18,comment="chef d'oeuvre",seen_where="M",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
@@ -2212,6 +2211,25 @@ class FlaskrTestCase(unittest.TestCase):
         # Update the mark
         rv=self.client.post('/videogame/mark/%s' % videogame_id,data=dict(mark=19,comment="encore mieux",seen_where="M",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note mise" in str(rv.data)
+
+        # --- Slack videogame card coverage (slack.py:53,55,60) ---
+        # Mario Smash Football has a release date AND an overview > 300 chars, so
+        # its Slack card shows the year and truncates the overview (53, 60). The
+        # fake game has no release date, so its card takes the empty-year path (55).
+        with self.app.app_context():
+            full_game_id = VideoGame.query.filter(VideoGame.name.like('%Mario Smash Football%')).first().id
+            nodate_game_id = VideoGame.query.filter(VideoGame.name.like('%Fake game%')).first().id
+
+        rv=self.client.post('/videogame/mark/%s' % full_game_id,data=dict(mark=12,comment="bon jeu",seen_where="M",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        assert "Note ajout" in str(rv.data)
+        rv=self.client.post('/videogame/mark/%s' % nodate_game_id,data=dict(mark=8,comment="sans date",seen_where="M",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        assert "Note ajout" in str(rv.data)
+
+        # Remove the marks added only for the Slack card coverage.
+        with self.app.app_context():
+            Mark.query.filter_by(user_id=1, show_id=full_game_id).delete()
+            Mark.query.filter_by(user_id=1, show_id=nodate_game_id).delete()
+            db.session.commit()
 
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Se connecter" in str(rv.data)
