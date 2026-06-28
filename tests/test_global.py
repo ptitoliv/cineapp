@@ -263,6 +263,13 @@ class FlaskrTestCase(unittest.TestCase):
             rv=self.client.post('/movie/add/select',data=dict(search="Les Tuche",submit_search=True),follow_redirects=True)
             assert u"Aucun résultat" in rv.data.decode("utf-8")
 
+        # --- Edge case: a downloaded poster that isn't a valid image (tmvdb.py:41) ---
+        from cineapp.tmvdb import download_poster
+        with patch('cineapp.tmvdb.urlopen') as mock_urlopen:
+            mock_urlopen.return_value.read.return_value = b'this is not an image'
+            with self.app.app_context():
+                assert download_poster("http://example.test/fake-poster.jpg") is False
+
         # Send the form without any title
         rv=self.client.post('/movie/add/select',data=dict(submit_search=True),follow_redirects=True)
         assert u"Veuillez saisir une recherche" in rv.data.decode("utf-8")
