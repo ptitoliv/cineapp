@@ -2531,6 +2531,48 @@ class FlaskrTestCase(unittest.TestCase):
             with patch('cineapp.push.webpush', side_effect=WebPushException("Push failed")):
                 notification_send(serialized_subs, "/chat", "ptitoliv: Hello !")
 
+        # --- notification_send: a 410 Gone endpoint is purged from the DB ---
+        with self.app.app_context():
+            dead_sub = PushNotification(endpoint_id="https://fcm.googleapis.com/fcm/send/dead-endpoint-410", public_key="dead-pub", auth_token="dead-auth", session_id="dead-session-410", user_id=1)
+            db.session.add(dead_sub)
+            db.session.commit()
+
+        dead_serialized = [{"endpoint": "https://fcm.googleapis.com/fcm/send/dead-endpoint-410", "keys": {"p256dh": "dead-pub", "auth": "dead-auth"}}]
+        gone_response = type('FakeResponse', (), {'status_code': 410})()
+        with self.app.app_context():
+            with patch('cineapp.push.webpush', side_effect=WebPushException("Gone", response=gone_response)):
+                notification_send(dead_serialized, "/chat", "ptitoliv: Hello !")
+            assert PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/dead-endpoint-410").first() is None
+
+        # --- notification_send: a 403 (VAPID credentials mismatch) is purged ---
+        with self.app.app_context():
+            stale_sub = PushNotification(endpoint_id="https://fcm.googleapis.com/fcm/send/stale-endpoint-403", public_key="stale-pub", auth_token="stale-auth", session_id="stale-session-403", user_id=1)
+            db.session.add(stale_sub)
+            db.session.commit()
+
+        stale_serialized = [{"endpoint": "https://fcm.googleapis.com/fcm/send/stale-endpoint-403", "keys": {"p256dh": "stale-pub", "auth": "stale-auth"}}]
+        forbidden_response = type('FakeResponse', (), {'status_code': 403})()
+        with self.app.app_context():
+            with patch('cineapp.push.webpush', side_effect=WebPushException("Forbidden", response=forbidden_response)):
+                notification_send(stale_serialized, "/chat", "ptitoliv: Hello !")
+            assert PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/stale-endpoint-403").first() is None
+
+        # --- notification_send: a transient 500 keeps the subscription (no over-purge) ---
+        with self.app.app_context():
+            live_sub = PushNotification(endpoint_id="https://fcm.googleapis.com/fcm/send/live-endpoint-500", public_key="live-pub", auth_token="live-auth", session_id="live-session-500", user_id=1)
+            db.session.add(live_sub)
+            db.session.commit()
+
+        live_serialized = [{"endpoint": "https://fcm.googleapis.com/fcm/send/live-endpoint-500", "keys": {"p256dh": "live-pub", "auth": "live-auth"}}]
+        error_response = type('FakeResponse', (), {'status_code': 500})()
+        with self.app.app_context():
+            with patch('cineapp.push.webpush', side_effect=WebPushException("Server error", response=error_response)):
+                notification_send(live_serialized, "/chat", "ptitoliv: Hello !")
+            survivor = PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/live-endpoint-500").first()
+            assert survivor is not None
+            db.session.delete(survivor)
+            db.session.commit()
+
     def test_37_chat(self):
 
         """

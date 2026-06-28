@@ -34,6 +34,11 @@ def notification_subscribe():
 
 def notification_send(subscriptions,chat_url,chat_message):
 
+    # This function runs in a forked child process (see chat.py). The DB pool is
+    # inherited from the parent and must not be reused as-is: reset it once here
+    # without closing the connections still in use by the parent (close=False).
+    db.engine.dispose(close=False)
+
     for cur_subscription in subscriptions:
         try:
             expiration_date = int(time.mktime((datetime.datetime.now() + datetime.timedelta(hours=12)).timetuple()))
@@ -49,6 +54,20 @@ def notification_send(subscriptions,chat_url,chat_message):
             # If there is an error let's log it
             app.logger.error("Web push notification failed: %s", repr(ex))
             app.logger.error(traceback.format_exc())
+
+            # 404/410 means the endpoint is gone; 403 means its VAPID
+            # credentials no longer match ours (e.g. key rotation). In every
+            # case the subscription can never be delivered again as-is, so
+            # purge it: the browser re-subscribes with the current key on its
+            # next visit.
+            if ex.response is not None and ex.response.status_code in (403, 404, 410):
+                try:
+                    PushNotification.query.filter_by(endpoint_id=cur_subscription["endpoint"]).delete()
+                    db.session.commit()
+                    app.logger.info("Dead push subscription %s purged", cur_subscription["endpoint"])
+                except Exception as e:
+                    db.session.rollback()
+                    app.logger.error("Unable to purge dead push subscription: %s", repr(e))
     
 def notification_unsubscribe(sub):
     try:
