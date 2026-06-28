@@ -1943,6 +1943,53 @@ class FlaskrTestCase(unittest.TestCase):
             rv=self.client.post('/videogame/add/select',data=dict(search="Sonic",submit_search=True),follow_redirects=True)
             assert u"Aucun résultat" in rv.data.decode("utf-8")
 
+        # --- Add a crafted game through the real add flow so get_game's parsing is
+        # exercised on three edge cases at once:
+        #   - a release_dates entry with an invalid platform is skipped (igdb.py:142)
+        #   - a platform present only in release_dates is appended (igdb.py:167)
+        #   - a regional release date with an invalid (None) timestamp falls back to
+        #     None instead of crashing (igdb.py:335-336)
+        #   - a cover whose download isn't a valid image is rejected (igdb.py:428)
+        # release_region id 9999 matches no region, so the regional-dates loop never
+        # dereferences the invalid platform. ---
+        crafted_game = {
+            "id": 314159,
+            "name": "Crafted Platform Game",
+            "summary": "A crafted game for platform parsing coverage.",
+            "url": "https://www.igdb.com/games/crafted-platform-game",
+            "first_release_date": 700000000,
+            "cover": {"url": "//images.igdb.com/igdb/image/upload/t_thumb/crafted.jpg"},
+            "platforms": [{"name": "Switch"}],
+            "release_dates": [
+                {"platform": None, "date": 100, "release_region": {"id": 9999}},
+                {"platform": {"name": "PC"}, "date": 200, "release_region": {"id": 9999}},
+                {"platform": {"name": "PC"}, "date": None, "release_region": {"id": 9999}},
+            ],
+            "alternative_names": [],
+            "game_localizations": [],
+            "involved_companies": [],
+        }
+        with patch('cineapp.igdb._igdb_request', return_value=[crafted_game]), \
+             patch('cineapp.igdb.requests.get') as mock_poster_get:
+            # The cover "download" returns non-image bytes, so download_poster
+            # rejects it (igdb.py:428) and the game is stored without a poster.
+            mock_poster_get.return_value.status_code = 200
+            mock_poster_get.return_value.content = b'not a real image'
+            rv=self.client.post('/videogame/add/confirm',data=dict(show_id="314159",origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+            assert "Jeu vidéo ajouté" in rv.data.decode("utf-8")
+
+        with self.app.app_context():
+            crafted = VideoGame.query.filter_by(external_id=314159, external_source="igdb").first()
+            assert crafted is not None
+            # Switch (undated) comes after PC (dated), and PC came only from release_dates.
+            assert crafted.platforms == "PC, Switch"
+            # The non-image cover was rejected, so no poster was stored.
+            assert crafted.poster_path is None
+
+            # Remove the crafted game so later videogame/graph tests are unaffected.
+            db.session.delete(crafted)
+            db.session.commit()
+
         # --- DeepL: add videogame with missing API key ---
         temp_deepl_key = self.app.config["DEEPL_API_KEY"]
         self.app.config["DEEPL_API_KEY"] = "incorrect-key"
