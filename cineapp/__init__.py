@@ -197,7 +197,7 @@ def create_app(config_path=None):
     # Assigned directly (not setdefault): Flask pre-populates the SESSION_COOKIE_*
     # keys with insecure defaults (Secure=False, SameSite=None), so setdefault
     # would never upgrade them.
-    if not app.config.get("DEBUG") and not app.config.get("TESTING"):
+    if not app.config.get("DEBUG") and not app.config.get("TESTING"):  # pragma: no cover - production-only cookie hardening
         app.config["SESSION_COOKIE_SECURE"] = True
         app.config["SESSION_COOKIE_HTTPONLY"] = True
         app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
