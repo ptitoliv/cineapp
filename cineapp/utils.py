@@ -27,8 +27,6 @@ def sanitize_comment(html):
         (display_show.html) or injected raw into the activity feed
         (activity_flow.js). Prevents stored XSS (CWE-79).
     """
-    if html is None:
-        return None
     return nh3.clean(html, tags=_COMMENT_ALLOWED_TAGS,
                      attributes=_COMMENT_ALLOWED_ATTRS)
 

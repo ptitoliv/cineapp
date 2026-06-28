@@ -10,7 +10,7 @@ from cineapp.emails import mail
 from cineapp.jinja_testers import is_movie, is_tvshow, is_videogame
 from cineapp.push import notification_send
 from pywebpush import WebPushException
-from datetime import datetime
+from datetime import datetime, timedelta
 from bcrypt import hashpw, gensalt
 import unittest
 from unittest.mock import patch
@@ -1605,6 +1605,41 @@ class FlaskrTestCase(unittest.TestCase):
         args_no_pagination["length"] = -1
         rv=self.client.post('/activity/update', data=dict(args=json.dumps(args_no_pagination)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
         assert rv.status_code == 200
+
+        # Cover every humanize_when relative-time branch (utils.py) through the
+        # real flow: add shows dated at each age, then read them back from
+        # /activity/update where the route humanizes show.added_when (movie mode).
+        now = datetime.now()
+        ages = {
+            "humanize-instant": now - timedelta(seconds=5),
+            "humanize-minutes": now - timedelta(minutes=12, seconds=30),
+            "humanize-hours": now - timedelta(hours=3, minutes=30),
+            "humanize-yesterday": now - timedelta(days=1, hours=3),
+            "humanize-days": now - timedelta(days=3, hours=3),
+            "humanize-months": now - timedelta(days=40),
+        }
+        with self.app.app_context():
+            for name, added in ages.items():
+                db.session.add(Movie(name=name, added_when=added, added_by_user=1))
+            db.session.commit()
+
+        # Large length so even the oldest entry is in the returned window.
+        args_humanize = dict(args)
+        args_humanize["length"] = 1000
+        rv=self.client.post('/activity/update', data=dict(args=json.dumps(args_humanize)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        whens = [ e["when"] for e in json.loads(rv.data)["data"] if e["action_type"] == "shows" ]
+        assert "à l'instant" in whens
+        assert "il y a 12min" in whens
+        assert "il y a 3h" in whens
+        assert any(w.startswith("hier · ") for w in whens)
+        assert "il y a 3j" in whens
+        assert any("·" in w and "hier" not in w and "il y a" not in w for w in whens)
+
+        # Remove the synthetic shows so they don't skew the later graph/stats tests.
+        with self.app.app_context():
+            for name in ages:
+                db.session.delete(Movie.query.filter_by(name=name).first())
+            db.session.commit()
 
         # Logout
         rv=self.client.get('/logout', follow_redirects=True)
