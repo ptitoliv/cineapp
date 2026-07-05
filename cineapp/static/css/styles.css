@@ -270,7 +270,11 @@ nav.menu a.active { font-weight: 500; }
 .subcomment .ava img,
 .composer .ava img,
 .msg-avatar img,
-.id-ava img {
+.id-ava img,
+.dash .latest-meta .rater .ava img,
+.dash .you-block .ava-big img,
+.dash .others .row .ava img,
+.act-av img {
   position: absolute; inset: 0;
   width: 100%; height: 100%; object-fit: cover;
 }
@@ -2591,6 +2595,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   border-bottom: 1px dashed var(--rule);
 }
 .dash .you-block .ava-big {
+  position: relative; overflow: hidden;
   width: 44px; height: 44px; border-radius: 50%;
   display: grid; place-items: center; color: #fefdfa;
   font-family: var(--font-display);
@@ -2731,6 +2736,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 }
 .dash .others .row:last-child { border-bottom: 0; }
 .dash .others .row .ava {
+  position: relative; overflow: hidden;
   width: 34px; height: 34px; border-radius: 50%;
   display: grid; place-items: center; color: #fefdfa;
   font-family: var(--font-display);
@@ -2899,6 +2905,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   display: flex; align-items: center; gap: 6px;
 }
 .dash .latest-meta .rater .ava {
+  position: relative; overflow: hidden;
   width: 20px; height: 20px; border-radius: 50%;
   display: grid; place-items: center;
   color: var(--paper-card);
@@ -3659,6 +3666,7 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
 }
 /* user avatar — inline marker of the actor, coloured by User.theme_color */
 .act-av {
+  position: relative; overflow: hidden;
   display: inline-grid; place-items: center;
   vertical-align: middle; margin-right: 8px;
   width: 22px; height: 22px; border-radius: 50%;
