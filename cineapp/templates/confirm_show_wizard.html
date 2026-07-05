@@ -121,10 +121,10 @@
 
     {# ----- Synopsis ----- #}
     {% if show.overview %}
+    <p class="synopsis">{{ show.overview }}</p>
     {% if show.overview_translated %}
     <div class="synopsis-translated">Traduction via DeepL</div>
     {% endif %}
-    <p class="synopsis">{{ show.overview }}</p>
     {% endif %}
   </div>
 </section>

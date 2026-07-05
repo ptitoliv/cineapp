@@ -73,7 +73,6 @@
 .show-nav,
 .fav-menu a,
 .show-detail .eyebrow,
-.synopsis-translated,
 .reviews-count,
 .score-empty,
 .mark-studio .mark-score-max,
@@ -1611,10 +1610,21 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   font-size: 96px; line-height: 1; font-style: italic; font-weight: 500;
   color: var(--violet); opacity: .55;
 }
+/* DeepL translation credit — sits just under the synopsis, right-aligned and
+   italic, as a discreet source note (same text box as .synopsis so its right
+   edge lines up). The :has rule pulls the synopsis's bottom margin in when the
+   credit follows, keeping the gap to the action buttons unchanged for movies
+   (no credit). */
+.synopsis:has(+ .synopsis-translated) { margin-bottom: 8px; }
 .synopsis-translated {
-  font-size: 10px;
-  margin-bottom: 4px;
+  max-width: 64ch;
   padding-left: 26px;
+  margin-bottom: 40px;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--ink-dim);
+  text-align: right;
 }
 
 /* small action buttons row (Update show / Mark / Slack) */
