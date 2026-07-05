@@ -2456,6 +2456,32 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   .composer-input { padding: 5px 5px 5px 12px; }
   .composer-input input { font-size: 14px; }
   .composer .send { padding: 7px 12px; font-size: 10px; gap: 4px; }
+
+  /* ---- Videogame release dates (.releases) — mobile ---- */
+  /* Reclaim width: the 26px/30px card padding is too generous at 360px. */
+  .releases { padding: 18px 16px; }
+  /* Premiere banner: the eyebrow + date fought for width side by side, so the
+     uppercase "PREMIÈRE MONDIALE" wrapped. Stack them, each on its own line. */
+  .releases-premiere {
+    flex-direction: column; align-items: center; text-align: center;
+    gap: 6px; padding: 14px 16px;
+  }
+  .premiere-date { font-size: 20px; }
+  /* The Date / Région / Plateformes table can't fit ~290px, so the Platforms
+     column spilled out of the card. Turn each release into a stacked block:
+     flag + région + date on one line, platforms full-width underneath. */
+  .releases-table, .releases-table tbody, .releases-table tr, .releases-table td { display: block; }
+  .releases-table thead { display: none; }
+  .releases-table tr {
+    display: flex; flex-wrap: wrap; align-items: baseline;
+    column-gap: 10px; padding: 12px 0;
+    border-bottom: 1px solid var(--rule-soft);
+  }
+  .releases-table tr:last-child { border-bottom: 0; }
+  .releases-table td { padding: 0; border: 0; }
+  .rt-region { order: 1; }
+  .rt-date { order: 2; margin-left: auto; }
+  .rt-platforms { order: 3; flex-basis: 100%; margin-top: 4px; color: var(--ink-mid); }
 }
 
 @media (max-width: 480px) {
