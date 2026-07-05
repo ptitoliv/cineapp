@@ -1118,7 +1118,13 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     justify-content: center;
   }
   .filter-bar .form-group .form-select { width: 100%; }
-  .filter-bar .btn { width: 100%; justify-content: center; }
+  /* Half-width in the 2-col actions row : keep the icon + label on ONE line
+     ("↺ Réinitialiser" would otherwise break at its space) and trim the side
+     padding so the label fits without widening the column past the card. */
+  .filter-bar .btn {
+    width: 100%; justify-content: center;
+    white-space: nowrap; padding-left: 12px; padding-right: 12px;
+  }
   /* The grouped actions span the full row and lay their buttons in equal
      columns — two side by side (movie list) or one full-width (homework) via
      grid-auto-flow, so the same rule fits every .filter-bar. */
@@ -1166,9 +1172,12 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   }
   .mob-sort-row:last-child { margin-bottom: 0; }
   .mob-sort-row-general { padding-bottom: 6px; border-bottom: 1px dashed var(--rule); margin-bottom: 12px; }
+  /* The user label takes its own full-width line so the FAV / NOTE / DATE trio
+     below it stays on ONE line (at ~360px, label + 3 pills won't fit on a single
+     row and DATE would otherwise wrap off on its own). */
   .mob-sort-rowlabel {
     display: inline-flex; align-items: center; gap: 8px;
-    flex: 0 0 auto; min-width: 110px;
+    flex: 0 0 100%; justify-content: center;
     font-family: var(--font-ui); font-weight: 900;
     font-size: 11px; letter-spacing: .14em;
     text-transform: uppercase; color: var(--ink-dim);
@@ -1213,10 +1222,14 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 
   .list tbody tr {
     display: grid;
-    grid-template-columns: 92px 56px 1fr 1fr;
+    /* Fixed label + star, then note/date columns that hold their content
+       (min 72px = the "Devoir" button, 44px = a year) without forcing the grid
+       wider than the card — at ~360px the old 92/56 + 1fr 1fr overflowed, so the
+       average score and the dates were clipped at the card's right edge. */
+    grid-template-columns: 78px 40px minmax(72px, 1fr) minmax(44px, 1fr);
     grid-auto-flow: row dense;
     align-items: center;
-    column-gap: 14px; row-gap: 10px;
+    column-gap: 10px; row-gap: 10px;
     padding: 18px 18px 14px;
     /* !important to override DataTables' `table.dataTable > tbody > tr
        { background-color: transparent }` which has higher specificity. */
@@ -1304,11 +1317,12 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     content: "";
     position: absolute;
     /* Anchor to cell-fav for vertical centering on the user row, and scale
-       horizontally with the viewport so the pill always reaches just past
-       the date column (last column = cell-when). The width formula:
-       100vw - 2*page-padding(20) - 2*tr-padding(18) - 2*breathing(4) = 100vw - 84. */
-    left: -100px;
-    width: calc(100vw - 84px);
+       horizontally with the viewport so the pill spans the WHOLE row, past the
+       date column (last column = cell-when). Tied to the card grid:
+       left  = -(col1 78 + gap 10 + ~9 inset) so it reaches the label edge;
+       width = card (100vw - 2*page-padding 20) minus a small inset each side. */
+    left: -97px;
+    width: calc(100vw - 60px);
     top: -2px; bottom: -2px;
     border-radius: 10px;
     z-index: -1;
@@ -1353,6 +1367,10 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   white-space: nowrap;
 }
 .show-nav a:hover { color: var(--violet); border-color: var(--violet); }
+/* prev/next links: block (not the inherited inline-flex) so text-overflow:ellipsis
+   applies to a long title — on a flex box the label is hard-clipped with no "…".
+   Applies to both desktop (max-width:280px) and mobile (1fr column). */
+.show-nav > span a { display: block; }
 
 /* ----- hero ----- */
 .hero {
@@ -1400,11 +1418,21 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 }
 
 /* title row + favorite button */
+/* Grid (not flex) so a long wrapping title keeps the favorite beside it on
+   its row while the original title always sits on its own line — flex would
+   let the favorite wrap under a long title. The original is a DOM child of the
+   row (moved after the h1) so mobile can reorder it between title and favorite. */
 .title-row {
-  display: flex; align-items: center; gap: 28px;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "title fav" "original original";
+  align-items: center;
+  column-gap: 28px; row-gap: 4px;
   margin-bottom: 4px;
 }
-.title-row .title { margin-bottom: 0; }
+.title-row .title { grid-area: title; margin-bottom: 0; min-width: 0; }
+.title-row .fav-btn { grid-area: fav; }
+.title-row .original { grid-area: original; }
 
 .fav-btn {
   border-left: 1px solid var(--rule);
@@ -1526,8 +1554,9 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 .show-detail .original::after { content: " »"; opacity: .5; }
 
 .byline {
-  display: flex; flex-wrap: wrap;
-  gap: 22px 36px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 22px 28px;
   font-family: var(--font-ui);
   font-size: 12px; letter-spacing: .14em;
   text-transform: uppercase;
@@ -1538,7 +1567,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   margin-bottom: 36px;
   font-weight: 900;
 }
-.byline > div { display: flex; flex-direction: column; gap: 6px; }
+.byline > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
 .byline label { color: var(--ink-dim); font-weight: 900; display: inline-flex; align-items: center; gap: 7px; }
 .byline label i { font-size: 11px; opacity: .8; }
 .byline value {
@@ -1724,10 +1753,18 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 .review-header {
   display: grid;
   grid-template-columns: 88px 1fr 172px;
-  gap: 32px;
+  grid-template-areas:
+    "avatar meta    score"
+    "avatar comment score";
+  column-gap: 32px; row-gap: 10px;
+  align-items: start;
   padding: 28px 28px;
   position: relative;
 }
+.review-header > .avatar-large { grid-area: avatar; }
+.review-header > .review-meta { grid-area: meta; min-width: 0; }
+.review-header > .review-comment { grid-area: comment; min-width: 0; }
+.review-header > .score-block { grid-area: score; }
 .review-header::before {
   content: ""; position: absolute; inset: 0;
   background: radial-gradient(60% 100% at 0 50%, var(--halo, transparent), transparent 70%);
@@ -1742,7 +1779,6 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   border: 1px solid rgba(0, 0, 0, .04);
 }
 
-.review-body { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 /* One single header line carrying everything: name + (optional) devoir
    badge + giver + date + where + favstar + comment-count. Wraps only
    if the viewport truly can't fit it. comment-count is pinned to the
@@ -2021,6 +2057,8 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 }
 .composer-input {
   display: flex; align-items: center; gap: 8px;
+  min-width: 0; /* shrink below content in the 1fr grid column instead of pushing
+                   the Send button off-screen on narrow viewports */
   padding: 6px 6px 6px 14px;
   background: var(--paper-card);
   border: 1px solid var(--rule);
@@ -2029,7 +2067,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 }
 .composer-input:focus-within { border-color: var(--violet); }
 .composer-input input {
-  flex: 1; border: 0; background: transparent; outline: none;
+  flex: 1; min-width: 0; border: 0; background: transparent; outline: none;
   font: inherit; font-size: 14.5px; color: var(--ink);
   font-family: var(--font-body);
   padding: 4px 0;
@@ -2291,9 +2329,38 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     font-size: 16px; line-height: 1;
     color: inherit;
   }
-  .hero { grid-template-columns: 1fr; gap: 36px; padding: 32px 20px 48px; max-width: 100%; }
+  /* minmax(0,1fr) lets the column shrink below its content's min-content:
+     without it, a very long title's widest word (plus the favorite button on
+     the .title-row) forces the whole hero — poster included — wider than the
+     viewport and it spills off the right. */
+  .hero { grid-template-columns: minmax(0, 1fr); gap: 36px; padding: 32px 20px 48px; max-width: 100%; }
   .hero::before { left: 20px; right: 20px; }
+  /* Technical info as a regular grid: 4 columns on desktop (base rule), 2 here. */
+  .byline { grid-template-columns: repeat(2, 1fr); }
+  /* On mobile the favorite button ALWAYS sits on its own line under the title
+     (flex-basis:100% forces the wrap), for a consistent layout whatever the
+     title length. Drop the vertical hairline separator (border-left) — it only
+     made sense side-by-side; stacked it reads as a stray vertical stroke. The
+     row gap provides the separation. */
+  /* Single column, centered, in reading order: title → original → favorite.
+     The original's desktop margin-bottom (meant to precede the byline) is
+     dropped here since it's no longer the last element; row-gap spaces the three. */
+  .title-row {
+    grid-template-columns: 1fr;
+    grid-template-areas: "title" "original" "fav";
+    justify-items: center;
+    row-gap: 22px; margin-bottom: 24px;
+  }
+  .title-row .title { text-align: center; }
+  .title-row .original { margin-bottom: 0; text-align: center; }
+  .title-row .fav-btn { border-left: 0; padding-left: 0; text-align: center; }
   .reviews { padding: 20px 20px 60px; max-width: 100%; }
+  /* Stack the head so neither the title nor the toggle wraps mid-word: title
+     (slightly smaller, keeping "Toutes les notes · N sur M" on one line) then
+     the toggle button right-aligned on its own line below. */
+  .reviews-head { flex-direction: column; align-items: flex-start; gap: 14px; }
+  .reviews-title { font-size: 26px; }
+  .reviews-toggle { white-space: nowrap; align-self: flex-end; }
 
   /* Stack the show action buttons (Mettre à jour / Noter / Publier) as
      full-width, centered pills — same rhythm as the Filtrer submit on
@@ -2308,30 +2375,42 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
      always lands at the same X regardless of what the slot holds
      ("15.5" / "Pas notée" / "📝 Devoir"). Width 110px so "📝 Devoir"
      stays on a single line at the .btn font size. */
+  /* Stack the review in three full-width rows so nothing is cramped in a narrow
+     middle column: [avatar | meta] · comment · score. The meta then spans the
+     full width (its chips — date, MAISON, ★, 💬 — align on one line) and the
+     comment no longer stretches tall. The score moves to a centered footer. */
   .review-header {
-    grid-template-columns: 48px 1fr 110px;
-    gap: 12px; padding: 18px;
+    grid-template-columns: 48px 1fr;
+    grid-template-areas:
+      "avatar  meta"
+      "comment comment"
+      "score   score";
+    column-gap: 12px; row-gap: 14px;
+    padding: 18px;
   }
   .avatar-large { width: 48px; height: 48px; font-size: 20px; }
-  .review-meta { gap: 8px 10px; font-size: 10px; letter-spacing: .12em; }
-  .review-name { font-size: 18px; }
+  .review-meta { gap: 6px 7px; font-size: 10px; letter-spacing: .12em; }
+  .review-favstar { font-size: 16px; }
+  /* Name on its own line so the chips below (date · where · ★ · 💬) share one
+     row; comment-count drops margin-left:auto here so it flows next to the star
+     instead of being pushed onto a line of its own. */
+  .review-name { font-size: 18px; flex-basis: 100%; margin-right: 0; }
   .review-where { padding: 2px 7px; font-size: 10px; }
   .comment-count {
-    padding: 4px 10px; min-height: 28px; min-width: 0;
+    margin-left: 0;
+    padding: 3px 8px; min-height: 22px; min-width: 0;
     font-size: 10px;
   }
   .comment-count .num { font-size: 12px; }
 
+  /* Full-width footer under the comment, separated by a top hairline. */
   .score-block {
-    align-self: stretch;
-    flex-direction: column; align-items: center;
-    justify-content: center;
-    gap: 2px; padding: 4px 0 4px 14px;
-    border-left: 1px solid var(--rule);
-    border-top: 0;
+    flex-direction: row; align-items: center; justify-content: center;
+    gap: 12px; padding: 14px 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--rule);
   }
-  /* Buttons span the fixed score column so the separator stays put. */
-  .score-block .btn { width: 100%; padding: 7px 8px; white-space: nowrap; }
+  .score-block .btn { padding: 7px 14px; white-space: nowrap; }
   .score { font-size: 32px; }
   .score-empty { padding: 6px 10px; font-size: 10px; }
 
@@ -2847,6 +2926,17 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   .dash .card-head { flex-wrap: wrap; gap: 8px; }
   .dash .card-head .ctrls { width: 100%; justify-content: flex-start; }
 
+  /* Graph card controls — the three pills (user filter, year nav, "+ Graphique")
+     don't fit on one 360px row, so the action pill dangled alone on a second
+     line. Lay them out as a grid: user filter + year nav share the top row at
+     equal width, and the "+ Graphique" / "− Retirer" trigger (kept as
+     .dash-pill.solid on cloned graphs too) spans the full width below. */
+  .dash .graph-stack .card-head .ctrls {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
+  }
+  .dash .graph-stack .card-head .ctrls > * { justify-content: center; }
+  .dash .graph-stack .card-head .ctrls .dash-pill.solid { grid-column: 1 / -1; }
+
   /* Latest-rated turns into a horizontal carousel — 10 cards in one row at
      readable width, with native horizontal scroll. The card-body negative
      padding lets the carousel touch the card edges so swipes feel natural. */
@@ -2860,9 +2950,22 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     overflow-x: auto;
     scroll-snap-type: x mandatory;
     padding: 0 18px 8px;
+    /* Mandatory snap + scroll-snap-align:start pulls the first card flush to
+       the scrollport edge, eating the leading 18px padding so it sat too far
+       left of the card title. scroll-padding-left makes the snap respect the
+       18px inset, aligning the first card with the "Dernières notes" heading. */
+    scroll-padding-left: 18px;
     -webkit-overflow-scrolling: touch;
   }
   .dash .latest-item { scroll-snap-align: start; }
+
+  /* Cata card ("La cinémathèque/ludothèque/sériethèque") — a 50/50 split leaves
+     the stats block ~130px, too narrow for the longest label ("TERMINÉS PAR LE
+     GROUPE · 38 %") which then wraps. Stack on mobile: the numbers/labels take
+     the full card width (labels hold one line at their normal size) and the
+     suggestion poster becomes a full-bleed banner along the bottom edge. */
+  .dash .cata-split { grid-template-columns: 1fr; }
+  .dash .cata-suggestion { margin: 4px -22px -18px; min-height: 180px; }
 }
 
 
@@ -3419,8 +3522,27 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   }
   .hw-poster { width: 48px; }
   .hw-title { font-size: 19px; }
-  .hw-transfer { flex-wrap: wrap; gap: 6px 10px; }
-  .hw-arrow { min-width: 20px; }
+  /* The narrow middle column can't hold "giver → receiver" on one line, so the
+     receiver used to wrap under a right-pointing arrow that pointed at nothing.
+     Stack the transfer vertically instead: giver on top, receiver below, joined
+     by a short vertical connector + downward chevron centred under the avatar,
+     which reads as a clear top-to-bottom hand-off. */
+  .hw-transfer { flex-direction: column; align-items: flex-start; gap: 3px; }
+  .hw-arrow {
+    flex: none;
+    width: 0; min-width: 0; height: 13px;
+    border-top: 0;
+    border-left: 1px solid var(--rule);
+    margin-left: 14.5px;
+  }
+  .hw-arrow::after {
+    right: auto; left: 50%; top: auto; bottom: -1px;
+    width: 5px; height: 5px;
+    border: 0;
+    border-bottom: 1.5px solid var(--ink-dim);
+    border-left: 1.5px solid var(--ink-dim);
+    transform: translate(-50%, 0) rotate(-45deg);
+  }
   /* Compact score column (matches .score-block mobile rules). */
   .hw-status {
     padding-left: 14px;
@@ -3630,7 +3752,13 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
    in full (no truncation, no horizontal scroll at any width) */
 .graph-nav { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
 .gpill {
-  display: flex; align-items: flex-start; gap: 10px;
+  /* Uniform pill height + vertically centred content so labels that wrap to a
+     different number of lines (1–3 depending on breakpoint) stay aligned in a
+     regular grid instead of top-aligned with ragged empty space below. The
+     min-height fits the 2-line worst case here; the 2-column breakpoint below
+     bumps it for the 3-line worst case. */
+  display: flex; align-items: center; gap: 10px;
+  min-height: 60px;
   padding: 13px 15px;
   background: var(--paper-card); border: 1px solid var(--rule);
   border-radius: 12px;
@@ -3713,6 +3841,9 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
 }
 @media (max-width: 620px) {
   .graph-nav { grid-template-columns: repeat(2, 1fr); }
+  /* Two narrow columns push the longest labels to 3 lines — grow the uniform
+     pill height to match so every button stays the same size. */
+  .gpill { min-height: 74px; }
 }
 
 /* ==========================================================================
@@ -3839,7 +3970,7 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
   border-top: 1px solid var(--rule-soft);
 }
 .chat-composer .composer-field {
-  flex: 1;
+  flex: 1; min-width: 0;
   display: flex; align-items: center;
   background: var(--paper-soft);
   border: 1px solid transparent;
@@ -3851,7 +3982,10 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
   border-color: var(--violet-soft); background: var(--paper-card);
 }
 .chat-composer input {
-  flex: 1; border: 0; background: transparent; outline: none;
+  /* min-width:0 so the flex field can shrink below the input's intrinsic
+     (size-attribute) width — without it the "Envoyer" button was pushed past
+     the card edge and clipped on narrow phones. */
+  flex: 1; min-width: 0; border: 0; background: transparent; outline: none;
   font-family: var(--font-body); font-size: 14.5px; color: var(--ink);
 }
 .chat-composer input::placeholder { color: var(--ink-dim); }
@@ -4211,6 +4345,10 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
   display: grid; grid-template-columns: 296px 1fr;
   gap: 34px; align-items: start;
 }
+/* Les items de grille ont min-width:auto (= largeur du contenu) : sans ce reset,
+   le min-content de la carte d'identité en mobile force la colonne — donc tout le
+   formulaire — plus large que le viewport, et le contenu est rogné. */
+.profile-grid > * { min-width: 0; }
 
 /* ---------- identity card ---------- */
 .id-card {
@@ -4320,7 +4458,7 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
 @media (max-width: 840px) {
   .profile-wrap { padding: 0 20px 50px; }
   .profile-grid { grid-template-columns: 1fr; gap: 20px; }
-  .id-card { display: flex; align-items: center; gap: 20px; text-align: left; padding: 20px; }
+  .id-card { display: flex; flex-wrap: wrap; align-items: center; gap: 20px; text-align: left; padding: 20px; }
   .id-ava-wrap { margin: 0; width: 80px; height: 80px; flex-shrink: 0; }
   .id-ava { width: 80px; height: 80px; font-size: 34px; }
   .id-sep { display: none; }

@@ -74,6 +74,7 @@
 
     <div class="title-row">
       <h1 class="title">{{ show.name }}</h1>
+      {% if show.original_name %}<p class="original">{{ show.original_name }}</p>{% endif %}
       {% if not mark and not g.user.is_guest %}
       {% set my_fav_list = show.favorite_users|selectattr("user_id","equalto",g.user.id)|list %}
       {% set my_fav = my_fav_list[0] if my_fav_list and my_fav_list[0].star_type else None %}
@@ -92,10 +93,6 @@
       </div>
       {% endif %}
     </div>
-
-    {% if show.original_name %}
-    <p class="original">{{ show.original_name }}</p>
-    {% endif %}
 
     {# ----- byline (metadata) ----- #}
     <div class="byline">
@@ -317,8 +314,7 @@
     <header class="review-header">
       <div class="avatar-large user-{{ u.id }}">{{ u.nickname[0]|upper }}{% if u.avatar %}<img src="{{ config.AVATARS_URL }}{{ u.avatar }}" alt="" onerror="this.remove()">{% endif %}</div>
 
-      <div class="review-body">
-        <div class="review-meta">
+      <div class="review-meta">
           <span class="review-name">{{ u.nickname }}</span>
           {% if cur_mark["homework_who"] %}
           <span class="review-devoir-ava user-{{ cur_mark["homework_who"].id }}" title="Devoir par {{ cur_mark["homework_who"].nickname }}" aria-label="Devoir donné par {{ cur_mark["homework_who"].nickname }}">
@@ -342,7 +338,6 @@
         {% else %}
         <div class="review-comment empty"><i class="fa-solid fa-comment-slash" aria-hidden="true"></i> Pas de commentaire</div>
         {% endif %}
-      </div>
 
       <div class="score-block">
         {% if cur_mark["mark"] is none %}
