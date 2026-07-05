@@ -37,13 +37,13 @@
 <nav class="show-nav" aria-label="Navigation entre fiches">
   <span>
     {% if show_prev %}
-    <a href="{{ url_for('show.display_show', show_id=show_prev.id, show_type=g.show_type) }}">‹ {{ show_prev.name }}</a>
+    <a href="{{ url_for('show.display_show', show_id=show_prev.id, show_type=g.show_type) }}"><span class="nav-arrow">‹</span><span class="nav-title">{{ show_prev.name }}</span></a>
     {% endif %}
   </span>
   <a class="random" href="{{ url_for('show.display_show_random', show_type=g.show_type) }}">↻ Sélection aléatoire</a>
   <span>
     {% if show_next %}
-    <a href="{{ url_for('show.display_show', show_id=show_next.id, show_type=g.show_type) }}">{{ show_next.name }} ›</a>
+    <a href="{{ url_for('show.display_show', show_id=show_next.id, show_type=g.show_type) }}"><span class="nav-title">{{ show_next.name }}</span><span class="nav-arrow">›</span></a>
     {% endif %}
   </span>
 </nav>

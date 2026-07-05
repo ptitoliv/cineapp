@@ -1346,15 +1346,23 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
    ========================================================================== */
 
 /* ----- prev/next navigation ----- */
+/* Three fixed zones — prev (left) / random (centre) / next (right) — via a
+   1fr auto 1fr grid: the random button stays centred and the prev/next pills
+   keep a fixed size and position even when one of them is absent (the empty
+   column still holds its 1fr share). */
 .show-nav {
   max-width: 1280px;
   margin: 0 auto;
   padding: 24px 56px 0;
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
+  gap: 12px;
   font-size: 11px;
 }
+.show-nav > span { display: flex; min-width: 0; }
+.show-nav > span:first-child { justify-content: flex-start; }
+.show-nav > span:last-child { justify-content: flex-end; }
 .show-nav a {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px;
@@ -1364,16 +1372,18 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   color: var(--ink-mid);
   cursor: pointer;
   transition: color .15s, border-color .15s;
-  max-width: 280px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 .show-nav a:hover { color: var(--violet); border-color: var(--violet); }
-/* prev/next links: block (not the inherited inline-flex) so text-overflow:ellipsis
-   applies to a long title — on a flex box the label is hard-clipped with no "…".
-   Applies to both desktop (max-width:280px) and mobile (1fr column). */
-.show-nav > span a { display: block; }
+/* Fixed, symmetric prev/next pills (240px on desktop, capped to the column on
+   mobile). The title ellipsises inside while the arrow always stays visible. */
+.show-nav > span a { width: 240px; max-width: 100%; justify-content: center; }
+/* flex:0 1 auto (not 1) so the arrow+title group is content-sized and stays
+   centred by justify-content; it still shrinks + ellipsises for long titles. */
+.show-nav .nav-title {
+  flex: 0 1 auto; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.show-nav .nav-arrow { flex: 0 0 auto; }
 
 /* ----- hero ----- */
 .hero {
