@@ -35,7 +35,7 @@
 						</div>
 						<div class="latest-meta">
 							<div class="rater">
-								<span class="ava" style="background: {{ m.user.theme_color }};">{{ m.user.nickname[0]|upper }}</span>
+								<span class="ava" style="background: {{ m.user.theme_color }};">{{ m.user.nickname[0]|upper }}{% if m.user.avatar %}<img src="{{ avatar_url(m.user) }}" alt="" onerror="this.remove()">{% endif %}</span>
 								<span class="name">{{ m.user.nickname }}</span>
 								<span class="mark" style="color: {{ m.user.theme_color }};">{{ m.mark }}</span>
 							</div>
@@ -58,7 +58,7 @@
 				</header>
 				<div class="card-body">
 					<div class="you-block">
-						<span class="ava-big" style="background:{{ g.user.theme_color }};">{{ g.user.nickname[0]|upper }}</span>
+						<span class="ava-big" style="background:{{ g.user.theme_color }};">{{ g.user.nickname[0]|upper }}{% if g.user.avatar %}<img src="{{ avatar_url(g.user) }}" alt="" onerror="this.remove()">{% endif %}</span>
 						<span class="col"><span class="me">{{ g.user.nickname }}</span></span>
 						<span class="big" id="average">{{ stats_dict[g.user.id]["avg"] }}</span>
 					</div>
@@ -67,7 +67,7 @@
 						{% for cur_avg in stats_dict %}
 						{% if g.user.id != cur_avg %}
 						<div class="row">
-							<span class="ava" style="background:{{ stats_dict[cur_avg]["user"].theme_color }};">{{ stats_dict[cur_avg]["user"].nickname[0]|upper }}</span>
+							<span class="ava" style="background:{{ stats_dict[cur_avg]["user"].theme_color }};">{{ stats_dict[cur_avg]["user"].nickname[0]|upper }}{% if stats_dict[cur_avg]["user"].avatar %}<img src="{{ avatar_url(stats_dict[cur_avg]["user"]) }}" alt="" onerror="this.remove()">{% endif %}</span>
 							<span class="who"><span class="name">{{ stats_dict[cur_avg]["user"].nickname }}</span></span>
 							<span class="v" style="color:{{ stats_dict[cur_avg]["user"].theme_color }};">{{ stats_dict[cur_avg]["avg"] }}</span>
 						</div>
@@ -134,7 +134,7 @@
 				</header>
 				<div class="card-body">
 					<div class="you-block">
-						<span class="ava-big" style="background:{{ g.user.theme_color }};">{{ g.user.nickname[0]|upper }}</span>
+						<span class="ava-big" style="background:{{ g.user.theme_color }};">{{ g.user.nickname[0]|upper }}{% if g.user.avatar %}<img src="{{ avatar_url(g.user) }}" alt="" onerror="this.remove()">{% endif %}</span>
 						<span class="col">
 							<span class="me">{{ g.user.nickname }}</span>
 							{% if g.show_type == "movie" %}
@@ -154,7 +154,7 @@
 						{% for cur_avg in stats_dict %}
 						{% if g.user.id != cur_avg %}
 						<div class="row">
-							<span class="ava" style="background:{{ stats_dict[cur_avg]["user"].theme_color }};">{{ stats_dict[cur_avg]["user"].nickname[0]|upper }}</span>
+							<span class="ava" style="background:{{ stats_dict[cur_avg]["user"].theme_color }};">{{ stats_dict[cur_avg]["user"].nickname[0]|upper }}{% if stats_dict[cur_avg]["user"].avatar %}<img src="{{ avatar_url(stats_dict[cur_avg]["user"]) }}" alt="" onerror="this.remove()">{% endif %}</span>
 							<span class="who">
 								<span class="name">{{ stats_dict[cur_avg]["user"].nickname }}</span>
 								{% if g.show_type == "movie" %}<span class="meta">{{ stats_dict[cur_avg]["shows_theaters"] }} ciné · {{ stats_dict[cur_avg]["shows_home"] }} maison</span>{% endif %}

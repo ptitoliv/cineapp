@@ -9,6 +9,7 @@ from cineapp.models import db, ChatMessage, User
 from cineapp.emails import chat_message_notification
 from cineapp.push import notification_send
 from cineapp.auth import guest_control
+from cineapp.utils import avatar_url
 from datetime import datetime, timedelta
 from sqlalchemy import desc
 from sqlalchemy.exc import IntegrityError
@@ -66,7 +67,7 @@ def transmit_message(message,notify=False):
 				print(e)
 
 	# Send the message
-	emit('message', { 'user': message.posted_by.nickname, 'date': message_date_formatted, 'avatar': message.posted_by.avatar, 'color': message.posted_by.theme_color, 'msg' : message.message }, broadcast=True)
+	emit('message', { 'user': message.posted_by.nickname, 'date': message_date_formatted, 'avatar': avatar_url(message.posted_by), 'color': message.posted_by.theme_color, 'msg' : message.message }, broadcast=True)
 
 @chat_bp.route('/chat')
 @login_required

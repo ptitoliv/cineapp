@@ -18,6 +18,7 @@ from cineapp.forms import SearchShowForm
 from cineapp.models import Movie, TVShow, VideoGame
 from cineapp.jinja_filters import date_format, minutes_to_human_duration
 from cineapp.jinja_testers import is_movie, is_tvshow, is_videogame
+from cineapp.utils import avatar_url
 from past.builtins import basestring
 
 lm = LoginManager()
@@ -65,6 +66,10 @@ def create_app(config_path=None):
     app.jinja_env.tests['movie'] = is_movie
     app.jinja_env.tests['tvshow'] = is_tvshow
     app.jinja_env.tests['videogame'] = is_videogame
+
+    # Register Jinja globals — avatar_url is the single URL builder shared by
+    # templates and Python code.
+    app.jinja_env.globals['avatar_url'] = avatar_url
 
 
     @app.context_processor

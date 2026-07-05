@@ -17,7 +17,7 @@ from cineapp.forms import LoginForm, AddUserForm, AddShowForm, MarkShowForm, Sea
 from cineapp.models import db, User, Show, Mark, Origin, Type, FavoriteShow, FavoriteType, PushNotification, Movie, TVShow, VideoGame
 from cineapp.tmvdb import search_shows,get_show,download_poster, search_page_number
 from cineapp.emails import add_show_notification, mark_show_notification, add_homework_notification, update_show_notification
-from cineapp.utils import frange, get_activity_list, humanize_when, resize_avatar
+from cineapp.utils import frange, get_activity_list, humanize_when, resize_avatar, avatar_url
 from cineapp.push import notification_unsubscribe
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
@@ -305,6 +305,7 @@ def update_activity_flow():
                                 "id": author.id if author else 0,
                                 "nickname": author.nickname if author else "CineBot",
                                 "theme_color": author.theme_color if author else "#1c1820",
+                                "avatar": avatar_url(author),
                         }
                         entry["show"] = {
                                 "id": show.id,
@@ -316,7 +317,7 @@ def update_activity_flow():
                 elif cur_activity["entry_type"] == "marks":
                         mark = cur_activity["object"]
 
-                        entry["user"] = { "id": mark.user.id, "nickname": mark.user.nickname, "theme_color": mark.user.theme_color }
+                        entry["user"] = { "id": mark.user.id, "nickname": mark.user.nickname, "theme_color": mark.user.theme_color, "avatar": avatar_url(mark.user) }
                         entry["show"] = {
                                 "id": mark.show_id,
                                 "name": mark.show.name,
@@ -332,7 +333,7 @@ def update_activity_flow():
                 elif cur_activity["entry_type"] == "homeworks":
                         m = cur_activity["object"]
 
-                        entry["user"] = { "id": m.homework_who_user.id, "nickname": m.homework_who_user.nickname, "theme_color": m.homework_who_user.theme_color }
+                        entry["user"] = { "id": m.homework_who_user.id, "nickname": m.homework_who_user.nickname, "theme_color": m.homework_who_user.theme_color, "avatar": avatar_url(m.homework_who_user) }
                         entry["show"] = {
                                 "id": m.show_id,
                                 "name": m.show.name,
@@ -344,7 +345,7 @@ def update_activity_flow():
                 elif cur_activity["entry_type"] == "comments":
                         com = cur_activity["object"]
 
-                        entry["user"] = { "id": com.user.id, "nickname": com.user.nickname, "theme_color": com.user.theme_color }
+                        entry["user"] = { "id": com.user.id, "nickname": com.user.nickname, "theme_color": com.user.theme_color, "avatar": avatar_url(com.user) }
                         entry["show"] = {
                                 "id": com.mark.show.id,
                                 "name": com.mark.show.name,
@@ -360,7 +361,7 @@ def update_activity_flow():
                 elif cur_activity["entry_type"] == "favorites":
                         fav = cur_activity["object"]
 
-                        entry["user"] = { "id": fav.user.id, "nickname": fav.user.nickname, "theme_color": fav.user.theme_color }
+                        entry["user"] = { "id": fav.user.id, "nickname": fav.user.nickname, "theme_color": fav.user.theme_color, "avatar": avatar_url(fav.user) }
                         entry["show"] = {
                                 "id": fav.show_id,
                                 "name": fav.show.name,

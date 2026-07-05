@@ -69,8 +69,13 @@ function activity_render_node(row) {
   var kind    = activity_kind(row);
   var color   = row.user.theme_color || "#1c1820";
   var initial = (row.user.nickname || "?").charAt(0).toUpperCase();
+  // Photo overlay covers the coloured initial once it loads ; onerror falls
+  // back to the initial (same contract as the server-rendered avatars).
+  var photo   = row.user.avatar
+              ? '<img src="' + escapeHtml(row.user.avatar) + '" alt="" onerror="this.remove()">'
+              : '';
   var avatar  = '<span class="act-av" style="background:' + escapeHtml(color) + ';">'
-              + escapeHtml(initial) + '</span>';
+              + escapeHtml(initial) + photo + '</span>';
   var when    = row.when ? '<span class="act-when">' + escapeHtml(row.when) + '</span>' : '';
 
   return '<article class="act-node">'

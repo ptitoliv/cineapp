@@ -312,13 +312,13 @@
   {% set can_comment = cur_mark["mark"] is not none and cur_mark["mark"] != "homework_in_progress" and not g.user.is_guest %}
   <article class="review user-{{ u.id }} is-collapsed" id="review_{{ u.id }}" data-user-id="{{ u.id }}">
     <header class="review-header">
-      <div class="avatar-large user-{{ u.id }}">{{ u.nickname[0]|upper }}{% if u.avatar %}<img src="{{ config.AVATARS_URL }}{{ u.avatar }}" alt="" onerror="this.remove()">{% endif %}</div>
+      <div class="avatar-large user-{{ u.id }}">{{ u.nickname[0]|upper }}{% if u.avatar %}<img src="{{ avatar_url(u) }}" alt="" onerror="this.remove()">{% endif %}</div>
 
       <div class="review-meta">
           <span class="review-name">{{ u.nickname }}</span>
           {% if cur_mark["homework_who"] %}
           <span class="review-devoir-ava user-{{ cur_mark["homework_who"].id }}" title="Devoir par {{ cur_mark["homework_who"].nickname }}" aria-label="Devoir donné par {{ cur_mark["homework_who"].nickname }}">
-            {{ cur_mark["homework_who"].nickname[0]|upper }}{% if cur_mark["homework_who"].avatar %}<img src="{{ config.AVATARS_URL }}{{ cur_mark["homework_who"].avatar }}" alt="" onerror="this.remove()">{% endif %}
+            {{ cur_mark["homework_who"].nickname[0]|upper }}{% if cur_mark["homework_who"].avatar %}<img src="{{ avatar_url(cur_mark["homework_who"]) }}" alt="" onerror="this.remove()">{% endif %}
             <span class="badge" aria-hidden="true">📝</span>
           </span>
           {% endif %}
@@ -381,7 +381,7 @@
       <div class="thread-list">
         {% for cur_comment in comments %}
         <div class="subcomment {% if cur_comment.user_id == g.user.id %}is-mine user-mine{% endif %} user-{{ cur_comment.user.id }}" id="media_comment_{{ cur_comment.markcomment_id }}">
-          <span class="ava">{{ cur_comment.user.nickname[0]|upper }}{% if cur_comment.user.avatar %}<img src="{{ config.AVATARS_URL }}{{ cur_comment.user.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
+          <span class="ava">{{ cur_comment.user.nickname[0]|upper }}{% if cur_comment.user.avatar %}<img src="{{ avatar_url(cur_comment.user) }}" alt="" onerror="this.remove()">{% endif %}</span>
           <div class="body comment_edit_group" id="comment_edit_group_{{ cur_comment.markcomment_id }}">
             <div class="meta">
               <span class="who">{{ cur_comment.user.nickname }}</span>
@@ -407,7 +407,7 @@
 
       {% if can_comment %}
       <div class="composer" id="comment_form_{{ u.id }}">
-        <span class="ava">{{ g.user.nickname[0]|upper }}{% if g.user.avatar %}<img src="{{ config.AVATARS_URL }}{{ g.user.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
+        <span class="ava">{{ g.user.nickname[0]|upper }}{% if g.user.avatar %}<img src="{{ avatar_url(g.user) }}" alt="" onerror="this.remove()">{% endif %}</span>
         <label class="composer-input">
           <input class="comment_text" type="text" placeholder="Réagir sur la note de {{ u.nickname }}…" id="comment_text_{{ u.id }}">
           <button type="button" class="send post_comment" id="comment_link_{{ u.id }}">↵ Envoyer</button>
@@ -493,7 +493,7 @@ $(document).ready(function() {
   function renderSubcomment(data) {
     var nick = data.user.nickname;
     var initial = nick.charAt(0).toUpperCase();
-    var avaSrc = data.user.avatar ? "{{ config.AVATARS_URL }}" + data.user.avatar : null;
+    var avaSrc = data.user.avatar || null;
     var avaImg = avaSrc ? '<img src="' + avaSrc + '" alt="" onerror="this.remove()">' : '';
     var isMine = data.user.id === {{ g.user.id if g.user.is_authenticated else 0 }};
     var safeMsg = String(data.mark_comment.message)

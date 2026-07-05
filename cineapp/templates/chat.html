@@ -30,7 +30,6 @@
 <script>
 $(document).ready(function () {
   var CURRENT_USER = {{ g.user.nickname|tojson }};
-  var AVATARS_URL  = {{ config.AVATARS_URL|tojson }};
 
   var $stream = $('#chat-stream');
   var lastUser = null;     // author of the current message group
@@ -62,7 +61,7 @@ $(document).ready(function () {
       if (!mine) {
         var initial = escapeHtml((data.user || '?').charAt(0).toUpperCase());
         var img = data.avatar
-          ? '<img src="' + escapeHtml(AVATARS_URL + data.avatar) + '" alt="" onerror="this.remove()">'
+          ? '<img src="' + escapeHtml(data.avatar) + '" alt="" onerror="this.remove()">'
           : '';
         avatar = '<span class="msg-avatar" style="background:' + colour + '">' + initial + img + '</span>';
       }

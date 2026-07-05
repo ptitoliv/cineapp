@@ -7,6 +7,7 @@ from flask import Blueprint, render_template, flash, redirect, url_for, g, reque
 from flask_login import login_required
 from cineapp.auth import guest_control
 from cineapp.models import User, MarkComment, Mark
+from cineapp.utils import avatar_url
 from datetime import datetime
 from .emails import mark_comment_notification
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
@@ -56,6 +57,10 @@ def add_mark_comment():
 
     # Build the dict we're going to send to the frontend
     data_dict = { "user": g.user.serialize(), "mark_comment": mark_comment.serialize(), "mark_comment_number": MarkComment.query.filter(MarkComment.mark_user_id==dest_user,MarkComment.mark_show_id==show_id,MarkComment.deleted_when==None).count()}
+
+    # serialize() carries the raw avatar filename ; expose the full URL instead
+    # so the frontend renders it directly (same contract as every avatar URL).
+    data_dict["user"]["avatar"] = avatar_url(g.user)
 
     # Format the date for JS display — must match the Jinja format used
     # by display_show.html for already-stored comments

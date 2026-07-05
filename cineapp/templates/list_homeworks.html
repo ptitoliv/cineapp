@@ -31,12 +31,12 @@
     </div>
     <div class="hw-transfer">
       <span class="hw-party">
-        <span class="hw-ava user-{{ giver.id }}">{{ giver.nickname[0]|upper }}{% if giver.avatar %}<img src="{{ config.AVATARS_URL }}{{ giver.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
+        <span class="hw-ava user-{{ giver.id }}">{{ giver.nickname[0]|upper }}{% if giver.avatar %}<img src="{{ avatar_url(giver) }}" alt="" onerror="this.remove()">{% endif %}</span>
         <span class="hw-name">{{ giver.nickname }}</span>
       </span>
       <span class="hw-arrow" aria-hidden="true"></span>
       <span class="hw-party">
-        <span class="hw-ava user-{{ receiver.id }}">{{ receiver.nickname[0]|upper }}{% if receiver.avatar %}<img src="{{ config.AVATARS_URL }}{{ receiver.avatar }}" alt="" onerror="this.remove()">{% endif %}</span>
+        <span class="hw-ava user-{{ receiver.id }}">{{ receiver.nickname[0]|upper }}{% if receiver.avatar %}<img src="{{ avatar_url(receiver) }}" alt="" onerror="this.remove()">{% endif %}</span>
         <span class="hw-name">{{ receiver.nickname }}</span>
       </span>
     </div>

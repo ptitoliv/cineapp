@@ -121,7 +121,7 @@
       <span class="ava">
         {{ g.user.nickname[0]|upper }}
         {% if not g.user.is_guest and g.user.avatar %}
-        <img src="{{ config.AVATARS_URL }}{{ g.user.avatar }}" alt="" onerror="this.remove()">
+        <img src="{{ avatar_url(g.user) }}" alt="" onerror="this.remove()">
         {% endif %}
       </span>
       <span id="topbar-username">{{ g.user.nickname }}</span>

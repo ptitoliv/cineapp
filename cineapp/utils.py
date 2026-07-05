@@ -107,9 +107,20 @@ def get_activity_list(start, length, show_type):
     # Return the filled object
     return object_dict
 
+def avatar_url(user):
+    """
+        Single source of truth for a user's avatar image URL. Returns the full
+        URL (AVATARS_URL + stored filename) or None when the user has no avatar,
+        so both Python payloads and templates build the URL the same way.
+        Exposed to Jinja as a global in create_app.
+    """
+    if user is None or not user.avatar:
+        return None
+    return current_app.config['AVATARS_URL'] + user.avatar
+
 def resize_avatar(avatar_path):
 
-    """ 
+    """
         Function that resizes the uploaded avatar to a correct avatar size
     """
     try:
