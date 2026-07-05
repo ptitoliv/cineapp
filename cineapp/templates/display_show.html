@@ -181,10 +181,10 @@
 
     {# ----- Synopsis ----- #}
     {% if show.overview %}
+    <p class="synopsis">{{ show.overview }}</p>
     {% if show.overview_translated %}
     <div class="synopsis-translated">Traduction via DeepL</div>
     {% endif %}
-    <p class="synopsis">{{ show.overview }}</p>
     {% endif %}
 
     {# ----- Action buttons (only in display mode) ----- #}
@@ -347,7 +347,7 @@
             <button type="submit" class="btn btn-solid">📝 Devoir</button>
           </form>
           {% else %}
-          <span class="score-empty">Pas notée</span>
+          <span class="score-empty">Pas de note</span>
           {% endif %}
         {% elif cur_mark["mark"] == "homework_in_progress" %}
           {% if cur_mark["homework_who"].id == g.user.id %}
