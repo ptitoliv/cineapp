@@ -2378,6 +2378,19 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   .title-row .title { text-align: center; }
   .title-row .original { margin-bottom: 0; text-align: center; }
   .title-row .fav-btn { border-left: 0; padding-left: 0; text-align: center; }
+  /* Favorite dropdown: the desktop 3-column max-content menu (~547px) is wider
+     than the phone and, anchored right:0 to a now-centred button, spilled off
+     the left edge with its options unreachable. Recentre it under the button
+     and constrain it to the viewport: 2 columns, "Aucun" spanning the top. */
+  .fav-menu {
+    grid-template-columns: repeat(2, 1fr);
+    width: min(calc(100vw - 32px), 340px);
+    left: 50%; right: auto;
+    transform: translateX(-50%) translateY(-4px);
+  }
+  .fav-btn.is-open .fav-menu { transform: translateX(-50%) translateY(0); }
+  .fav-menu a { min-width: 0; }
+  .fav-menu a.empty { grid-column: 1 / -1; }
   .reviews { padding: 20px 20px 60px; max-width: 100%; }
   /* Stack the head so neither the title nor the toggle wraps mid-word: title
      (slightly smaller, keeping "Toutes les notes · N sur M" on one line) then
