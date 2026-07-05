@@ -645,6 +645,10 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
         assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data) 
         
+        # --- Publish before any mark exists → flash + redirect, not a raw 404 ---
+        rv=self.client.post('/movie/mark/publish/1', follow_redirects=True)
+        assert "Aucune note" in rv.data.decode("utf-8")
+
         # --- Edge case: mark with non-numeric value (L74-75) ---
         rv=self.client.post('/movie/mark/1',data=dict(mark="abc",comment="cool",seen_where="C",submit_mark=1),follow_redirects=True)
         assert "Pas un chiffre" in rv.data.decode("utf-8")

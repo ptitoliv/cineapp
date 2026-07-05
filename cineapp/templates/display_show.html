@@ -198,7 +198,7 @@
       <a class="btn btn-solid" href="{{ url_for('show.mark_show', show_type=g.show_type, show_id_form=show.id) }}">
         {% if marked_flag %}Mettre à jour la note{% else %}{% if show is movie %}Noter ce film{% elif show is tvshow %}Noter cette série{% elif show is videogame %}Noter ce jeu vidéo{% endif %}{% endif %}
       </a>
-      {% if config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE and g.user.notifications["notif_slack"] %}
+      {% if marked_flag and config.SLACK_TOKEN and config.SLACK_NOTIFICATION_ENABLE and g.user.notifications["notif_slack"] %}
       <form method="post" action="{{ url_for('show.publish_mark', show_type=g.show_type, show_id=show.id) }}" style="display:inline;">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <button type="submit" class="btn btn-solid">↑ Publier sur Slack</button>

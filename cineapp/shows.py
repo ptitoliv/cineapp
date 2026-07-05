@@ -1098,9 +1098,13 @@ def display_show_random():
 @guest_control
 def publish_mark(show_id):
 
-        # Fetch the current comment for the logged user and send it on flask
-        # Let's do that only if there is a mark to send
-        mark = Mark.query.get_or_404((g.user.id,show_id))
+        # Fetch the current comment for the logged user and send it on flask.
+        # No mark to republish → flash a clear message and go back to the show
+        # instead of raising a raw 404 (the URL can be POSTed without a note).
+        mark = Mark.query.get((g.user.id,show_id))
+        if mark is None:
+                flash('Aucune note à publier sur cette œuvre','warning')
+                return redirect(url_for('show.display_show',show_type=g.show_type,show_id=show_id))
 
         # Convert the HTML content to text in order to have a nice display in the mail
         html_converter = html2text.HTML2Text()
