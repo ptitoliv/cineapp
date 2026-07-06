@@ -679,7 +679,12 @@ nav.menu a.active { font-weight: 500; }
 }
 .dt-layout-row.dt-layout-table .dt-layout-cell { padding: 0 !important; }
 .dt-layout-row.dt-layout-table { margin-left: 0; margin-right: 0; }
-.list { width: 100%; border-collapse: collapse; font-size: 14.5px; table-layout: fixed; }
+/* `separate` (not `collapse`) so the header's corner cells can carry a
+   border-radius: the table card uses `overflow: visible` (for the hover bubble),
+   so the grey header background must round its own top corners to follow the
+   card. border-spacing: 0 keeps the per-cell borders touching, identical to
+   collapse visually. */
+.list { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14.5px; table-layout: fixed; }
 
 /* user-grouped header (top row) */
 .list thead .users th {
@@ -689,6 +694,11 @@ nav.menu a.active { font-weight: 500; }
   vertical-align: bottom;
   text-align: center;
 }
+/* Round the header's outer top corners to match the table card (which can't use
+   overflow:hidden — it needs visible for the hover bubble). -1px = the card's
+   border width, so the fill sits just inside the rounded border. */
+.list thead .users th:first-child { border-top-left-radius: calc(var(--card-radius) - 1px); }
+.list thead .users th:last-child  { border-top-right-radius: calc(var(--card-radius) - 1px); }
 .list thead .users th .ulabel {
   display: flex; flex-direction: column; align-items: center; gap: 6px;
 }
@@ -762,7 +772,11 @@ nav.menu a.active { font-weight: 500; }
 .list tbody td.cell-fav { padding-left: 10px; }
 .list tbody tr { transition: background .15s; }
 .list tbody tr:hover { background: var(--paper-soft); }
-.list tbody tr:last-child td { border-bottom: 0; }
+/* border-bottom: 0 !important to beat DataTables' `.dt-container.dt-empty-footer
+   tbody > tr:last-child > *` (border rgba(0,0,0,.3), loaded after styles.css).
+   Applies to desktop AND the mobile card's data cells. The last card's
+   title/moyenne dividers are re-added in the mobile block below. */
+.list tbody tr:last-child td { border-bottom: 0 !important; }
 
 /* visual separator between user trios */
 .list tbody td.cell-fav { border-left: 1px solid var(--rule-soft); }
@@ -1282,6 +1296,12 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     font-size: 10px; letter-spacing: .14em;
     text-transform: uppercase; color: var(--ink-dim);
   }
+
+  /* The base `tr:last-child td { border-bottom: 0 !important }` (which neutralises
+     DataTables' last-row border) also strips the last card's title/moyenne
+     dividers — re-add them so the last card matches every other card. */
+  .list tbody tr:last-child td.t-title,
+  .list tbody tr:last-child td.t-avg { border-bottom: 1px solid var(--rule-soft) !important; }
 
   /* User row layout (cell-fav becomes user-row anchor with label) */
   .list tbody td.cell-fav {
