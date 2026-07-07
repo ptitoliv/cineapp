@@ -1647,7 +1647,11 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
    (no credit). */
 .synopsis:has(+ .synopsis-translated) { margin-bottom: 8px; }
 .synopsis-translated {
-  max-width: 64ch;
+  /* Match the synopsis box width so the right-aligned credit lines up with the
+     synopsis's right edge. `ch` scales with font-size, so 64ch at this 13px
+     credit would be narrower than 64ch at the 20px synopsis — scale it back up
+     by the font-size ratio (20/13) to get the same rendered width. */
+  max-width: calc(64ch * 20 / 13);
   padding-left: 26px;
   margin-bottom: 40px;
   font-family: var(--font-body);
