@@ -2613,26 +2613,39 @@ class FlaskrTestCase(unittest.TestCase):
             sub = PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/test-endpoint-123").first()
             assert sub is None
 
-        # --- Error case: DB error during subscribe (L30-32) ---
-        # Re-login and subscribe once, then subscribe again with a different endpoint
-        # The second subscribe will fail because session_id has a unique constraint
+        # --- Idempotent re-subscribe: the client resends its subscription on
+        #     every login, so re-posting the same endpoint must succeed and keep
+        #     a single row (no duplicate / no IntegrityError) ---
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
         assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
         rv=self.client.post('/notifications/subscribe', data=json.dumps(subscription_data), content_type='application/json')
-        response=json.loads(rv.data)
-        assert response["status"] == "success"
+        assert json.loads(rv.data)["status"] == "success"
 
-        subscription_data_duplicate = {
+        # Same subscription resent -> still success, still exactly one row
+        rv=self.client.post('/notifications/subscribe', data=json.dumps(subscription_data), content_type='application/json')
+        assert json.loads(rv.data)["status"] == "success"
+        with self.app.app_context():
+            assert PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/test-endpoint-123").count() == 1
+
+        # A new endpoint for the same session replaces the old one (unique session_id)
+        subscription_data_new = {
             "endpoint": "https://fcm.googleapis.com/fcm/send/test-endpoint-456",
             "keys": {
                 "p256dh": "another-public-key",
                 "auth": "another-auth-token"
             }
         }
-        rv=self.client.post('/notifications/subscribe', data=json.dumps(subscription_data_duplicate), content_type='application/json')
-        response=json.loads(rv.data)
-        assert response["status"] == "failure"
+        rv=self.client.post('/notifications/subscribe', data=json.dumps(subscription_data_new), content_type='application/json')
+        assert json.loads(rv.data)["status"] == "success"
+        with self.app.app_context():
+            assert PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/test-endpoint-123").first() is None
+            assert PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/test-endpoint-456").first() is not None
+
+        # --- Error case: DB error during subscribe returns failure (rollback path) ---
+        with patch('cineapp.push.db.session.commit', side_effect=Exception("DB store error")):
+            rv=self.client.post('/notifications/subscribe', data=json.dumps(subscription_data_new), content_type='application/json')
+            assert json.loads(rv.data)["status"] == "failure"
 
         # --- Error case: DB error during unsubscribe (L65-67) ---
         with patch('cineapp.push.db.session.commit', side_effect=Exception("DB delete error")):
@@ -2641,7 +2654,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Subscription should still be in DB since delete failed
         with self.app.app_context():
-            sub = PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/test-endpoint-123").first()
+            sub = PushNotification.query.filter_by(endpoint_id="https://fcm.googleapis.com/fcm/send/test-endpoint-456").first()
             assert sub is not None
 
             # Clean up manually

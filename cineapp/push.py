@@ -18,18 +18,42 @@ def notification_subscribe():
     subscription = request.get_json()
     app.logger.info('User id: %s, Subscription data: %s' % (g.user.id,subscription))
 
-    # Let's register the subscription message into the database
-    push_notification = PushNotification(endpoint_id=subscription["endpoint"], public_key=subscription["keys"]["p256dh"], auth_token=subscription["keys"]["auth"], session_id=session.sid, user_id=g.user.id)
+    endpoint = subscription["endpoint"]
 
-    # Store the subscription data into database
+    # The client resends its subscription on every login to make sure it stays
+    # registered, so this endpoint must be idempotent. endpoint_id is the PK and
+    # session_id is unique, so we upsert on the endpoint and first drop any stale
+    # row that would collide on the current session's unique session_id (i.e. a
+    # different endpoint previously registered for this same session).
     try:
-        db.session.add(push_notification)
+        PushNotification.query.filter(
+            PushNotification.session_id == session.sid,
+            PushNotification.endpoint_id != endpoint,
+        ).delete()
+
+        # Check if a notification exists
+        push_notification = PushNotification.query.get(endpoint)
+
+        if push_notification is None:
+
+            # Push notification doesn't exist ==> Let's create it
+            push_notification = PushNotification(endpoint_id=endpoint)
+            db.session.add(push_notification)
+
+        # The Push notification now exists (Created or already existing)
+        # Update with the missing values
+        push_notification.public_key = subscription["keys"]["p256dh"]
+        push_notification.auth_token = subscription["keys"]["auth"]
+        push_notification.session_id = session.sid
+        push_notification.user_id = g.user.id
+
         db.session.commit()
         app.logger.info('User subscription correctly stored into database')
     except Exception as e:
+        db.session.rollback()
         app.logger.error('Unable to store subscription user in database %s', repr(e))
         return jsonify({ "status": "failure", "message": u"Unable to store subscription object into database" })
-    
+
     return jsonify({ "status": "success", "message": u"Endpoint enregistray" })
 
 def notification_send(subscriptions,chat_url,chat_message):

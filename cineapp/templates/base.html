@@ -236,9 +236,11 @@ if ('serviceWorker' in navigator && 'PushManager' in window) {
       console.log('Service Worker is registered', swReg);
       swReg.update();
       swReg.pushManager.getSubscription().then(function (subscription) {
-        const isSubscribed = !(subscription === null);
-        if (isSubscribed) {
-          console.log('User IS already subscribed - Do nothing.');
+        if (subscription) {
+          // Already subscribed: resend it to the server on every login so the
+          // registration is always refreshed and we are sure to stay reachable.
+          console.log('User IS already subscribed - refreshing registration on the server');
+          updateSubscriptionOnServer(subscription);
         } else {
           console.log('User is NOT subscribed - Lets subscribe him');
           subscribeUser(swReg);

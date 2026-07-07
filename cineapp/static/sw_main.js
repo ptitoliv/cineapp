@@ -21,9 +21,6 @@
 
 'use strict';
 
-let isSubscribed = false;
-let swRegistration = null;
-
 function urlB64ToUint8Array(base64String) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4);
   const base64 = (base64String + padding)
@@ -39,26 +36,6 @@ function urlB64ToUint8Array(base64String) {
   return outputArray;
 }
 
-function initialiseUI() {
-  pushButton.addEventListener('click', function() {
-    pushButton.disabled = true;
-  });
-
-  // Set the initial subscription value
-  swRegistration.pushManager.getSubscription()
-  .then(function(subscription) {
-    isSubscribed = !(subscription === null);
-
-    if (isSubscribed) {
-      console.log('User IS subscribed.');
-    } else {
-      console.log('User is NOT subscribed.');
-    }
-
-    updateBtn();
-  });
-}
-
 function subscribeUser(swRegistration) {
   const applicationServerKey = urlB64ToUint8Array(applicationServerPublicKey);
   swRegistration.pushManager.subscribe({
@@ -67,10 +44,7 @@ function subscribeUser(swRegistration) {
   })
   .then(function(subscription) {
     console.log('User is subscribed.');
-
     updateSubscriptionOnServer(subscription);
-    isSubscribed = true;
-
   })
   .catch(function(err) {
     console.log('Failed to subscribe the user: ', err);
@@ -89,28 +63,25 @@ function unsubscribeUser(swRegistration) {
   })
   .then(function() {
     updateSubscriptionOnServer(null);
-
     console.log('User is unsubscribed.');
-    isSubscribed = false;
   });
 }
 
 function updateSubscriptionOnServer(subscription) {
-
-  if (subscription) {
-   	console.log("Sending subscription " + subscription + "to the server");
-	$.ajax({
-	  url:"/notifications/subscribe",
-	  type:"POST",
-	  data: JSON.stringify(subscription),
-	  contentType:"application/json; charset=utf-8",
-	  dataType:"json",
-	  success: function(){
-		console.log("Subscription sucessfully sent")
-	  }
-})
-  } else {
-	console.log("No subscription detected");
+  if (!subscription) {
+    console.log('No subscription to send to the server');
+    return;
   }
-}
 
+  console.log('Sending subscription to the server');
+  $.ajax({
+    url: '/notifications/subscribe',
+    type: 'POST',
+    data: JSON.stringify(subscription),
+    contentType: 'application/json; charset=utf-8',
+    dataType: 'json',
+    success: function() {
+      console.log('Subscription successfully sent');
+    }
+  });
+}
