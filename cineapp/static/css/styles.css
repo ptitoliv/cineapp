@@ -1601,7 +1601,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   font-weight: 900;
 }
 .byline > div { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.byline label { color: var(--ink-dim); font-weight: 900; display: inline-flex; align-items: center; gap: 7px; }
+.byline label { color: var(--ink-dim); font-weight: 900; font-size: 11px; display: inline-flex; align-items: center; gap: 7px; }
 .byline label i { font-size: 11px; opacity: .8; }
 .byline value {
   color: var(--ink);
@@ -1614,7 +1614,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 .byline value a:hover { text-decoration: underline; }
 .byline value .sep { color: var(--ink-dim); margin: 0 .35em; font-weight: 400; }
 .byline .pill-status {
-  display: inline-block; padding: 3px 12px;
+  display: inline-block; padding: 3px 12px; text-align: center;
   border-radius: 999px; font-size: 12px;
   font-family: var(--font-ui); font-weight: 900;
   letter-spacing: .06em; text-transform: uppercase;
