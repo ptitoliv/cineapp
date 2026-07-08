@@ -10,6 +10,13 @@ Nom {{ g.messages["label_generic_possessive"] }}: {{ notif["old"]["name"] }}
 Nom original: {{ notif["old"]["original_name"] }}
 {{ g.messages["label_director"] }}: {{ notif["old"]["director"] }}
 {%- if g.show_type=="videogame" %}
+Éditeur: {{ notif["old"]["publisher"] }}
+{%- else %}
+{{ g.messages["label_release_date"] }}: {{ notif["old"]["release_date"]|date_format("%d/%m/%Y") }}
+{%- endif %}
+Genre: {{ notif["old"]["type"] }}
+Origine: {{ notif["old"]["origin"] }}
+{%- if g.show_type=="videogame" %}
 {{ g.messages["label_release_date"] }}:
 {%- if notif["old"]["release_dates"] %}
 {% for rd in notif["old"]["release_dates"]|sort(attribute='release_date')|sort(attribute='priority', reverse=true) %}{% if loop.changed(rd["region"]) %}  - {{ rd["region"] or "Inconnue" }}:
@@ -17,19 +24,13 @@ Nom original: {{ notif["old"]["original_name"] }}
 {% endfor %}
 {%- else %} Aucune
 {% endif %}
-{%- else %}
-{{ g.messages["label_release_date"] }}: {{ notif["old"]["release_date"]|date_format("%d/%m/%Y") }}
 {%- endif %}
-Genre: {{ notif["old"]["type"] }}
-Origine: {{ notif["old"]["origin"] }}
 {%- if g.show_type=="movie" %}
 Durée: {% if notif["old"]["duration"] %}{{ notif["old"]["duration"]|minutes_to_human_duration }}{% else %}Inconnue{% endif %}
 {% elif g.show_type=="tvshow" %}
 Nombre de saisons: {{ notif["old"]["nb_seasons"] }}
 Production: {{ notif["old"]["production_status"] }}
 {% elif g.show_type=="videogame" %}
-Plateformes: {{ notif["old"]["platforms"] }}
-Éditeur: {{ notif["old"]["publisher"] }}
 {% endif -%}
 Résumé: {% if notif["old"]["overview"] %}{{ notif["old"]["overview"] }}{% else %}Néant{% endif %}
 
@@ -39,6 +40,13 @@ Nom {{ g.messages["label_generic_possessive"] }}: {{ notif["new"]["name"] }}
 Nom original: {{ notif["new"]["original_name"] }}
 {{ g.messages["label_director"] }}: {{ notif["new"]["director"] }}
 {%- if g.show_type=="videogame" %}
+Éditeur: {{ notif["new"]["publisher"] }}
+{%- else %}
+{{ g.messages["label_release_date"] }}: {{ notif["new"]["release_date"]|date_format("%d/%m/%Y") }}
+{%- endif %}
+Genre: {{ notif["new"]["type"] }}
+Origine: {{ notif["new"]["origin"] }}
+{%- if g.show_type=="videogame" %}
 {{ g.messages["label_release_date"] }}:
 {%- if notif["new"]["release_dates"] %}
 {% for rd in notif["new"]["release_dates"]|sort(attribute='release_date')|sort(attribute='priority', reverse=true) %}{% if loop.changed(rd["region"]) %}  - {{ rd["region"] or "Inconnue" }}:
@@ -46,19 +54,13 @@ Nom original: {{ notif["new"]["original_name"] }}
 {% endfor %}
 {%- else %} Aucune
 {% endif %}
-{%- else %}
-{{ g.messages["label_release_date"] }}: {{ notif["new"]["release_date"]|date_format("%d/%m/%Y") }}
 {%- endif %}
-Genre: {{ notif["new"]["type"] }}
-Origine: {{ notif["new"]["origin"] }}
 {%- if g.show_type=="movie" %}
 Durée: {% if notif["new"]["duration"] %}{{ notif["new"]["duration"]|minutes_to_human_duration }}{% else %}Inconnue{% endif %}
 {% elif g.show_type=="tvshow" %}
 Nombre de saisons: {{ notif["new"]["nb_seasons"] }}
 Production: {{ notif["new"]["production_status"] }}
 {% elif g.show_type=="videogame" %}
-Plateformes: {{ notif["new"]["platforms"] }}
-Éditeur: {{ notif["new"]["publisher"] }}
 {% endif -%}
 Résumé: {% if notif["new"]["overview"] %}{{ notif["new"]["overview"] }}{% else %}Néant{% endif %}
 
