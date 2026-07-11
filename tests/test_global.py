@@ -2430,6 +2430,45 @@ class FlaskrTestCase(unittest.TestCase):
         response_args=json.loads(rv.data)["data"]
         assert len(response_args) > 0
 
+        # --- Regression: an FTS query containing an InnoDB stopword ("the") must
+        # still return results. Add the real "The Last of Us" through the IGDB
+        # search+confirm flow, then search its full title; without stopword
+        # filtering the mandatory "+the" matches nothing (the is a default InnoDB
+        # stopword) so the search wrongly returned 0 rows. ---
+        rv=self.client.post('/videogame/add/select',data=dict(search="The Last of Us",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
+        igdb_id_tlou=None
+        for cur_show in list_shows:
+            if "Last of Us" in cur_show.text:
+                radio = cur_show.find('input', {'type': 'radio'})
+                if radio:
+                    igdb_id_tlou = radio['value']
+                break
+        assert igdb_id_tlou is not None
+
+        rv=self.client.post('/videogame/add/confirm',data=dict(show_id=igdb_id_tlou,origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+        assert "Jeu vidéo ajouté" in rv.data.decode("utf-8")
+
+        with self.app.app_context():
+            tlou = VideoGame.query.filter_by(external_id=int(igdb_id_tlou), external_source="igdb").first()
+            assert tlou is not None
+            tlou_name = tlou.name
+
+        rv=self.client.post('/filter',data=dict(search="The Last of Us",submit_search=True),follow_redirects=True)
+        assert rv.status_code == 200
+        rv=self.client.post('/videogame/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        response_args=json.loads(rv.data)["data"]
+        names=[r["name"] for r in response_args]
+        assert tlou_name in names, \
+            "FTS stopword regression: 'The Last of Us' search returned %r" % names
+
+        # Remove the game so later videogame/graph tests are unaffected.
+        with self.app.app_context():
+            tlou = VideoGame.query.filter_by(external_id=int(igdb_id_tlou), external_source="igdb").first()
+            db.session.delete(tlou)
+            db.session.commit()
+
         # --- Reset list ---
         rv=self.client.get('/reset', follow_redirects=True)
         assert rv.status_code == 200

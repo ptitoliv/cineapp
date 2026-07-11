@@ -175,12 +175,25 @@ def is_allowed_image(fp):
     except Exception:
         return False
 
+# MariaDB/InnoDB default fulltext stopwords. A mandatory '+stopword' never
+# matches (stopwords are not indexed), so keeping one would make a search like
+# "The Last of Us" return nothing. Mirrors information_schema.INNODB_FT_DEFAULT_STOPWORD.
+FTS_STOPWORDS = frozenset({
+    'a', 'about', 'an', 'are', 'as', 'at', 'be', 'by', 'com', 'de', 'en',
+    'for', 'from', 'how', 'i', 'in', 'is', 'it', 'la', 'of', 'on', 'or',
+    'that', 'the', 'this', 'to', 'was', 'what', 'when', 'where', 'who',
+    'will', 'with', 'und', 'www',
+})
+
 def fts_boolean_query(raw):
     """
         Turn a user-supplied search string into a MariaDB FTS boolean-mode
         query with implicit AND: each token becomes mandatory ('+token').
-        Tokens shorter than 3 chars are dropped (innodb_ft_min_token_size=3)
-        and FTS-reserved operators (+, -, *, ", (, ), ~, @, <, >) are stripped.
+        Tokens shorter than 3 chars are dropped (innodb_ft_min_token_size=3),
+        InnoDB fulltext stopwords are dropped (a mandatory '+stopword' never
+        matches), and FTS-reserved operators (+, -, *, ", (, ), ~, @, <, >) are
+        stripped.
     """
-    tokens = [t for t in re.findall(r'\w+', raw or '', flags=re.UNICODE) if len(t) >= 3]
+    tokens = [t for t in re.findall(r'\w+', raw or '', flags=re.UNICODE)
+              if len(t) >= 3 and t.lower() not in FTS_STOPWORDS]
     return ' '.join('+%s' % t for t in tokens)
