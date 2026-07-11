@@ -3,7 +3,7 @@ from __future__ import print_function
 from builtins import str
 import json, os, time, requests, deepl
 from io import BytesIO
-from datetime import datetime
+from datetime import datetime, timezone
 from igdb.wrapper import IGDBWrapper
 from sqlalchemy.orm.attributes import set_committed_value
 from cineapp.models import VideoGame, VideoGameReleaseDate, Region
@@ -314,6 +314,16 @@ def get_game(external_id):
     release_platform_by_date = {}
     for rd in game.get("release_dates", []) or []:
         cur_release_date = rd.get("date")
+
+        # IGDB has no date for this platform release: force it to the 9999-12-31
+        # sentinel timestamp (release_date is part of the NOT NULL primary key,
+        # so it can't stay empty). Keeping it a timestamp means the conversion
+        # below handles it like any other date. It's displayed as "Inconnu" and,
+        # being far in the future, sorts after every real date (the earliest real
+        # one stays "Première mondiale").
+        if cur_release_date is None:
+            cur_release_date = datetime(9999, 12, 31, tzinfo=timezone.utc).timestamp()
+
         if cur_release_date not in release_platform_by_date:
             release_platform_by_date[cur_release_date] = {}
 

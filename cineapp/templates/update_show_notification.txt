@@ -17,10 +17,11 @@ Nom original: {{ notif["old"]["original_name"] }}
 Genre: {{ notif["old"]["type"] }}
 Origine: {{ notif["old"]["origin"] }}
 {%- if g.show_type=="videogame" %}
+Première mondiale: {{ notif["old"]["release_date"]|date_format("%d/%m/%Y") if notif["old"]["release_date"] else "Inconnu" }}
 {{ g.messages["label_release_date"] }}:
 {%- if notif["old"]["release_dates"] %}
 {% for rd in notif["old"]["release_dates"]|sort(attribute='release_date')|sort(attribute='priority', reverse=true) %}{% if loop.changed(rd["region"]) %}  - {{ rd["region"] or "Inconnue" }}:
-{% endif %}      {{ rd["release_date"]|date_format("%d/%m/%Y") or "Inconnue" }}{% if rd["release_platform"] %} — {{ rd["release_platform"] }}{% endif %}
+{% endif %}      {{ rd["release_date"]|date_format("%d/%m/%Y") if rd["release_date"] and rd["release_date"].year != 9999 else "Inconnue" }}{% if rd["release_platform"] %} — {{ rd["release_platform"] }}{% endif %}
 {% endfor %}
 {%- else %} Aucune
 {% endif %}
@@ -47,10 +48,11 @@ Nom original: {{ notif["new"]["original_name"] }}
 Genre: {{ notif["new"]["type"] }}
 Origine: {{ notif["new"]["origin"] }}
 {%- if g.show_type=="videogame" %}
+Première mondiale: {{ notif["new"]["release_date"]|date_format("%d/%m/%Y") if notif["new"]["release_date"] else "Inconnu" }}
 {{ g.messages["label_release_date"] }}:
 {%- if notif["new"]["release_dates"] %}
 {% for rd in notif["new"]["release_dates"]|sort(attribute='release_date')|sort(attribute='priority', reverse=true) %}{% if loop.changed(rd["region"]) %}  - {{ rd["region"] or "Inconnue" }}:
-{% endif %}      {{ rd["release_date"]|date_format("%d/%m/%Y") or "Inconnue" }}{% if rd["release_platform"] %} — {{ rd["release_platform"] }}{% endif %}
+{% endif %}      {{ rd["release_date"]|date_format("%d/%m/%Y") if rd["release_date"] and rd["release_date"].year != 9999 else "Inconnue" }}{% if rd["release_platform"] %} — {{ rd["release_platform"] }}{% endif %}
 {% endfor %}
 {%- else %} Aucune
 {% endif %}

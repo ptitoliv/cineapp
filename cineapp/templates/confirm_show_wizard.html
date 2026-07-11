@@ -97,10 +97,9 @@
         <h3>Sorties par région</h3>
         <span class="releases-meta">{{ show.release_dates|length }} sortie{{ 's' if show.release_dates|length > 1 else '' }}</span>
       </div>
-      {% set premiere = show.release_dates|sort(attribute='release_date')|first %}
       <div class="releases-premiere">
         <span class="premiere-eyebrow">★ Première mondiale</span>
-        <span class="premiere-date">{{ premiere.release_date|date_format("%d %B %Y") if premiere.release_date else 'Date inconnue' }}</span>
+        <span class="premiere-date">{{ show.release_date|date_format("%d %B %Y") if show.release_date else 'Inconnu' }}</span>
       </div>
       <table class="releases-table">
         <thead>
@@ -109,7 +108,7 @@
         <tbody>
           {% for rd in show.release_dates|sort(attribute='release_date') %}
           <tr>
-            <td class="rt-date">{{ rd.release_date|date_format("%d %b %Y") if rd.release_date else 'Date inconnue' }}</td>
+            <td class="rt-date">{{ rd.release_date|date_format("%d %b %Y") if rd.release_date and rd.release_date.year != 9999 else 'Inconnu' }}</td>
             <td class="rt-region">{% if rd.region.flag_code %}<span class="fi fi-{{ rd.region.flag_code }}"></span>{% endif %}{{ rd.region.region_translated_name }}</td>
             <td class="rt-platforms">{{ rd.release_platform|replace(',', ', ') if rd.release_platform else '—' }}</td>
           </tr>
