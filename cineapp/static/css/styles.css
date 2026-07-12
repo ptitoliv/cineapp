@@ -1131,6 +1131,12 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   .list-wrap.has-me .list thead .cols th:nth-child(5),
   .list-wrap.has-me .list tbody td:nth-child(5) { position: sticky; left: 635px; z-index: 4; }
 
+  /* Lift the current user's rating cell (frozen, z-index 4) above the sticky
+     header (z 20) while hovering, so its comment bubble — trapped in the cell's
+     sticky stacking context — paints on top instead of being clipped behind the
+     header. Pure :hover, in sync with the bubble's own :hover visibility. */
+  .list-wrap.has-me .list tbody td:nth-child(4):hover { z-index: 60; }
+
   /* opaque fills so the scrolling columns don't show through Titre / Moyenne
      (their header cells already have an opaque fill; body cells don't — the
      personal trio's opaque fill comes from the tint rule in list_shows.html). */
@@ -2884,12 +2890,25 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 }
 .dash .others {
   display: flex; flex-direction: column;
+  /* Show exactly 3 rows, then scroll vertically for the rest. The scrollbar
+     only appears when there are more than 3 others (a shorter list stays under
+     max-height). --row-h is the uniform row height set on .row below. */
+  --row-h: 65px;
+  max-height: calc(var(--row-h) * 3);
+  overflow-y: auto;
+  padding-right: 14px;   /* gap between the value column and the scrollbar */
+  scrollbar-width: thin;
 }
+.dash .others::-webkit-scrollbar { width: 6px; }
+.dash .others::-webkit-scrollbar-thumb { background: var(--rule); border-radius: 3px; }
 .dash .others .row {
   display: grid; grid-template-columns: 34px 1fr auto;
   gap: 12px; align-items: center;
   padding: 12px 0;
   border-bottom: 1px dashed var(--rule-soft);
+  /* Uniform height so "3 rows" is exact in every panel and show type — the Vus
+     panel's ciné/maison meta line makes movie rows the tallest (65px). */
+  min-height: var(--row-h); flex-shrink: 0;
 }
 .dash .others .row:last-child { border-bottom: 0; }
 .dash .others .row .ava {
