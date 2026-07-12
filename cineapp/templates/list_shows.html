@@ -7,32 +7,39 @@
 {% block content %}
 <style>
 /* ==========================================================================
-   list_shows.html — runtime per-user color rules
-   The static styles for this page live in static/css/styles.css
-   under the [LIST_SHOWS] section. Only the rules that depend on User.id
-   (and therefore can't be in a static stylesheet) are emitted here.
+   list_shows.html — runtime values only
+   The static styles for this page live in static/css/styles.css under the
+   [LIST_SHOWS] section. This block emits ONLY what a static stylesheet cannot
+   know: the table width (scales with the user count), each user's theme colour
+   (bound to --u, consumed by the static rules), and the current user's tint.
    ========================================================================== */
-/* Table min-width floor, scaled to the number of user columns, so the
-   intermediate-width band (921–1280px) scrolls horizontally instead of
-   compressing columns below their header width (see [LIST_SHOWS] band rule). */
-.list-wrap { --list-min-width: {{ 370 + (users|length) * 250 }}px; }
-{% for cu in users %}
-{% set color = cu.theme_color %}
-.cell-mark-val.user-{{ cu.id }},
-.list thead .users th.user-{{ cu.id }} .uname,
-.list tbody td.cell-fav.user-{{ cu.id }}::before,
-.mob-sort-row.user-{{ cu.id }} .mob-sort-rowlabel { color: {{ color }}; }
-.list thead .users th.user-{{ cu.id }} .ava,
-.sort-pill.user-{{ cu.id }} .ava,
-.mob-sort-row.user-{{ cu.id }} .ava { background: {{ color }}; }
-.sort-pill.is-active.user-{{ cu.id }} { background: {{ color }}; border-color: {{ color }}; color: var(--paper-card); }
+/* Intrinsic table width = the two fixed columns (Titre 400 + Moy 88 = 488px)
+   plus one 220px trio (Fav 52 + Note 95 + Date 73) per user. Widths are tuned
+   so the frozen panel (Titre + Moy + your trio = 708px) plus exactly 3 other
+   users (3 × 220 = 660px) fill the 1368px visible window with no 4th column
+   peeking; the remaining users are reached by scrolling the card right (see the
+   [LIST_SHOWS] scroll/freeze rule). Must stay in sync with the px `width`
+   options in the DataTables columns config below. */
+.list-wrap { --list-min-width: {{ 488 + (users|length) * 220 }}px; }
+/* Bind each user's colour to --u; all the coloured rules that read it are static
+   (see the [LIST_SHOWS] "Per-user colour" block in styles.css). */
+{% for cu in users %}.user-{{ cu.id }} { --u: {{ cu.theme_color }}; }
 {% endfor %}
 {% if not g.user.is_guest %}
 /* Very light tint on the current user's columns (Fav / Note / Date),
-   derived from User.theme_color + 14 alpha hex (~8%). */
-.list thead .users th.user-{{ g.user.id }},
+   derived from User.theme_color + 14 alpha hex (~8%). The tint is painted as a
+   background-image over an opaque background-color so these cells stay opaque:
+   they belong to the frozen left panel and must not let the scrolling columns
+   show through the translucent tint. Opaque base = each row's own fill. */
+.list thead .users th.user-{{ g.user.id }} {
+  background-color: var(--paper-soft);
+  background-image: linear-gradient({{ g.user.theme_color }}14, {{ g.user.theme_color }}14);
+}
 .list thead .cols th.my-col,
-.list tbody td.my-col { background: {{ g.user.theme_color }}14; }
+.list tbody td.my-col {
+  background-color: var(--paper-card);
+  background-image: linear-gradient({{ g.user.theme_color }}14, {{ g.user.theme_color }}14);
+}
 /* Mobile: tint the user ROW (structural rules live in styles.css). */
 @media (max-width: 920px) {
   .list tbody td.cell-fav.my-col::after { background: {{ g.user.theme_color }}14; }
@@ -108,7 +115,7 @@
   {% endfor %}
 </section>
 
-<section class="list-wrap">
+<section class="list-wrap{% if not g.user.is_guest %} has-me{% endif %}">
     <table class="list" id="showslist" width="100%">
       <thead>
         <tr class="users">
@@ -263,26 +270,28 @@ $(document).ready(function() {
 
   // Build the columns config dynamically — same data shape as legacy.
   // Director is shown inside the title cell (.tdir) so we don't render a separate column.
+  // Column widths come from the <colgroup> above (not from JS), so the sticky
+  // header mirror inherits them by cloning that colgroup — no runtime width sync.
   var columns = [
-    { data: 'name', className: 't-title', width: '32%', render: renderTitle },
-    { data: 'average', className: 't-avg', width: '8%', orderable: true, render: renderAvg },
+    { data: 'name', className: 't-title', render: renderTitle },
+    { data: 'average', className: 't-avg', orderable: true, render: renderAvg },
     {% if not g.user.is_guest %}
-    { data: 'my_fav', className: 'cell-fav my-col user-mine user-{{ g.user.id }}', width: '4%', orderable: true,
+    { data: 'my_fav', className: 'cell-fav my-col user-mine user-{{ g.user.id }}', orderable: true,
       render: function (data, type, row) { return renderFavStar(row.my_fav); },
       createdCell: function (td) { td.setAttribute('data-user', {{ g.user.nickname | tojson }}); }
     },
-    { data: 'my_mark', className: 'cell-mark my-col', width: '7%', render: renderMyMark },
-    { data: 'my_when', className: 'cell-when my-col', width: '4%', render: renderMyWhen },
+    { data: 'my_mark', className: 'cell-mark my-col', render: renderMyMark },
+    { data: 'my_when', className: 'cell-when my-col', render: renderMyWhen },
     {% endif %}
     {% for cur_user in users %}{% if g.user.id != cur_user.id %}
-    { data: 'other_favs.{{ cur_user.id }}', className: 'cell-fav user-{{ cur_user.id }}', width: '4%', orderable: true,
+    { data: 'other_favs.{{ cur_user.id }}', className: 'cell-fav user-{{ cur_user.id }}', orderable: true,
       render: renderOtherFav({{ cur_user.id }}),
       createdCell: function (td) { td.setAttribute('data-user', {{ cur_user.nickname | tojson }}); }
     },
-    { data: 'other_marks.{{ cur_user.id }}', className: 'cell-mark', width: '7%',
+    { data: 'other_marks.{{ cur_user.id }}', className: 'cell-mark',
       render: renderOtherMark({{ cur_user.id }}, userClass({{ cur_user.id }}))
     },
-    { data: 'other_when.{{ cur_user.id }}', className: 'cell-when', width: '4%',
+    { data: 'other_when.{{ cur_user.id }}', className: 'cell-when',
       render: renderOtherWhen({{ cur_user.id }})
     },
     {% endif %}{% endfor %}
@@ -377,6 +386,58 @@ $(document).ready(function() {
     bubble.style.top = below ? (cell.bottom + 10) + 'px'
                              : (cell.top - bubbleH - 10) + 'px';
   });
+
+  // Sticky header (desktop). The table card is an overflow-x scroller, so a plain
+  // position:sticky on the real header can't pin to the viewport (it resolves
+  // against the card, which scrolls away with the page). Instead we mirror the
+  // header — the colgroup (for the fixed column widths) and the thead — into a
+  // bar placed just above the table body; the real header is hidden in CSS. The
+  // bar is always visible (so its horizontal scrollbar is reachable from the top
+  // of the page) and sticks under the site top bar on scroll. See the
+  // .list-stickyhead rule in styles.css ([LIST_SHOWS]).
+  (function initStickyHead() {
+    var card = document.querySelector('.dt-layout-row.dt-layout-table');
+    var real = document.getElementById('showslist');
+    if (!card || !real || !real.tHead) return;
+
+    // The site top bar is itself sticky (top:0) — pin ours just below it.
+    var topbar = document.querySelector('header.topbar');
+    function topOffset() { return topbar ? topbar.offsetHeight : 0; }
+
+    var bar = document.createElement('div');
+    bar.className = 'list-stickyhead';
+    bar.style.top = topOffset() + 'px';
+    var clone = document.createElement('table');
+    clone.className = real.className + ' list-stickyhead-table';
+    var colgroup = real.querySelector('colgroup');
+    if (colgroup) clone.appendChild(colgroup.cloneNode(true));
+    clone.appendChild(real.tHead.cloneNode(true));
+    bar.appendChild(clone);
+    card.parentNode.insertBefore(bar, card);
+
+    // The <th> in both headers are stable across server-side redraws (DataTables
+    // only re-renders the body), so query each set once and reuse it.
+    var realCols = real.tHead.querySelectorAll('tr.cols th');
+    var cloneCols = clone.tHead.querySelectorAll('tr.cols th');
+
+    // Keep the sort indicators in sync (real -> clone) and let a click on a
+    // mirrored header sort the matching real column.
+    function syncSort() {
+      cloneCols.forEach(function (th, i) { if (realCols[i]) th.className = realCols[i].className; });
+    }
+    table.on('order.dt draw.dt', syncSort);
+    syncSort();
+    cloneCols.forEach(function (th, i) {
+      th.addEventListener('click', function () { if (realCols[i]) realCols[i].click(); });
+    });
+
+    // Keep the mirror's horizontal scroll in sync with the table card both ways.
+    var lock = false;
+    function sync(from, to) { if (lock) return; lock = true; to.scrollLeft = from.scrollLeft; lock = false; }
+    card.addEventListener('scroll', function () { sync(card, bar); });
+    bar.addEventListener('scroll', function () { sync(bar, card); });
+    window.addEventListener('resize', function () { bar.style.top = topOffset() + 'px'; });
+  })();
 });
 </script>
 {% endblock %}

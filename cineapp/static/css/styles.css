@@ -686,6 +686,27 @@ nav.menu a.active { font-weight: 500; }
    collapse visually. */
 .list { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14.5px; table-layout: fixed; }
 
+/* Column widths (px) for the fixed layout — set on DataTables' generated
+   <colgroup> so no width is passed in JS, and so the sticky-header mirror (which
+   clones that colgroup, see list_shows.html) inherits them for free. Pattern:
+   Titre 400 · Moy 88, then a Fav 52 · Note 95 · Date 73 trio per user. These
+   must match the frozen sticky offsets and --list-min-width. */
+.list-wrap .list > colgroup > col:nth-child(3n)   { width: 52px; }  /* Fav  */
+.list-wrap .list > colgroup > col:nth-child(3n+1) { width: 95px; }  /* Note */
+.list-wrap .list > colgroup > col:nth-child(3n+2) { width: 73px; }  /* Date */
+.list-wrap .list > colgroup > col:nth-child(1)    { width: 400px; } /* Titre (overrides 3n+1) */
+.list-wrap .list > colgroup > col:nth-child(2)    { width: 88px; }  /* Moy   (overrides 3n+2) */
+
+/* Per-user colour. The value (User.theme_color) is bound to --u per user id in
+   the list_shows.html runtime <style>; the rules below only read that variable,
+   so a single static rule set covers every user instead of one block per id. */
+.list thead .users th .ava,
+.mob-sort-row .ava                { background: var(--u); }
+.cell-mark-val,
+.list thead .users th .uname,
+.list tbody td.cell-fav::before,
+.mob-sort-row .mob-sort-rowlabel  { color: var(--u); }
+
 /* user-grouped header (top row) */
 .list thead .users th {
   padding: 18px 8px 14px;
@@ -1074,44 +1095,95 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   box-shadow: 0 4px 12px rgba(28, 24, 32, .12) !important;
 }
 
-/* horizontal scroll for narrow desktop (921–1280px) — frozen Title column.
-   Below this band the table is the full width its content needs; the card
-   becomes the horizontal scroller so the Title column can stick to the card's
-   own left edge (not the page). The min-width floor is computed per user-count
-   in the template (var --list-min-width) so columns never compress below their
-   header width — that was the source of the header text overlapping its
-   neighbour. */
-@media (max-width: 1280px) and (min-width: 921px) {
-  .list-wrap { padding: 0 24px 24px; }
+/* Horizontal scroll for the ratings table on every desktop width (≥921px).
+   The table keeps its intrinsic width (--list-min-width: the two fixed columns
+   + one 236px trio per user), so all users stay present in the DOM; the table
+   card is the horizontal scroller and the left panel — Titre, Moyenne and (when
+   you're not a guest) your own Fav/Note/Date — stays frozen so your reference
+   never scrolls out of view. .list-wrap's max-width (1480px) bounds the visible
+   window to roughly you + 3 other users; the rest are reached by scrolling
+   right. The sticky offsets below are the cumulative column widths (must match
+   the px `width` options in list_shows.html):
+     Titre 400 · Moy 88 · Fav 52 · Note 95 · Date 73  → frozen edge at 708px. */
+@media (min-width: 921px) {
   .list { min-width: var(--list-min-width, 1100px); }
+  /* the table card is the horizontal scroll container (the hover bubble is
+     position:fixed, so it is not clipped by this overflow — see list_shows.html).
+     Its native scrollbar is hidden: it sits at the very bottom of a 100-row table
+     (unreachable) and is superseded by the sticky top bar; horizontal scrolling
+     still works via trackpad / shift-wheel and the mirror bar's own scrollbar. */
+  .dt-layout-row.dt-layout-table { overflow-x: auto; scrollbar-width: none; }
+  .dt-layout-row.dt-layout-table::-webkit-scrollbar { display: none; }
 
-  /* Filter bar: in this band the selects no longer fit on one row with the
-     actions. Centre every wrapped row (selects + the action group on its own
-     full-width line) so nothing sits offset against the rest. */
-  .filter-bar { justify-content: center; }
-  .filter-bar .filter-actions { flex-basis: 100%; justify-content: center; }
+  /* frozen left panel — Titre + Moyenne always; your own trio only when the
+     wrap carries .has-me (i.e. a logged-in, non-guest user). */
+  .list thead .users th:nth-child(1),
+  .list thead .cols th:nth-child(1),
+  .list tbody td:nth-child(1) { position: sticky; left: 0; z-index: 4; }
+  .list thead .users th:nth-child(2),
+  .list thead .cols th:nth-child(2),
+  .list tbody td:nth-child(2) { position: sticky; left: 400px; z-index: 4; }
+  .list-wrap.has-me .list thead .users th:nth-child(3),
+  .list-wrap.has-me .list thead .cols th:nth-child(3),
+  .list-wrap.has-me .list tbody td:nth-child(3) { position: sticky; left: 488px; z-index: 4; }
+  .list-wrap.has-me .list thead .cols th:nth-child(4),
+  .list-wrap.has-me .list tbody td:nth-child(4) { position: sticky; left: 540px; z-index: 4; }
+  .list-wrap.has-me .list thead .cols th:nth-child(5),
+  .list-wrap.has-me .list tbody td:nth-child(5) { position: sticky; left: 635px; z-index: 4; }
 
-  /* the table card is the horizontal scroll container */
-  .dt-layout-row.dt-layout-table { overflow-x: auto; }
+  /* opaque fills so the scrolling columns don't show through Titre / Moyenne
+     (their header cells already have an opaque fill; body cells don't — the
+     personal trio's opaque fill comes from the tint rule in list_shows.html). */
+  .list tbody td:nth-child(1),
+  .list tbody td:nth-child(2) { background: var(--paper-card); }
+  .list tbody tr:hover td:nth-child(1),
+  .list tbody tr:hover td:nth-child(2) { background: var(--paper-soft); }
 
-  /* freeze the Title column (header rows + body) on the left while the user
-     columns scroll underneath. Opaque backgrounds + a right hairline make it
-     read as a fixed panel. */
-  .list thead .users th:first-child,
-  .list thead .cols th:first-child,
-  .list tbody td.t-title {
-    position: sticky; left: 0; z-index: 4;
-  }
-  .list thead .users th:first-child { background: var(--paper-soft); }
-  .list thead .cols th:first-child { background: var(--paper-card); }
-  .list tbody td.t-title { background: var(--paper-card); }
-  .list tbody tr:hover td.t-title { background: var(--paper-soft); }
-  .list thead .users th:first-child::after,
-  .list thead .cols th:first-child::after,
-  .list tbody td.t-title::after {
+  /* right hairline at the frozen/scrolling boundary — on the last frozen
+     column: your Date (.has-me) or Moyenne otherwise (guest). */
+  .list-wrap.has-me .list thead .users th:nth-child(3)::after,
+  .list-wrap.has-me .list thead .cols th:nth-child(5)::after,
+  .list-wrap.has-me .list tbody td:nth-child(5)::after,
+  .list-wrap:not(.has-me) .list thead .users th:nth-child(2)::after,
+  .list-wrap:not(.has-me) .list thead .cols th:nth-child(2)::after,
+  .list-wrap:not(.has-me) .list tbody td:nth-child(2)::after {
     content: ""; position: absolute; top: 0; right: 0; bottom: 0; width: 1px;
     background: var(--rule);
   }
+}
+
+/* Sticky header mirror (desktop ≥921px). A real position:sticky header is
+   impossible here: the table card is an overflow-x scroller, so `top` resolves
+   against the card, which scrolls away with the page. Instead we mirror the
+   header into a bar placed just above the table body (the real <thead> is hidden
+   below) — it carries the column header AND its own horizontal scrollbar. The bar
+   is always visible so the scrollbar is reachable from the top of the page, and
+   it sticks under the site top bar on scroll. Built + kept in sync in
+   list_shows.html. */
+.list-stickyhead {
+  position: sticky; top: 0; z-index: 20;
+  display: block; overflow-x: auto; overflow-y: hidden;
+  background: var(--paper-card);
+  border: 1px solid var(--rule); border-bottom: 0;
+  border-radius: var(--card-radius) var(--card-radius) 0 0;
+}
+.list-stickyhead-table { margin: 0; box-shadow: none; }
+/* the mirror replaces the real header on desktop; the card sits flush below it */
+@media (min-width: 921px) {
+  #showslist > thead { display: none; }
+  .dt-layout-row.dt-layout-table {
+    border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0;
+  }
+}
+@media (max-width: 920px) { .list-stickyhead { display: none !important; } }
+
+/* Narrow-desktop band (921–1280px) cosmetics: tighter side padding for the
+   scroller, and a centred filter bar whose selects no longer fit on one row
+   with the actions (the action group wraps onto its own full-width line). */
+@media (max-width: 1280px) and (min-width: 921px) {
+  .list-wrap { padding: 0 24px 24px; }
+  .filter-bar { justify-content: center; }
+  .filter-bar .filter-actions { flex-basis: 100%; justify-content: center; }
 }
 
 /* ============== RESPONSIVE — table → cards (≤920px) ============== */
@@ -1223,8 +1295,10 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     transition: all .15s;
   }
   .sort-pill:hover { border-color: var(--violet); color: var(--violet); }
+  /* Active pill: user pills carry --u (their theme colour); the general
+     Titre / Moyenne pills have none and fall back to --ink. */
   .sort-pill.is-active {
-    background: var(--ink); border-color: var(--ink); color: var(--paper-card);
+    background: var(--u, var(--ink)); border-color: var(--u, var(--ink)); color: var(--paper-card);
   }
   .sort-pill .dir { font-size: 10px; opacity: .85; }
   /* Inactive pills show a faint ⇅ placeholder (injected by syncPillsToOrder)
