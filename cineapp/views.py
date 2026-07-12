@@ -112,7 +112,10 @@ def login():
                         return redirect(url_for('main.show_dashboard'))
                 return redirect(url_for('main.index'))
         
-        return render_template('login.html', title='Sign In', form=form, medley=build_login_medley())
+        # Fetch the stats by show type and display them on the login page
+        stats = {'movie': Movie.query.count(), 'tvshow': TVShow.query.count(), 'videogame': VideoGame.query.count()}
+
+        return render_template('login.html', title='Sign In', form=form, medley=build_login_medley(), stats=stats)
 
 @view_bp.route('/logout')
 def logout():
