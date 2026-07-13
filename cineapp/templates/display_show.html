@@ -538,7 +538,9 @@ $(document).ready(function() {
     var $thread = $('#comment_toolbar_' + data.mark_comment.mark_user_id);
     var $list = $thread.find('.thread-list');
     if ($list.length === 0) {
-      // First comment in this thread — create the list at the top of the thread.
+      // First comment in this thread — drop the empty-state placeholder and
+      // create the list at the top of the thread.
+      $thread.find('.thread-empty').remove();
       $list = $('<div class="thread-list"></div>').prependTo($thread);
     }
     var html = renderSubcomment(data);
