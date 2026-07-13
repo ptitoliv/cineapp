@@ -1031,6 +1031,28 @@ class FlaskrTestCase(unittest.TestCase):
         # Let's do the same but with the slack_mark_notification method (In order to catch the exception)
         assert slack.slack_mark_notification(None,self.app,"movie") == 1
 
+        # End-to-end: a CKEditor (HTML) rating comment stored through the real
+        # marking endpoint must convert to clean Slack mrkdwn — bold/italic become
+        # Slack markers, lists become bullets, no HTML tag leaks. Posting via the
+        # route runs sanitize_comment on write exactly like production, and reading
+        # the Mark back proves the comment reaches slack_mark_notification as raw
+        # HTML (no double conversion): the conversion happens once, in slack.py.
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
+        rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment="<p>Un <strong>bon</strong> film <em>culte</em>.</p><ul><li>Image</li><li>Musique</li></ul>",seen_where="C",submit_mark=1),follow_redirects=True)
+        assert "Note mise" in str(rv.data)
+        with self.app.app_context():
+            stored_comment=Mark.query.get((1,1)).comment
+        converted=slack.html_to_slack_mrkdwn(stored_comment)
+        assert "<" not in converted
+        assert "*bon*" in converted
+        assert "_culte_" in converted
+        assert "• Image" in converted
+        assert "• Musique" in converted
+        # None and tag-less legacy comments pass through cleanly.
+        assert slack.html_to_slack_mrkdwn(None) == ""
+        assert slack.html_to_slack_mrkdwn("Commentaire tout simple.") == "Commentaire tout simple."
+
     def test_12_add_tvshow(self):
 
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)

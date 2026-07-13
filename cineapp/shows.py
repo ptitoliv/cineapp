@@ -6,7 +6,7 @@ standard_library.install_aliases()
 from builtins import next
 from builtins import str
 from builtins import range
-import urllib.request, urllib.parse, urllib.error, hashlib, re, os, locale, json, copy, time,html2text, traceback
+import urllib.request, urllib.parse, urllib.error, hashlib, re, os, locale, json, copy, time, traceback
 from datetime import datetime
 from flask import render_template, flash, redirect, url_for, g, request, session, abort, Blueprint, current_app as app
 from flask_login import login_user, logout_user, current_user, login_required
@@ -1105,10 +1105,6 @@ def publish_mark(show_id):
         if mark is None:
                 flash('Aucune note à publier sur cette œuvre','warning')
                 return redirect(url_for('show.display_show',show_type=g.show_type,show_id=show_id))
-
-        # Convert the HTML content to text in order to have a nice display in the mail
-        html_converter = html2text.HTML2Text()
-        mark.comment=html_converter.handle(mark.comment).strip()
 
         # Send notification
         if mark != None:
