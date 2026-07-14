@@ -1994,6 +1994,8 @@ class FlaskrTestCase(unittest.TestCase):
         #   - a platform present only in release_dates is appended (igdb.py:167)
         #   - a regional release date with an invalid (None) timestamp falls back to
         #     None instead of crashing (igdb.py:335-336)
+        #   - a regional release date whose timestamp is out of datetime range
+        #     falls back to None instead of crashing (igdb.py:362-363)
         #   - a cover whose download isn't a valid image is rejected (igdb.py:428)
         # release_region id 9999 matches no region, so the regional-dates loop never
         # dereferences the invalid platform. ---
@@ -2009,6 +2011,7 @@ class FlaskrTestCase(unittest.TestCase):
                 {"platform": None, "date": 100, "release_region": {"id": 9999}},
                 {"platform": {"name": "PC"}, "date": 200, "release_region": {"id": 9999}},
                 {"platform": {"name": "PC"}, "date": None, "release_region": {"id": 9999}},
+                {"platform": {"name": "PC"}, "date": 10000000000000, "release_region": {"id": 9999}},
             ],
             "alternative_names": [],
             "game_localizations": [],
