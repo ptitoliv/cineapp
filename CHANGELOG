@@ -11,6 +11,7 @@ Version 4.1.0 (2026-07-14)
   * [FIX]: Fix datatables display (#171)
   * [FIX]: Fix small display bugs and mistakes (#172)
   * [FIX]: Handle IGDB API token expiration and renewal (#173)
+  * [FIX]: Fix mismatches between the database model and the migrations (#175)
 
 Version 4.0.0 (2026-07-07)
 --------------------------
