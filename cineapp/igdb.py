@@ -52,23 +52,40 @@ def _get_wrapper():
 
 def _igdb_request(endpoint, body):
     """
-        Internal function to query the IGDB API using the official wrapper
+        Internal function to query the IGDB API using the official wrapper.
+
+        On a 401 the cached OAuth token has been invalidated before its local
+        expiry (secret rotation, Twitch revoking an old app-token, ...). As
+        recommended by Twitch, we purge the cached wrapper to force a fresh
+        token and replay the same request.
+        
+        We try at most max_attempts times to be safe; other HTTP errors are
+        not retried.
+
     """
-    wrapper = _get_wrapper()
-    if not wrapper:
-        return None
+    max_attempts = 5
+    for attempt in range(max_attempts):
+        wrapper = _get_wrapper()
+        if not wrapper:
+            return None
 
-    app.logger.debug("IGDB request: %s - %s", endpoint, body)
+        app.logger.debug("IGDB request: %s - %s", endpoint, body)
 
-    try:
-        byte_array = wrapper.api_request(endpoint, body)
-        return json.loads(byte_array)
-    except requests.HTTPError as e:
-        app.logger.error("Erreur IGDB: %s", e)
-        return None
-    except Exception as e:
-        app.logger.error("Exception IGDB: %s", e)
-        return None
+        try:
+            byte_array = wrapper.api_request(endpoint, body)
+            return json.loads(byte_array)
+        except requests.HTTPError as e:
+            status = getattr(e.response, "status_code", None)
+            if status == 401 and attempt < max_attempts - 1:
+                app.logger.warning("IGDB 401 — token invalide, renouvellement et retry")
+                _wrapper_cache["wrapper"] = None
+                _wrapper_cache["expires_at"] = 0
+                continue
+            app.logger.error("Erreur IGDB: %s", e)
+            return None
+        except Exception as e:
+            app.logger.error("Exception IGDB: %s", e)
+            return None
 
 
 def _translate(text):

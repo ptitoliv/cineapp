@@ -6,6 +6,7 @@ import os, sys, json, requests, urllib.error
 from urllib.request import urlopen
 from cineapp import create_app, minutes_to_human_duration, date_format, socketio, slack
 from cineapp.models import db, User, Type, Origin, Mark, Movie, TVShow, VideoGame, FavoriteShow, MarkComment, PushNotification, ChatMessage
+from igdb.wrapper import IGDBWrapper
 from cineapp.emails import mail
 from cineapp.jinja_testers import is_movie, is_tvshow, is_videogame
 from cineapp.push import notification_send
@@ -2927,6 +2928,78 @@ class FlaskrTestCase(unittest.TestCase):
         for row in response_args:
             assert "Retour vers le futur" in row["name"], \
                 "Unexpected match in FTS results: %r" % row["name"]
+
+        rv=self.client.get('/logout', follow_redirects=True)
+        assert "Se connecter" in str(rv.data)
+
+    def test_39_igdb_token_refresh_on_401(self):
+
+        """
+            A cached IGDB OAuth token may be invalidated by Twitch before its
+            local expiry (secret rotation, an old app-token revoked, ...). In
+            that case api_request raises HTTPError 401. _igdb_request must purge
+            the cached wrapper, get a fresh token and replay the SAME request
+            (up to 5 attempts) instead of returning None until the next restart.
+
+            We exercise the real add flow: only the FIRST IGDB call is forced to
+            401 (a revoked token can't be produced from the real API); every
+            following call — including the token renewal and the replay — hits
+            IGDB for real, so a real game (Half-Life, absent from the test DB)
+            must still be searched and added despite the injected 401.
+        """
+
+        rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
+        assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
+
+        # Switch to videogame mode
+        rv=self.client.get('/switch/videogame', follow_redirects=True)
+
+        # Make the very first IGDB call 401 as if Twitch had silently revoked the
+        # cached token. The retry logic purges the cache itself, so no manual reset.
+        resp_401 = requests.Response()
+        resp_401.status_code = 401
+        err_401 = requests.HTTPError("401 Unauthorized")
+        err_401.response = resp_401
+
+        real_api_request = IGDBWrapper.api_request
+        call_count = 0
+        def _api_401_then_real(self_wrapper, endpoint, body):
+            nonlocal call_count
+            call_count += 1
+            # Fail only the first IGDB call with a 401; delegate the rest to the
+            # real API so the token renewal and the replay hit IGDB for real.
+            if call_count == 1:
+                raise err_401
+            return real_api_request(self_wrapper, endpoint, body)
+
+        with patch.object(IGDBWrapper, 'api_request', autospec=True, side_effect=_api_401_then_real):
+            # Real IGDB search: the first call 401s, _igdb_request renews the token
+            # and replays, so the real game is still returned by the search.
+            rv=self.client.post('/videogame/add/select',data=dict(search="Half-Life",submit_search=True))
+            parsed_html=BeautifulSoup(rv.data,"html.parser")
+            list_shows=parsed_html.find_all('label', class_='wizard-result')
+            igdb_id_hl=None
+            for cur_show in list_shows:
+                if "Half-Life" in cur_show.text:
+                    radio = cur_show.find('input', {'type': 'radio'})
+                    if radio:
+                        igdb_id_hl = radio['value']
+                    break
+            assert igdb_id_hl is not None
+
+            rv=self.client.post('/videogame/add/confirm',data=dict(show_id=igdb_id_hl,origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+            assert "Jeu vidéo ajouté" in rv.data.decode("utf-8")
+
+        # The first IGDB call really returned 401 and the retry recovered it
+        # (otherwise the search would have returned no result and no game added).
+        assert call_count >= 2
+
+        with self.app.app_context():
+            half_life = VideoGame.query.filter_by(external_id=int(igdb_id_hl), external_source="igdb").first()
+            assert half_life is not None
+            # Remove the game so later tests are unaffected.
+            db.session.delete(half_life)
+            db.session.commit()
 
         rv=self.client.get('/logout', follow_redirects=True)
         assert "Se connecter" in str(rv.data)
