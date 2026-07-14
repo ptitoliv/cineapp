@@ -48,8 +48,8 @@ class MarkShowForm(Form):
 
     mark = StringField('Note du Film', [DataRequired()])
     comment = CKTextAreaField('Commentaire du Film', [DataRequired()])
-    seen_where = RadioField('Ou j\'ai vu le film', [DataRequired(message="Date invalide")],choices=[('C', u'Cinema'), ('M', 'Maison')], default='M')
-    seen_when = DateField('Vu le :', default=datetime.now,format="%Y-%m-%d")
+    seen_where = RadioField('Ou j\'ai vu le film:', [DataRequired(message="Date invalide")],choices=[('C', u'Cinema'), ('M', 'Maison')], default='M')
+    seen_when = DateField('Vu le:', default=datetime.now,format="%Y-%m-%d")
     submit_mark = SubmitField('Noter')
     submit_mark_only = SubmitField('Noter uniquement')
     submit_mark_slack = SubmitField('Noter et publier')
