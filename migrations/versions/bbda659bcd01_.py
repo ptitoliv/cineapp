@@ -130,7 +130,7 @@ def upgrade():
     sa.Column('seen_where', sa.String(length=4), nullable=True),
     sa.Column('mark', sa.Float(), nullable=True),
     sa.Column('updated_when', sa.DateTime(), nullable=True),
-    sa.Column('comment', sa.String(length=2000), nullable=True),
+    sa.Column('comment', sa.String(length=5000), nullable=True),
     sa.Column('homework_when', sa.DateTime(), nullable=True),
     sa.Column('homework_who', sa.Integer(), server_default=sa.text(u'NULL'), nullable=True),
     sa.PrimaryKeyConstraint('user_id', 'movie_id'),

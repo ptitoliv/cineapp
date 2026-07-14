@@ -226,7 +226,7 @@ class VideoGameReleaseDate(db.Model):
         db.ForeignKey('regions.id', name='videogame_release_dates_ibfk_2'),
         primary_key=True,
     )
-    release_date = db.Column(db.Date, index=True, primary_key=True)
+    release_date = db.Column(db.Date, primary_key=True)
     release_platform = db.Column(db.String(200))
 
     region = db.relationship('Region', lazy='joined')
@@ -252,7 +252,7 @@ class Mark(db.Model):
     seen_where = db.Column(db.String(4))
     mark = db.Column(db.Float)
     updated_when = db.Column(db.DateTime())
-    comment = db.Column(db.String(2000))
+    comment = db.Column(db.String(5000))
     homework_when = db.Column(db.DateTime)
     # Server_default allow to put the column with DEFAULT VALUE to NULL which is mandatory if we want the foreign key to be added
     # If the value is not NULL, the default value is O so the foreign constraint is violated
@@ -340,7 +340,7 @@ class PushNotification(db.Model):
     endpoint_id = db.Column(db.String(255), primary_key=True)
     auth_token = db.Column(db.String(128))
     public_key = db.Column(db.String(128))
-    session_id = db.Column(db.String(255),index=True,unique=True)
+    session_id = db.Column(db.String(64),index=True,unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', name='push_notifications_ibfk_1'))
 
     def serialize(self):
