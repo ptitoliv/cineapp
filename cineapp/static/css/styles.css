@@ -2443,6 +2443,12 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   .mark-studio .mark-score-num { font-size: 64px; }
   .mark-studio .mark-critique { padding: 22px; }
   .mark-studio .mark-foot { flex-direction: column; align-items: stretch; padding: 18px 22px; }
+  /* Centre each meta field: the label and the control beneath it are both
+     centred (date input under "Vu le", the where pills under "Où j'ai vu"). */
+  .mark-studio .mark-foot-meta { flex-direction: column; align-items: stretch; gap: 18px; }
+  .mark-studio .mark-foot-meta .mark-field { text-align: center; }
+  .mark-studio .mark-foot-meta .mark-field input[type="date"] { display: inline-block; width: 170px; max-width: 100%; }
+  .mark-studio .mark-foot-meta .mark-where-radios { justify-content: center; }
   .mark-studio .mark-foot-actions .btn { width: 100%; justify-content: center; }
 }
 
