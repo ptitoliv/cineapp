@@ -1,3 +1,17 @@
+Version 4.1.0 (2026-07-14)
+--------------------------
+  * [FEAT]: Display more than 4 users on the shows list (#164)
+  * [FEAT]: Dependencies cleanup and upgrade of vulnerable dependencies (#168)
+  * [FEAT]: Improve comment display sent on Slack (#169)
+  * [FIX]: Handle null region release date for video games (#162)
+  * [FIX]: Fix full text search with stopwords (#163)
+  * [FIX]: Remove hardcoded values for stats on the login page (#165)
+  * [FIX]: Fix label consistency for the show comment button (#166)
+  * [FIX]: Remove empty thread block when the first comment is posted (#170)
+  * [FIX]: Fix datatable display (#171)
+  * [FIX]: Fix show mark form on mobile display (#172)
+  * [FIX]: Handle IGDB token expiration and renewal (#173)
+
 Version 4.0.0 (2026-07-07)
 --------------------------
   * [FEAT]: Update to CKEditor 5 (#136)
