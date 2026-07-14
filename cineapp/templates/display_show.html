@@ -245,7 +245,12 @@
     <div class="mark-foot">
       <div class="mark-foot-meta">
         <div class="mark-field">
-          {{ render_field(form.seen_when, message=True) }}
+          {# Rendered by hand (not render_field) so the label is a plain .control-label
+             like the seen-where field below — the macro's extra .form-group wrapper and
+             nested <label> rendered slightly differently across browsers and pushed this
+             label out of line with the other one (notably on Firefox). #}
+          <label class="control-label" for="seen_when">{{ form.seen_when.label.text }}</label>
+          {{ form.seen_when(class="form-control") }}
         </div>
         {% if show is movie %}
         <div class="mark-field mark-where">

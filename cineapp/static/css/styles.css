@@ -2402,12 +2402,17 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 .mark-studio .mark-foot-meta {
   display: flex; gap: 26px; align-items: flex-end; flex-wrap: wrap;
 }
+/* Date field and seen-where pills share one explicit height so their labels and
+   controls line up across browsers — native date inputs have a browser-dependent
+   intrinsic height, so bottom-aligned unequal controls push a label out of line. */
+.mark-studio .mark-foot-meta input[type="date"],
+.mark-studio .mark-foot-meta .radio-pill { height: 43px; }
 .mark-studio .mark-foot-meta .mark-field input[type="date"] { width: 170px; }
 .mark-studio .mark-where-radios { display: flex; gap: 8px; flex-wrap: wrap; }
 .mark-studio .radio-pill {
   position: relative;
   display: inline-flex; align-items: center;
-  height: 38px; padding: 0 16px;
+  padding: 0 16px;
   border: 1px solid var(--rule); border-radius: 999px;
   background: var(--paper-card);
   font-family: var(--font-ui); font-weight: 900;
