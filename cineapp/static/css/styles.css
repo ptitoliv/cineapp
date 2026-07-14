@@ -1180,6 +1180,19 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   .dt-layout-row.dt-layout-table {
     border-top: 0; border-top-left-radius: 0; border-top-right-radius: 0;
   }
+  /* Empty state — the table is wider than the viewport (frozen columns + one
+     trio of columns per user) and scrolls horizontally, so a plain full-span
+     colspan cell centres the message on the whole (wide) table, off to the
+     right of the visible area. Size the cell to the visible scroll width via a
+     container query on the scroll cell and pin it to the viewport so the
+     message stays centred as the header/columns scroll. */
+  .dt-layout-cell.dt-layout-full { container-type: inline-size; }
+  .list tbody td.dt-empty {
+    position: sticky; left: 0;
+    display: block; width: 100cqw;
+    box-sizing: border-box;
+    text-align: center;
+  }
 }
 @media (max-width: 920px) { .list-stickyhead { display: none !important; } }
 
@@ -1358,6 +1371,12 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     padding: 0 0 14px;
     border-bottom: 1px solid var(--rule-soft);
     margin-bottom: 4px;
+  }
+  /* Empty state — DataTables emits a single <td colspan> for "no data". Inside
+     the card grid it would otherwise sit in the first 78px track and read as
+     left-aligned; span the whole row so the message stays centred. */
+  .list tbody td.dt-empty {
+    grid-column: 1 / -1;
   }
   .cell-title .poster { width: 46px; height: 68px; }
   .cell-title .tname { font-size: 17px; }

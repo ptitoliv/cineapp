@@ -240,6 +240,11 @@ $(document).ready(function () {
 		"serverSide": true,
 		"paging": false,
 		"dom": 'rt',
+		"language": {
+			"processing": 'Chargement',
+      		"loadingRecords": 'Chargement',
+			"infoEmpty": 'Aucun événement à afficher',
+		},
 		"ajax": {
 			"url": "{{ url_for('main.update_activity_flow') }}",
 			"type": "POST",

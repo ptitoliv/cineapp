@@ -320,8 +320,12 @@ $(document).ready(function() {
     columns: columns,
     columnDefs: [{ className: 'dt-center', targets: '_all' }],
     language: {
+      emptyTable: '{{ g.messages["datatable_empty"] }}',
+      processing: 'Chargement en cours…',
+      loadingRecords: 'Chargement en cours…',
+      zeroRecords: '{{ g.messages["datatable_zero_record"] }}',
       info: 'Page _PAGE_ sur _PAGES_ · _TOTAL_ {{ g.messages["label_show_type_lowercase_plural"] }} au total',
-      infoEmpty: 'Aucun {{ g.messages["label_show_type_lowercase"] }} à afficher',
+      infoEmpty: '{{ g.messages["datatable_empty"] }}',
       infoFiltered: '',
       lengthMenu: 'Afficher _MENU_ {{ g.messages["label_show_type_lowercase_plural"] }} par page',
       paginate: {
