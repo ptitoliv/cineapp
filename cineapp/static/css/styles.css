@@ -2761,6 +2761,11 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 }
 .dash select.dash-pill {
   appearance: none; -webkit-appearance: none;
+  /* The select auto-sizes to its content, leaving the longest pseudo flush
+     against the dropdown arrow. A small floor gives the name breathing room,
+     and centring sits it in the middle rather than trailing space to the right. */
+  min-width: 104px;
+  text-align: center;
   padding: 0 26px 0 14px;
   /* Mockup-style content typography: Bricolage italic, not uppercase Outfit. */
   font-family: var(--font-display);
