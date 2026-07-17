@@ -5,6 +5,7 @@ standard_library.install_aliases()
 import os, sys, json, requests, urllib.error
 from urllib.request import urlopen
 from cineapp import create_app, minutes_to_human_duration, date_format, socketio, slack
+from cineapp.utils import html_to_markdown
 from cineapp.models import db, User, Type, Origin, Mark, Movie, TVShow, VideoGame, FavoriteShow, MarkComment, PushNotification, ChatMessage
 from igdb.wrapper import IGDBWrapper
 from cineapp.emails import mail
@@ -1044,15 +1045,19 @@ class FlaskrTestCase(unittest.TestCase):
         assert "Note mise" in str(rv.data)
         with self.app.app_context():
             stored_comment=Mark.query.get((1,1)).comment
-        converted=slack.html_to_slack_mrkdwn(stored_comment)
+        converted=html_to_markdown(stored_comment)
         assert "<" not in converted
         assert "*bon*" in converted
         assert "_culte_" in converted
         assert "• Image" in converted
         assert "• Musique" in converted
         # None and tag-less legacy comments pass through cleanly.
-        assert slack.html_to_slack_mrkdwn(None) == ""
-        assert slack.html_to_slack_mrkdwn("Commentaire tout simple.") == "Commentaire tout simple."
+        assert html_to_markdown(None) == ""
+        assert html_to_markdown("Commentaire tout simple.") == "Commentaire tout simple."
+        # No stray space between a closing emphasis marker and trailing punctuation
+        # ("_sublime_ ," → "_sublime_,"), while correct French spacing before ":" stays.
+        assert html_to_markdown("<p>C'est <u>sublime</u>, vraiment <strong>top</strong>.</p>") == "C'est _sublime_, vraiment *top*."
+        assert html_to_markdown("<p>Mon <strong>verdict</strong> : oui.</p>") == "Mon *verdict* : oui."
 
     def test_12_add_tvshow(self):
 
