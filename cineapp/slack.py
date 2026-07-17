@@ -89,7 +89,7 @@ def slack_mark_notification(mark,app,show_type):
                         # (below the card, not squeezed beside the poster thumbnail).
                         blocks = [section_block]
                         if comment_text:
-                                blocks.append({ "type": "section", "text": { "type": "mrkdwn", "text": "> " + comment_text.replace("\n", "\n> ") } })
+                                blocks.append({ "type": "section", "text": { "type": "mrkdwn", "text": ">" + comment_text.replace("\n", "\n>") } })
 
                         # Send the message
                         slack_channel.send_message(message=title, blocks=blocks)
