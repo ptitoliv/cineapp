@@ -5,7 +5,7 @@ from flask import current_app
 from cineapp.models import db, Show, Mark, MarkComment, FavoriteShow
 from sqlalchemy.sql.expression import literal, desc
 from datetime import datetime
-import PIL, os, re, nh3
+import PIL, os, re, nh3, html2text
 from PIL import Image
 
 _HUMANIZE_MONTHS_FR = ["janv.", "févr.", "mars", "avr.", "mai", "juin",
@@ -29,6 +29,37 @@ def sanitize_comment(html):
     """
     return nh3.clean(html, tags=_COMMENT_ALLOWED_TAGS,
                      attributes=_COMMENT_ALLOWED_ATTRS)
+
+def html_to_markdown(html):
+    """
+        Convert a CKEditor-authored (HTML) rating comment to lightweight markup
+        that reads cleanly as plain text. Shared by the Slack notifications
+        (slack.py) and the plain-text e-mails (emails.py).
+
+        The comment is stored as HTML (see sanitize_comment). Rendered raw it
+        showed literal tags and broke the layout, so we run it through html2text
+        configured for a Slack-flavoured dialect that doubles as readable plain
+        text: *bold*, _italic_, • bullets, no hard line-wrapping. Plain-text
+        (tag-less) legacy comments pass through unchanged.
+    """
+    h = html2text.HTML2Text()
+    h.body_width = 0          # no hard-wrapping
+    h.strong_mark = "*"       # bold
+    h.emphasis_mark = "_"     # italic
+    h.ul_item_mark = "•"
+    h.ignore_links = True
+    h.ignore_images = True
+    text = h.handle(html or "")
+    # html2text pads block boundaries with extra blank lines and marks hard
+    # breaks with trailing spaces — normalise both so the quote reads clean.
+    text = re.sub(r"[ \t]+\n", "\n", text)
+    text = re.sub(r"\n{3,}", "\n\n", text)
+    # html2text leaves a stray space between a closing emphasis marker and
+    # trailing punctuation ("_sublime_ ," from "<u>sublime</u>,"). Drop it,
+    # but only before punctuation that takes no leading space in French
+    # (. , ) ] }) so correct French spacing before : ; ! ? stays untouched.
+    text = re.sub(r"([*_~])[ \t]+([.,)\]}])", r"\1\2", text)
+    return text.strip()
 
 def humanize_when(dt):
     """

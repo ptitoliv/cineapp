@@ -2,9 +2,8 @@ from builtins import str
 from builtins import object
 from flask import request
 from slack import WebClient
+from cineapp.utils import html_to_markdown
 import json
-import re
-import html2text
 
 class SlackChannel(object):
 
@@ -35,31 +34,6 @@ class SlackChannel(object):
                 except Exception as e:
                         raise SystemError("Slack API Error")
 
-def html_to_slack_mrkdwn(html):
-
-        """ Convert a CKEditor-authored (HTML) rating comment to Slack mrkdwn.
-
-        The comment is stored as HTML (see utils.sanitize_comment). Posting it
-        raw to Slack rendered the tags literally and broke the layout, so we run
-        it through html2text, configured for Slack's mrkdwn dialect: *bold*,
-        _italic_, • bullets, and no hard line-wrapping (a source of the
-        misalignment). Plain-text (tag-less) legacy comments pass through
-        unchanged. """
-
-        h = html2text.HTML2Text()
-        h.body_width = 0          # no hard-wrapping
-        h.strong_mark = "*"       # Slack bold
-        h.emphasis_mark = "_"     # Slack italic
-        h.ul_item_mark = "•"
-        h.ignore_links = True
-        h.ignore_images = True
-        text = h.handle(html or "")
-        # html2text pads block boundaries with extra blank lines and marks hard
-        # breaks with trailing spaces — normalise both so the quote reads clean.
-        text = re.sub(r"[ \t]+\n", "\n", text)
-        text = re.sub(r"\n{3,}", "\n\n", text)
-        return text.strip()
-
 def slack_mark_notification(mark,app,show_type):
 
         # Create a Slack object
@@ -76,7 +50,7 @@ def slack_mark_notification(mark,app,show_type):
                         # Next steps consits in building the local fields that will be used to create the Block
 
                         # Build the comment field (stored as HTML → Slack mrkdwn)
-                        comment_text = html_to_slack_mrkdwn(mark.comment)
+                        comment_text = html_to_markdown(mark.comment)
 
                         # Score without a trailing ".0" (15.0 → "15", 15.5 → "15.5").
                         mark_str = ("%g" % mark.mark) if mark.mark is not None else "?"
