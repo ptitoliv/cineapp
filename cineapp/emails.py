@@ -4,8 +4,9 @@ from builtins import str
 from flask import render_template, g, current_app as app, copy_current_request_context
 from flask_mail import Mail, Message
 from cineapp.models import db, User
+from cineapp.utils import html_to_markdown
 from threading import Thread
-import html2text, time, json, traceback
+import time, json, traceback
 
 mail = Mail()
 
@@ -56,8 +57,8 @@ def mark_show_notification(mark,notif_type):
     users = User.query.filter_by().all()
 
     # Convert the HTML content to text in order to have a nice display in the mail
-    html_converter = html2text.HTML2Text()
-    mark.comment=html_converter.handle(mark.comment).strip()
+    # (same transformation as the Slack notification: no hard-wrapping, clean whitespace)
+    mark.comment = html_to_markdown(mark.comment)
 
     for cur_user in users:
         # Check if the cur_user is the logged user who added the show
