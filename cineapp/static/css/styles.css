@@ -1963,6 +1963,8 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   font-family: var(--font-body);
   font-weight: 400; font-size: 16px; line-height: 1.5;
   color: var(--ink); /* slightly darker than mockup for HTML-rendered comments */
+  overflow-wrap: break-word; /* break a long unbroken run (URL, "SECOUUU…URS") instead of overflowing on mobile */
+  -webkit-hyphens: auto; hyphens: auto; /* hyphenate real words at valid FR points (lang="fr") */
 }
 .review-comment.empty {
   color: var(--ink-dim); font-size: 14px; font-style: italic;
@@ -2110,6 +2112,8 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   padding: 10px 14px;
   font-family: var(--font-body); font-size: 14.5px;
   color: var(--ink); line-height: 1.5;
+  overflow-wrap: break-word; /* same as .review-comment: a long unbroken word must wrap, not overflow */
+  -webkit-hyphens: auto; hyphens: auto; /* hyphenate real words at valid FR points (lang="fr") */
 }
 .subcomment.is-mine .body {
   background: var(--paper-card);
