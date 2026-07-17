@@ -1,3 +1,13 @@
+Version 4.1.1 (2026-07-18)
+--------------------------
+  * [FIX]: Remove the trailing space on comments posted to Slack (#176)
+  * [FIX]: Fix incorrect display with a long nickname (#177)
+  * [FIX]: Keep the release year visible on the dashboard random show with a long studio name (#178)
+  * [FIX]: Fix the comment display on mail notifications (#179)
+  * [FIX]: Fix incorrect display for some comments on mobile mode (#180)
+  * [FIX]: Add a confirmation message when an avatar is uploaded on the profile page (#181)
+  * [FIX]: Make the must-see favorite label generic across movies, TV shows and games (#183)
+
 Version 4.1.0 (2026-07-14)
 --------------------------
   * [FEAT]: Manage app display for more than 4 users  (#164)
