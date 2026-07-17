@@ -29,6 +29,7 @@
 							{% if m.show.poster_path %}
 							<img src="{{ config.POSTERS_URL }}{{ m.show.poster_path }}" alt="" onerror="this.remove()">
 							{% endif %}
+							<span class="latest-badge" style="background: {{ m.user.theme_color }};">{{ m.mark }}</span>
 							<div class="latest-overlay">
 								<span class="title">{{ m.show.name }}</span>
 							</div>
@@ -37,7 +38,6 @@
 							<div class="rater">
 								<span class="ava" style="background: {{ m.user.theme_color }};">{{ m.user.nickname[0]|upper }}{% if m.user.avatar %}<img src="{{ avatar_url(m.user) }}" alt="" onerror="this.remove()">{% endif %}</span>
 								<span class="name">{{ m.user.nickname }}</span>
-								<span class="mark" style="color: {{ m.user.theme_color }};">{{ m.mark }}</span>
 							</div>
 						</div>
 					</a>
