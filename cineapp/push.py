@@ -54,7 +54,7 @@ def notification_subscribe():
         app.logger.error('Unable to store subscription user in database %s', repr(e))
         return jsonify({ "status": "failure", "message": u"Unable to store subscription object into database" })
 
-    return jsonify({ "status": "success", "message": u"Endpoint enregistray" })
+    return jsonify({ "status": "success", "message": u"Endpoint enregistré" })
 
 def notification_send(subscriptions,chat_url,chat_message):
 
