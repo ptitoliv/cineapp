@@ -43,6 +43,7 @@
       <label class="photo-btn" for="upload_avatar"><i class="fa-solid fa-camera"></i> Changer la photo</label>
       {{ form.upload_avatar(class="photo-input", id="upload_avatar") }}
       <div class="photo-hint">JPG ou PNG · carré de préférence</div>
+      <div class="photo-loaded" id="avatar_loaded_msg"><i class="fa-solid fa-check" aria-hidden="true"></i> Image chargée</div>
       {% endif %}
     </aside>
 
@@ -112,4 +113,19 @@
   </form>
 
 </section>
+
+<script>
+/* Avatar upload feedback: confirm the file is selected right away (before the
+   form is posted), for a PNG/JPEG only (matches the server-side validation). */
+(function () {
+  var input = document.getElementById('upload_avatar');
+  var msg = document.getElementById('avatar_loaded_msg');
+  if (!input || !msg) return;
+  var ALLOWED = ['image/png', 'image/jpeg'];
+  input.addEventListener('change', function () {
+    var file = input.files && input.files[0];
+    msg.classList.toggle('show', !!(file && ALLOWED.indexOf(file.type) !== -1));
+  });
+})();
+</script>
 {% endblock %}

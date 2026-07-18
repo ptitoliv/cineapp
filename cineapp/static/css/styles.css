@@ -4616,6 +4616,12 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
 }
 .photo-btn:hover { border-color: var(--violet-soft); color: var(--violet); }
 .photo-hint { margin-top: 10px; font-size: 12px; color: var(--ink-dim); }
+/* Upload confirmation — hidden until the file input reports a selected image
+   (JS toggles .show; not the [hidden] attr, which the display below would override). */
+.photo-loaded { display: none; margin-top: 8px; align-items: center; gap: 6px;
+  font-family: var(--font-ui); font-weight: 900; font-size: 11px;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--violet); }
+.photo-loaded.show { display: inline-flex; }
 
 /* ---------- form panels ---------- */
 .profile-panel {
