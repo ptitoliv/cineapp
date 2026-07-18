@@ -8,6 +8,7 @@ Version 4.1.1 (2026-07-18)
   * [FIX]: Add a confirmation message when an avatar is uploaded on the profile page (#181)
   * [FIX]: Make the must-see favorite label generic across movies, TV shows and games (#183)
   * [FIX]: Increase the overview field length and truncate overviews that exceed the column size (#184)
+  * [FIX]: Fix small text typos on the push subscribe response and the Slack notification label (#185)
 
 Version 4.1.0 (2026-07-14)
 --------------------------
