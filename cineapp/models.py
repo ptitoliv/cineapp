@@ -113,7 +113,7 @@ class Show(db.Model):
     url = db.Column(db.String(100), index=True)
     origin = db.Column(db.String(5), db.ForeignKey('origins.id', name='shows_ibfk_2'), index=True)
     director = db.Column(db.String(500), index=True)
-    overview = db.Column(db.String(2000))
+    overview = db.Column(db.String(5000))
     overview_translated = db.Column(db.Boolean, default=False)
     poster_path = db.Column(db.String(255))
     external_source = db.Column(db.String(20))
