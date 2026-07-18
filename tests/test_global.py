@@ -393,14 +393,16 @@ class FlaskrTestCase(unittest.TestCase):
             assert movie_volte.release_date is None
             assert movie_volte.director == "Inconnu"
 
-        # --- Edge case: add a movie with poster download failure (line 243) ---
+        # --- Edge case: add a movie with poster download failure (line 243) and an overview
+        #     longer than the column length => truncated with an ellipsis (lines 247-250) ---
+        max_overview=Movie.overview.property.columns[0].type.length
         with patch('cineapp.shows.get_show') as mock_get_show:
             mock_movie = Movie()
             mock_movie.name = "Test No Poster"
             mock_movie.original_name = "Test No Poster"
             mock_movie.director = "Test Director"
             mock_movie.release_date = datetime(2020, 1, 1)
-            mock_movie.overview = "Test overview"
+            mock_movie.overview = "A" * (max_overview + 500)
             mock_movie.duration = 120
             mock_movie.external_id = 999999
             mock_movie.poster_path = None
@@ -408,6 +410,11 @@ class FlaskrTestCase(unittest.TestCase):
 
             rv=self.client.post('/movie/add/confirm',data=dict(show_id="999999",origin="F",type="C",submit_confirm=True),follow_redirects=True)
             assert "Impossible de télécharger le poster" in rv.data.decode("utf-8")
+            assert "Le résumé est trop long, il sera tronqué" in rv.data.decode("utf-8")
+
+        with self.app.app_context():
+            added_movie=Movie.query.filter_by(external_id=999999).first()
+            assert added_movie.overview == "A" * (max_overview - 3) + "..."
 
         # --- Edge case: add a movie that already exists => IntegrityError (lines 258-262) ---
         # Film "Les Tuche" (TMDB 66129) is already in DB, adding it again triggers unique constraint on external_id
@@ -529,6 +536,31 @@ class FlaskrTestCase(unittest.TestCase):
             rv=self.client.post('/movie/update/confirm',data=dict(show="66129",submit_select=True))
             rv=self.client.post('/movie/update/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
             assert "Impossible de télécharger le poster" in rv.data.decode("utf-8")
+
+        # --- Edge case: update with an overview exceeding the column length => truncated with an ellipsis (lines 332-337) ---
+        max_overview=Movie.overview.property.columns[0].type.length
+        with patch('cineapp.shows.get_show') as mock_get_show:
+            mock_movie = Movie()
+            mock_movie.name = "Test No Poster"
+            mock_movie.original_name = "Test No Poster"
+            mock_movie.director = "Test Director"
+            mock_movie.release_date = datetime(2020, 1, 1)
+            mock_movie.overview = "A" * (max_overview + 500)
+            mock_movie.duration = 120
+            mock_movie.external_id = 66129
+            mock_movie.poster_path = "test_poster.jpg"
+            mock_movie.url = "https://www.themoviedb.org/movie/66129"
+            mock_get_show.return_value = mock_movie
+
+            rv=self.client.post('/movie/update',data=dict(show_id=1,submit_update_show=True),follow_redirects=True)
+            rv=self.client.post('/movie/update/select',data=dict(search="Les Tuche",submit_search=True))
+            rv=self.client.post('/movie/update/confirm',data=dict(show="66129",submit_select=True))
+            rv=self.client.post('/movie/update/confirm',data=dict(show_id="66129",origin="F",type="C",submit_confirm=True),follow_redirects=True)
+            assert "Le résumé est trop long, il sera tronqué" in rv.data.decode("utf-8")
+
+        with self.app.app_context():
+            updated_movie=Movie.query.get(1)
+            assert updated_movie.overview == "A" * (max_overview - 3) + "..."
 
         # Restore the movie with correct data (re-update without mock)
         rv=self.client.post('/movie/update',data=dict(show_id=1,submit_update_show=True),follow_redirects=True)

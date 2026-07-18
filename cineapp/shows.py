@@ -244,6 +244,11 @@ def confirm_show():
                         show_to_create.origin=confirm_form.origin.data.id
                         show_to_create.added_when=datetime.now()
 
+                        # Check that the text set in the overview field is not too long
+                        if len(show_to_create.overview) > Show.overview.property.columns[0].type.length:
+                                flash("Le résumé est trop long, il sera tronqué","warning")
+                                show_to_create.overview=show_to_create.overview[:Show.overview.property.columns[0].type.length - 3] + "..."
+
                         # Add the show in the database
                         try:
 
@@ -320,10 +325,16 @@ def confirm_show():
                                 show.release_date=temp_show.release_date
                                 show.url=temp_show.url
                                 show.director=temp_show.director
-                                show.overview=temp_show.overview
                                 show.poster_path=temp_show.poster_path
                                 show.type=confirm_form.type.data.id
                                 show.origin=confirm_form.origin.data.id
+
+                                # Check that the text set in the overview field is not too long
+                                if len(temp_show.overview) > Show.overview.property.columns[0].type.length:
+                                        flash("Le résumé est trop long, il sera tronqué","warning")
+                                        show.overview=temp_show.overview[:Show.overview.property.columns[0].type.length - 3] + "..."
+                                else:
+                                        show.overview=temp_show.overview
 
                                 # Let's consider specific fields considering show_type
                                 # Movies and TV shows use TMDB id, video games use IGDB id
