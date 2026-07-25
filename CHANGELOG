@@ -1,3 +1,7 @@
+Version 4.1.2 (2026-07-25)
+--------------------------
+  * [FEAT]: Add the application logo on the login page, the navigation bar and the favicon (#47)
+
 Version 4.1.1 (2026-07-18)
 --------------------------
   * [FIX]: Remove the trailing space on comments posted to Slack (#176)
