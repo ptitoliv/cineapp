@@ -190,7 +190,8 @@ body:not([data-show-type=""]) .topbar::after {
   display: inline-flex; align-items: center; gap: 8px;
 }
 .brand::before {
-  content: "◆"; color: var(--violet); font-size: 14px; font-style: normal;
+  content: ""; width: 26px; height: 26px; flex: none;
+  background: url(../images/logos/cineapp-logo.png) center / contain no-repeat;
 }
 
 nav.menu { display: flex; gap: 32px; flex-wrap: nowrap; }
@@ -4347,10 +4348,11 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
   text-shadow: 0 2px 26px rgba(0, 0, 0, .5);
 }
 .login-brand::before {
-  content: "\25C6";
-  color: var(--violet-soft);
-  font-size: 19px;
-  font-style: normal;
+  content: "";
+  width: 36px;
+  height: 36px;
+  flex: none;
+  background: url(../images/logos/cineapp-logo.png) center / contain no-repeat;
 }
 .login-hero-mid { margin: auto 0; }
 .login-hero-mid h1 {

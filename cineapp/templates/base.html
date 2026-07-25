@@ -7,6 +7,9 @@
 
   <title>{% block title %}{% if show %}{{ show.name }} — CineApp{% else %}CineApp{% endif %}{% endblock %}</title>
 
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/favicon.png') }}">
+
   <!-- Google Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
