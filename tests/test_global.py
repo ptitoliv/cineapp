@@ -1847,17 +1847,6 @@ class FlaskrTestCase(unittest.TestCase):
         """
             Add videogame feature test
         """
-
-        with self.app.app_context():
-            # Add a videogame type (genre)
-            t = Type()
-            t.id="ACT"
-            t.type="Action"
-            t.show_type = "videogame"
-
-            db.session.add(t)
-            db.session.commit()
-
         rv=self.client.post('/login',data=dict(username="ptitoliv",password="toto1234"), follow_redirects=True)
         assert '<span id="topbar-username">ptitoliv</span>' in str(rv.data)
 
