@@ -1008,7 +1008,11 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   text-transform: uppercase !important;
 }
 .dt-length label { display: inline-flex; align-items: center; gap: 8px; margin: 0; color: var(--ink-dim); }
-.dt-length select {
+/* one rule for both pastilles — the hand-built select (activity flow) and
+   DataTables' native one (shows list). :is() lends the whole selector the
+   specificity of its heaviest branch, enough to outweigh the CDN's
+   `div.dt-container .dt-input` styling (border-radius 3px, grey border). */
+:is(.dt-length, .dt-container.dt-container .dt-length) select {
   appearance: none; -webkit-appearance: none; -moz-appearance: none;
   background: var(--paper-card); border: 1px solid var(--rule);
   border-radius: 999px;
@@ -1025,7 +1029,8 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   background-size: 9px;
   transition: border-color .15s, color .15s;
 }
-.dt-length select:hover, .dt-length select:focus {
+:is(.dt-length, .dt-container.dt-container .dt-length) select:hover,
+:is(.dt-length, .dt-container.dt-container .dt-length) select:focus {
   border-color: var(--violet); color: var(--violet); outline: none;
 }
 
