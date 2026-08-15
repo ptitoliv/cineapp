@@ -33,7 +33,7 @@ function activity_phrase(row) {
   var what = '<a href="' + escapeHtml(row.show.url) + '">' + escapeHtml(row.show.name) + '</a>';
   switch (row.action_type) {
     case "shows":
-      return who + ' a ajouté ' + what + '.';
+      return who + ' a ajouté ' + what;
     case "marks":
       var note = '<span class="mark">' + row.mark.value + '</span>';
       if (row.mark.is_homework_mark) {
@@ -42,10 +42,10 @@ function activity_phrase(row) {
       return who + ' a noté ' + what + ' ' + note;
     case "homeworks":
       return who + ' a donné ' + what + ' en devoir à <strong>'
-           + escapeHtml(row.target_user.nickname) + '</strong>.';
+           + escapeHtml(row.target_user.nickname) + '</strong>';
     case "comments":
       return who + ' a commenté la note de <strong>'
-           + escapeHtml(row.parent_mark.user.nickname) + '</strong> sur ' + what + '.';
+           + escapeHtml(row.parent_mark.user.nickname) + '</strong> sur ' + what;
     case "favorites":
       return who + ' a ajouté ' + what + ' à ses favoris <span class="star">★</span>';
   }

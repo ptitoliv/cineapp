@@ -3026,8 +3026,20 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   box-shadow: 0 0 0 4px var(--paper-card),
               0 0 0 var(--act-halo) color-mix(in srgb, currentColor 22%, transparent);
 }
-/* the hover lift reads against the white card via --paper-soft */
-.dash .activity .act-node:hover .act-body { background: var(--paper-soft); }
+/* long reviews are clamped on the card — the full text lives on the activity
+   flow page. -webkit-line-clamp lets the clamped-away lines show through the
+   bubble's bottom padding ; the ::after strip masks that bleed. */
+.dash .activity .act-quote {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
+.dash .activity .act-quote::after {
+  content: ""; position: absolute; left: 0; right: 0; bottom: 0;
+  height: 13px; border-radius: 0 0 12px 12px;
+  background: var(--paper-soft);
+}
 /* a touch of space below the last node, inside the scroll area */
 .dash .activity tbody tr:last-child .act-node { padding-bottom: 12px; }
 
@@ -3963,6 +3975,30 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
   .act-marker { font-size: 8px; letter-spacing: .08em; padding: 4px 5px; margin-top: 2px; }
   .act-body { padding-left: 10px; margin-left: -10px; }
   .act-head { gap: 14px; }
+}
+
+/* on phones the timeline (marker + spine) survives untouched — only the body
+   column reorganises : the timestamp drops to its own line under the phrase
+   and the show title stays atomic (one ellipsized line, mark pill beside) */
+@media (max-width: 640px) {
+  /* auto table layout would let the atomic title inflate the cell's
+     min-content width past the card ; fixed pins the column to 100% */
+  table.flux { table-layout: fixed; }
+  /* let the 1fr body column shrink below the atomic title's intrinsic
+     width, so the % max-width below can actually resolve */
+  .act-body { min-width: 0; }
+  .act-node { gap: 12px; }
+  .act-head { display: block; }
+  .act-when { display: block; margin-top: 2px; }
+  .act-phrase a {
+    display: inline-block; max-width: 100%;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    vertical-align: bottom;
+  }
+  /* only phrases carrying a mark pill reserve room for it beside the title */
+  .act-phrase:has(.mark) a { max-width: calc(100% - 52px); }
+  .act-quote { padding-left: 34px; }
+  .act-quote::before { left: 10px; font-size: 34px; }
 }
 
 /* ==========================================================================
