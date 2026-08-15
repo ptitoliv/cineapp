@@ -411,35 +411,66 @@ $(document).ready(function() {
     var bar = document.createElement('div');
     bar.className = 'list-stickyhead';
     bar.style.top = topOffset() + 'px';
-    var clone = document.createElement('table');
-    clone.className = real.className + ' list-stickyhead-table';
-    var colgroup = real.querySelector('colgroup');
-    if (colgroup) clone.appendChild(colgroup.cloneNode(true));
-    clone.appendChild(real.tHead.cloneNode(true));
-    bar.appendChild(clone);
+    // Two clones of the header : one in a fixed zone (frozen columns), one in
+    // a scrolling zone — so the zone's scrollbar starts at the frozen edge and
+    // spans only the columns that actually scroll.
+    function makeClone() {
+      var t = document.createElement('table');
+      t.className = real.className + ' list-stickyhead-table';
+      var colgroup = real.querySelector('colgroup');
+      if (colgroup) t.appendChild(colgroup.cloneNode(true));
+      t.appendChild(real.tHead.cloneNode(true));
+      return t;
+    }
+    var fixedZone = document.createElement('div');
+    fixedZone.className = 'list-stickyhead-fixed';
+    var fixedClone = makeClone();
+    fixedZone.appendChild(fixedClone);
+    var scrollZone = document.createElement('div');
+    scrollZone.className = 'list-stickyhead-scroll';
+    var scrollClone = makeClone();
+    scrollZone.appendChild(scrollClone);
+    bar.appendChild(fixedZone);
+    bar.appendChild(scrollZone);
     card.parentNode.insertBefore(bar, card);
 
-    // The <th> in both headers are stable across server-side redraws (DataTables
+    // The frozen edge is measured on the cloned columns (the real thead is
+    // display:none on desktop), never hardcoded : it is the layout offset of
+    // the first scrolling column, so it always follows the column widths.
+    var firstScrollCol = document.querySelector('.list-wrap.has-me') ? 5 : 2;
+    var fixedCols = fixedClone.tHead.querySelectorAll('tr.cols th');
+    var frozenW = fixedCols[firstScrollCol] ? fixedCols[firstScrollCol].offsetLeft : 0;
+    bar.style.setProperty('--frozen-w', frozenW + 'px');
+
+    // The <th> in the headers are stable across server-side redraws (DataTables
     // only re-renders the body), so query each set once and reuse it.
     var realCols = real.tHead.querySelectorAll('tr.cols th');
-    var cloneCols = clone.tHead.querySelectorAll('tr.cols th');
+    var scrollCols = scrollClone.tHead.querySelectorAll('tr.cols th');
 
-    // Keep the sort indicators in sync (real -> clone) and let a click on a
+    // Keep the sort indicators in sync (real -> clones) and let a click on a
     // mirrored header sort the matching real column.
     function syncSort() {
-      cloneCols.forEach(function (th, i) { if (realCols[i]) th.className = realCols[i].className; });
+      realCols.forEach(function (th, i) {
+        if (fixedCols[i])  fixedCols[i].className  = th.className;
+        if (scrollCols[i]) scrollCols[i].className = th.className;
+      });
     }
     table.on('order.dt draw.dt', syncSort);
     syncSort();
-    cloneCols.forEach(function (th, i) {
-      th.addEventListener('click', function () { if (realCols[i]) realCols[i].click(); });
-    });
+    function relayClick(cols) {
+      cols.forEach(function (th, i) {
+        th.addEventListener('click', function () { if (realCols[i]) realCols[i].click(); });
+      });
+    }
+    relayClick(fixedCols);
+    relayClick(scrollCols);
 
-    // Keep the mirror's horizontal scroll in sync with the table card both ways.
+    // Keep the mirror's horizontal scroll in sync with the table card both
+    // ways (1:1 — the zone's scroll range equals the card's).
     var lock = false;
     function sync(from, to) { if (lock) return; lock = true; to.scrollLeft = from.scrollLeft; lock = false; }
-    card.addEventListener('scroll', function () { sync(card, bar); });
-    bar.addEventListener('scroll', function () { sync(bar, card); });
+    card.addEventListener('scroll', function () { sync(card, scrollZone); });
+    scrollZone.addEventListener('scroll', function () { sync(scrollZone, card); });
     window.addEventListener('resize', function () { bar.style.top = topOffset() + 'px'; });
   })();
 });

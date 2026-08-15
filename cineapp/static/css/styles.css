@@ -1169,11 +1169,22 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
    list_shows.html. */
 .list-stickyhead {
   position: sticky; top: 0; z-index: 20;
-  display: block; overflow-x: auto; overflow-y: hidden;
+  display: flex; overflow: hidden;
   background: var(--paper-card);
   border: 1px solid var(--rule); border-bottom: 0;
   border-radius: var(--card-radius) var(--card-radius) 0 0;
 }
+/* Two zones : the frozen header (--frozen-w is measured on the real columns by
+   initStickyHead, never hardcoded) and the scrolling header — whose own
+   scrollbar therefore starts at the frozen edge, spanning only the columns
+   that actually scroll. */
+.list-stickyhead-fixed { flex: 0 0 var(--frozen-w, 0px); overflow: hidden; }
+.list-stickyhead-scroll { flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+.list-stickyhead-scroll .list-stickyhead-table { margin-left: calc(-1 * var(--frozen-w, 0px)); }
+/* the cloned frozen cells must not re-freeze inside the scroll zone (the
+   sticky rules above match the clone too) — !important outweighs their
+   higher-specificity selectors */
+.list-stickyhead-scroll .list thead th { position: static !important; }
 .list-stickyhead-table { margin: 0; box-shadow: none; }
 /* the mirror replaces the real header on desktop; the card sits flush below it */
 @media (min-width: 921px) {
