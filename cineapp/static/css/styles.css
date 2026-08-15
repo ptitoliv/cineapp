@@ -1191,6 +1191,17 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
    higher-specificity selectors */
 .list-stickyhead-scroll .list thead th { position: static !important; }
 .list-stickyhead-table { margin: 0; box-shadow: none; }
+/* Sticky backing strip laid behind the bar's rounded corners (z-index one
+   below, top set by initStickyHead) : painted in the page background, so
+   while the bar is pinned the corner notches show --paper — exactly what
+   shows through at rest — instead of the content scrolling beneath. The
+   negative margin swallows its height : zero layout footprint. */
+.list-stickyhead-backing {
+  position: sticky; z-index: 19;
+  height: var(--card-radius);
+  margin-bottom: calc(-1 * var(--card-radius));
+  background: var(--paper);
+}
 /* the mirror replaces the real header on desktop; the card sits flush below it */
 @media (min-width: 921px) {
   #showslist > thead { display: none; }

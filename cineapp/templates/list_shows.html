@@ -433,6 +433,12 @@ $(document).ready(function() {
     bar.appendChild(fixedZone);
     bar.appendChild(scrollZone);
     card.parentNode.insertBefore(bar, card);
+    // Page-coloured backing strip behind the bar's rounded corners — keeps
+    // the radius visually intact while pinned (see .list-stickyhead-backing).
+    var backing = document.createElement('div');
+    backing.className = 'list-stickyhead-backing';
+    backing.style.top = topOffset() + 'px';
+    card.parentNode.insertBefore(backing, bar);
 
     // The frozen edge is measured on the cloned columns (the real thead is
     // display:none on desktop), never hardcoded : it is the layout offset of
@@ -471,7 +477,10 @@ $(document).ready(function() {
     function sync(from, to) { if (lock) return; lock = true; to.scrollLeft = from.scrollLeft; lock = false; }
     card.addEventListener('scroll', function () { sync(card, scrollZone); });
     scrollZone.addEventListener('scroll', function () { sync(scrollZone, card); });
-    window.addEventListener('resize', function () { bar.style.top = topOffset() + 'px'; });
+    window.addEventListener('resize', function () {
+      bar.style.top = topOffset() + 'px';
+      backing.style.top = topOffset() + 'px';
+    });
   })();
 });
 </script>
