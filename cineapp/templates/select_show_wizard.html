@@ -42,14 +42,34 @@
 
     <div class="wizard-actions">
       <nav class="wizard-pager">
+        {# Words on desktop, chevrons on mobile — each half lives in its own
+           span (.pager-word / .pager-chevron), the media
+           queries show exactly one ; aria-labels carry the meaning. #}
         {% if has_prev %}
-        <a id="prev" class="wizard-pager-link previous" href="{{ url_for('show.select_' + endpoint + '_show', show_type=g.show_type, page=cur_page - 1) }}">‹ Précédent</a>
+        <a id="prev" class="wizard-pager-link previous" aria-label="Page précédente" href="{{ url_for('show.select_' + endpoint + '_show', show_type=g.show_type, page=cur_page - 1) }}"><span class="pager-chevron">‹</span><span class="pager-word">Précédent</span></a>
         {% else %}
-        <span class="wizard-pager-link previous is-disabled" aria-hidden="true">‹ Précédent</span>
+        <span class="wizard-pager-link previous is-disabled" aria-hidden="true"><span class="pager-chevron">‹</span><span class="pager-word">Précédent</span></span>
         {% endif %}
 
-        {% for p in range(1, total_pages + 1) %}
-          {% if p == cur_page %}
+        {# Sliding window, same 7-button algorithm as the DataTables
+           simple_numbers pagers (shows list, activity flow) so every pager
+           in the app paginates identically : all pages when ≤7, a 5-number
+           block against an edge, first … current ±1 … last in between.
+           The full 1..N range turned deep searches into a wall of numbers
+           (~40 rows on mobile for a 273-page IGDB query). 0 = ellipsis. #}
+        {% if total_pages <= 7 %}
+          {% set pager_pages = range(1, total_pages + 1) | list %}
+        {% elif cur_page <= 4 %}
+          {% set pager_pages = [1, 2, 3, 4, 5, 0, total_pages] %}
+        {% elif cur_page >= total_pages - 3 %}
+          {% set pager_pages = [1, 0, total_pages - 4, total_pages - 3, total_pages - 2, total_pages - 1, total_pages] %}
+        {% else %}
+          {% set pager_pages = [1, 0, cur_page - 1, cur_page, cur_page + 1, 0, total_pages] %}
+        {% endif %}
+        {% for p in pager_pages %}
+          {% if p == 0 %}
+          <span class="wizard-pager-link is-gap" aria-hidden="true">…</span>
+          {% elif p == cur_page %}
           <span class="wizard-pager-link is-active">{{ p }}</span>
           {% else %}
           <a class="wizard-pager-link" href="{{ url_for('show.select_' + endpoint + '_show', show_type=g.show_type, page=p) }}">{{ p }}</a>
@@ -57,9 +77,9 @@
         {% endfor %}
 
         {% if has_next %}
-        <a id="next" class="wizard-pager-link next" href="{{ url_for('show.select_' + endpoint + '_show', show_type=g.show_type, page=cur_page + 1) }}">Suivant ›</a>
+        <a id="next" class="wizard-pager-link next" aria-label="Page suivante" href="{{ url_for('show.select_' + endpoint + '_show', show_type=g.show_type, page=cur_page + 1) }}"><span class="pager-word">Suivant</span><span class="pager-chevron">›</span></a>
         {% else %}
-        <span class="wizard-pager-link next is-disabled" aria-hidden="true">Suivant ›</span>
+        <span class="wizard-pager-link next is-disabled" aria-hidden="true"><span class="pager-word">Suivant</span><span class="pager-chevron">›</span></span>
         {% endif %}
       </nav>
 

@@ -76,7 +76,11 @@ $(document).ready(function () {
       infoFiltered: '',
       processing: 'Chargement',
       loadingRecords: 'Chargement',
-      paginate: { next: 'Suivant ›', previous: '‹ Précédent' }
+      paginate: {
+        next: '<span class="pager-word">Suivant</span><span class="pager-chevron">›</span>',
+        previous: '<span class="pager-chevron">‹</span><span class="pager-word">Précédent</span>'
+      },
+      aria: { paginate: { next: 'Page suivante', previous: 'Page précédente' } }
     }
   });
 

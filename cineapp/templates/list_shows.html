@@ -329,9 +329,10 @@ $(document).ready(function() {
       infoFiltered: '',
       lengthMenu: 'Afficher _MENU_ {{ g.messages["label_show_type_lowercase_plural"] }} par page',
       paginate: {
-        next: 'Suivant ›',
-        previous: '‹ Précédent'
-      }
+        next: '<span class="pager-word">Suivant</span><span class="pager-chevron">›</span>',
+        previous: '<span class="pager-chevron">‹</span><span class="pager-word">Précédent</span>'
+      },
+      aria: { paginate: { next: 'Page suivante', previous: 'Page précédente' } }
     }
   });
 

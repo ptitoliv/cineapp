@@ -1089,6 +1089,33 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   background: transparent !important;
 }
 
+/* ----- shared pager labels : words on desktop, chevrons on mobile -----
+   Both halves live in .pager-word / .pager-chevron spans — emitted by the
+   wizard pager markup AND by the DataTables `paginate` language strings
+   (list, activity flow), so every pager swaps identically. */
+.pager-chevron { display: none; }
+@media (max-width: 760px) {
+  .pager-word { display: none; }
+  .pager-chevron { display: inline; }
+  /* DataTables pager goes full-width, three anchored zones like the wizard :
+     ‹ at the left edge, page numbers centered, › at the right edge, taller
+     touch targets. */
+  .dt-paging { width: 100%; }
+  .dt-paging > nav {
+    display: flex; align-items: center; justify-content: center;
+    width: 100%; gap: 4px;
+  }
+  .dt-container.dt-container .dt-paging .dt-paging-button {
+    height: 40px; min-width: 30px; padding: 0 6px;
+  }
+  .dt-container.dt-container .dt-paging .dt-paging-button.previous,
+  .dt-container.dt-container .dt-paging .dt-paging-button.next {
+    font-size: 16px; padding: 0 12px;
+  }
+  .dt-container.dt-container .dt-paging .dt-paging-button.previous { margin-right: auto; }
+  .dt-container.dt-container .dt-paging .dt-paging-button.next { margin-left: auto; }
+}
+
 /* Processing indicator (DataTables shows it during AJAX) */
 .dt-processing {
   background: var(--paper-card) !important;
@@ -3528,6 +3555,12 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   border-color: var(--violet);
   color: var(--paper-card);
 }
+/* ellipsis over a window gap — same metrics as a page link, inert */
+.wizard-pager-link.is-gap {
+  pointer-events: none;
+  color: var(--ink-dim);
+  padding: 0 4px;
+}
 .wizard-pager-link.is-disabled,
 .wizard-pager-link.is-disabled:hover {
   opacity: .35; cursor: not-allowed;
@@ -3539,6 +3572,16 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 @media (max-width: 760px) {
   .wizard-results { gap: 14px; }
   .wizard-actions { justify-content: center; gap: 16px; }
+  /* pager : one full-width line — arrows anchored at the edges, numbers
+     centered between. The Précédent/Suivant words are hidden (the links
+     carry aria-labels) ; paddings tightened so even five 3-digit numbers
+     fit ; taller touch targets. */
+  .wizard-pager { display: flex; flex-wrap: nowrap; width: 100%; }
+  .wizard-pager-link { height: 40px; min-width: 30px; padding: 0 6px; }
+  .wizard-pager-link.previous,
+  .wizard-pager-link.next { font-size: 16px; padding: 0 12px; }
+  .wizard-pager-link.previous { margin-right: auto; }
+  .wizard-pager-link.next { margin-left: auto; }
 }
 
 /* ============== WIZARD step 3 — confirm : reuses .show-detail hero ============== */
