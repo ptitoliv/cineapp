@@ -217,7 +217,8 @@ def create_app(config_path=None):
     # Login manager init
     lm.init_app(app)
     lm.login_view = 'main.login'
-    
+    lm.login_message = u"Veuillez vous identifier pour accéder au service."
+        
     # Session Manager Init
     sess.init_app(app)
 
