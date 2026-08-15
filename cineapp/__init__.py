@@ -119,7 +119,7 @@ def create_app(config_path=None):
     app.wsgi_app = ProxyFix(app.wsgi_app)
     
     # Global Variables
-    app.config['VERSION'] = "4.1.2"
+    app.config['VERSION'] = "4.1.3"
     app.config['GRAVATAR_URL'] = "https://www.gravatar.com/avatar/"
     app.config['GRAPH_LIST'] = [
             { "graph_endpoint": "graphs.graph_by_mark", "graph_label": u"Répartition par note", "movie": True, "tvshow": True, "videogame": True },
