@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import json
 from wtforms import fields, widgets
 from markupsafe import Markup
 
@@ -49,7 +50,7 @@ class CKTextAreaWidget(widgets.TextArea):
             .catch( error => {
                 console.error( error );
             } );
-            </script>""") % (field.id, field.id,comment_value));
+            </script>""") % (field.id, field.id,comment_value.replace('"', '\\"')));
         return html_string
 
 class CKTextAreaField(fields.TextAreaField):
