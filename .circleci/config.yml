@@ -6,6 +6,7 @@ orbs:
 jobs:
   build:
     docker:
+    - image: cimg/python:3.11
     - image: cimg/mariadb:10.6
     executor:
       name: python/default
