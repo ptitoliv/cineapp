@@ -1249,7 +1249,7 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
     text-align: center;
   }
 }
-@media (max-width: 920px) { .list-stickyhead { display: none !important; } }
+@media (max-width: 920px) { .list-stickyhead, .list-stickyhead-backing { display: none !important; } }
 
 /* Narrow-desktop band (921–1280px) cosmetics: tighter side padding for the
    scroller, and a centred filter bar whose selects no longer fit on one row
