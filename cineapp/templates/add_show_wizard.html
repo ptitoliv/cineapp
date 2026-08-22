@@ -16,6 +16,18 @@
     <div class="wizard-search">
       {{ search_form.search(class_="wizard-search-input", placeholder=g.messages["field_search"], autofocus=True, autocomplete="off") }}
     </div>
+    {% if g.show_type == "videogame" %}
+    <div class="wizard-exact">
+      <label class="wizard-exact-label">
+        {{ search_form.exact_title(class_="wizard-exact-input") }}
+        <span class="wizard-exact-box" aria-hidden="true"></span>
+        <span class="wizard-exact-text">
+          <span class="wizard-exact-title">{{ search_form.exact_title.label.text }}</span>
+          <span class="wizard-exact-desc">N'affiche que les jeux dont un des titres — français ou original — correspond exactement à la recherche.</span>
+        </span>
+      </label>
+    </div>
+    {% endif %}
     <div class="wizard-hint">
       <span><span class="accent">Astuce</span> · appuie sur <kbd>Entrée</kbd> pour lancer la recherche</span>
     </div>

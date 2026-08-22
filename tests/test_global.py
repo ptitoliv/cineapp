@@ -1942,9 +1942,21 @@ class FlaskrTestCase(unittest.TestCase):
             assert mario.name == "Mario Smash Football"
             assert mario.original_name == "Super Mario Strikers"
 
-        # --- Title localization: French alternative name (branch 2) ---
-        # Oddworld: Abe's Oddysee (IGDB id 999) has no European localized title but
-        # a French alternative name "Oddworld : L'Odyssée d'Abe".
+        # --- Title localization: French alternative name (branch 2), found by
+        # the wizard search on the FRENCH title: the IGDB search matches
+        # alternative names, so "L'Odyssée d'Abe" must return game 999 even
+        # though its IGDB name is "Oddworld: Abe's Oddysee".
+        rv=self.client.post('/videogame/add/select',data=dict(search="L'Odyssée d'Abe",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
+        found_ids=[]
+        for cur_show in list_shows:
+            radio = cur_show.find('input', {'type': 'radio'})
+            if radio:
+                found_ids.append(radio['value'])
+        assert "999" in found_ids, \
+            "IGDB search \"L'Odyssée d'Abe\" should return game 999, got %r" % found_ids
+
         rv=self.client.post('/videogame/add/confirm',data=dict(show_id="999",origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
         assert u"Jeu vidéo ajouté" in rv.data.decode("utf-8")
         with self.app.app_context():
@@ -1952,6 +1964,59 @@ class FlaskrTestCase(unittest.TestCase):
             assert oddworld is not None
             assert oddworld.name == u"Oddworld : L'Odyssée d'Abe"
             assert oddworld.original_name == u"Oddworld: Abe's Oddysee"
+
+        # --- Title localization: European localized title (branch 1), found by
+        # the wizard search on the FRENCH title: "Soleil" is the Europe
+        # localization of "Crusader of Centy" (IGDB id 4552), so the search
+        # matches localized names too. The game is removed afterwards so later
+        # tests keep the same videogame dataset.
+        rv=self.client.post('/videogame/add/select',data=dict(search="Soleil",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
+        found_ids=[]
+        for cur_show in list_shows:
+            radio = cur_show.find('input', {'type': 'radio'})
+            if radio:
+                found_ids.append(radio['value'])
+        assert "4552" in found_ids, \
+            "IGDB search \"Soleil\" should return game 4552, got %r" % found_ids
+
+        rv=self.client.post('/videogame/add/confirm',data=dict(show_id="4552",origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+        assert u"Jeu vidéo ajouté" in rv.data.decode("utf-8")
+        with self.app.app_context():
+            soleil = VideoGame.query.filter_by(external_id=4552, external_source="igdb").first()
+            assert soleil is not None
+            assert soleil.name == "Soleil"
+            assert soleil.original_name == "Crusader of Centy"
+            db.session.delete(soleil)
+            db.session.commit()
+
+        # --- Exact-title search: as a substring "Gris" matches dozens of games
+        # (Chubby Gristle, the Langrisser series, ...) so the default search
+        # fills a whole result page, while the exact_title mode must return
+        # only the game actually named "Gris" (IGDB id 22917).
+        rv=self.client.post('/videogame/add/select',data=dict(search="Gris",exact_title="y",submit_search=True))
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        list_shows=parsed_html.find_all('label', class_='wizard-result')
+        found_ids=[]
+        for cur_show in list_shows:
+            radio = cur_show.find('input', {'type': 'radio'})
+            if radio:
+                found_ids.append(radio['value'])
+        assert found_ids == ["22917"], \
+            "IGDB exact search \"Gris\" should return only game 22917, got %r" % found_ids
+
+        # Add the game found by the exact search, then remove it so later
+        # tests keep the same videogame dataset.
+        rv=self.client.post('/videogame/add/confirm',data=dict(show_id="22917",origin="F",type="ACT",submit_confirm=True),follow_redirects=True)
+        assert u"Jeu vidéo ajouté" in rv.data.decode("utf-8")
+        with self.app.app_context():
+            gris = VideoGame.query.filter_by(external_id=22917, external_source="igdb").first()
+            assert gris is not None
+            assert gris.name == "Gris"
+            assert gris.original_name == "Gris"
+            db.session.delete(gris)
+            db.session.commit()
 
         # --- Composite UNIQUE (external_source, external_id): a videogame may share external_id with a movie ---
         # Les Tuche (TMDB id 66129, external_source='tmvdb') was added in test_03; mock IGDB so the videogame
