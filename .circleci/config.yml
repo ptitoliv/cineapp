@@ -1,79 +1,17 @@
-# Python CircleCI 2.0 configuration file
-#
-# Check https://circleci.com/docs/2.0/language-python/ for more details
-#
-version: 2
+version: 2.1
+
+orbs:
+  python: circleci/python@4.0.0
+
 jobs:
   build:
     docker:
-      # specify the version you desire here
-      # use `-browsers` prefix for selenium tests, e.g. `3.6.1-browsers`
-      - image: cimg/python:3.11.11
-        environment:
-         TEST: "yes"
-      
-      # Specify service dependencies here if necessary
-      # CircleCI maintains a library of pre-built images
-      # documented at https://circleci.com/docs/2.0/circleci-images/
-      # - image: circleci/postgres:9.4
-
-      - image: mariadb
-        environment:
-          MYSQL_ALLOW_EMPTY_PASSWORD: yes
-          MYSQL_ROOT_PASSWORD: ''
-          MYSQL_DATABASE: cineapp_ci
-
-    working_directory: ~/cine_app
-
+    - image: cimg/mariadb:10.6
+    executor:
+      name: python/default
+      tag: '3.11'
     steps:
       - checkout
-
-      # Download and cache dependencies
-#      - restore_cache:
-#          keys:
-#          - v1-dependencies-{{ checksum "requirements.txt" }}
-#          # fallback to using the latest cache if no exact match is found
-#          - v1-dependencies-
-
-      - run:
-          name: Wait for DB
-          command: dockerize -wait tcp://127.0.0.1:3306 -timeout 120s
-
-      - run:
-          name: install virtualenv
-          command: |
-            pip install virtualenv
-
-      - run:
-          name: install system dependencies
-          command: |
-            sudo apt update
-            sudo apt install libjpeg-dev
-      
-      - run:
-          name: install dependencies
-          command: |
-            python3 -m virtualenv venv
-            . venv/bin/activate
-            pip install coveralls
-            pip install -r requirements.txt
-
-      - run:
-          name: Run tests
-          command: |
-            . venv/bin/activate
-            sudo bash -c 'echo fr_FR.UTF-8 UTF-8 > /etc/locale.gen'
-            sudo dpkg-reconfigure locales
-            cd /home/circleci/cine_app/ && CI=True LC_ALL=fr_FR.UTF-8 coverage run --omit=migrations/*,tests/* -m nose2 tests
-            coveralls
-
-#      - save_cache:
-#          paths:
-#            - . venv/bin/activate
-#          key: v1-dependencies-{{ checksum "requirements.txt" }}
-        
-      # run tests!
-      # this example uses Django's built-in test-runner
-      # other common Python testing frameworks include pytest and nose
-      # https://pytest.org
-      # https://nose.readthedocs.io
+      - python/install-packages:
+          pkg-manager: pipenv
+    
