@@ -13,5 +13,5 @@ jobs:
     steps:
       - checkout
       - python/install-packages:
-          pkg-manager: pipenv
+          pkg-manager: pip
     
