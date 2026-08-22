@@ -78,6 +78,7 @@
 .mark-studio .mark-score-max,
 .wizard-page-indicator,
 .wizard-hint,
+.wizard-exact-title,
 .wizard-confirm-meta label,
 .flux-count,
 .graph-nav-label,
@@ -3314,6 +3315,71 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
   color: var(--ink-dim); font-style: italic;
 }
 .wizard-search-input:focus { border-bottom-color: var(--violet); }
+
+/* Exact-title toggle (videogame wizard only) — a clickable card under the
+   search underline: custom checkbox + caption title + explanatory sentence.
+   The native checkbox stays focusable but is visually replaced by
+   .wizard-exact-box; the whole card is the click target and takes the
+   violet accent when checked. */
+.wizard-exact {
+  max-width: 680px;
+  margin: -6px auto 28px;
+}
+.wizard-exact-label {
+  display: flex; align-items: flex-start; gap: 14px;
+  text-align: left;
+  padding: 14px 18px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  background: var(--paper-card);
+  cursor: pointer;
+  transition: border-color .15s, box-shadow .15s;
+}
+.wizard-exact-label:hover { border-color: var(--ink-dim); }
+.wizard-exact-label:has(.wizard-exact-input:checked) {
+  border-color: var(--violet);
+  box-shadow: inset 3px 0 0 var(--violet);
+}
+.wizard-exact-input {
+  position: absolute; opacity: 0; width: 0; height: 0;
+}
+.wizard-exact-box {
+  flex: none;
+  width: 18px; height: 18px;
+  margin-top: 1px;
+  border: 1.5px solid var(--ink);
+  border-radius: 4px;
+  background: var(--paper);
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: background .15s, border-color .15s;
+}
+.wizard-exact-box::after {
+  content: "";
+  width: 9px; height: 5px;
+  border-left: 2px solid var(--paper);
+  border-bottom: 2px solid var(--paper);
+  transform: rotate(-45deg) translate(1px, -1px);
+  opacity: 0;
+}
+.wizard-exact-input:checked + .wizard-exact-box {
+  background: var(--violet); border-color: var(--violet);
+}
+.wizard-exact-input:checked + .wizard-exact-box::after { opacity: 1; }
+.wizard-exact-input:focus-visible + .wizard-exact-box {
+  outline: 2px solid var(--violet); outline-offset: 2px;
+}
+.wizard-exact-title {
+  display: block;
+  font-size: 11px;
+}
+.wizard-exact-label:has(.wizard-exact-input:checked) .wizard-exact-title { color: var(--violet); }
+.wizard-exact-desc {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-body);
+  font-size: 14px; line-height: 1.45;
+  color: var(--ink-mid);
+}
 
 .wizard-hint {
   font-size: 11px;

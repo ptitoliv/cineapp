@@ -76,11 +76,15 @@ def select_show(page=1):
         search_form=SearchShowForm()
 
         # If we come from the search_show for, put the query string into a session
+        # Do the same with the exact_title flag needed for 
         if search_form.search.data != None and search_form.search.data != "":
                 query_show=search_form.search.data
+                exact_title = search_form.exact_title.data
                 session['query_show'] = search_form.search.data
+                session['exact_title'] = exact_title
         else:
                 query_show=session.get('query_show',None)
+                exact_title = session.get('exact_title',False)
 
         # Check if we correctly do a search, if not => Let's go back to the add show form
         if search_form.submit_search.data and not search_form.validate_on_submit():
@@ -103,7 +107,7 @@ def select_show(page=1):
         # Fetch how many pages we have to handle
         # Video games use the IGDB API, movies and TV shows use the TMDB API
         if g.show_type == "videogame":
-                total_pages = igdb_api.search_page_number(query_show)
+                total_pages = igdb_api.search_page_number(query_show,exact_title)
         else:
                 total_pages = search_page_number(query_show,show_type=g.show_type)
 
@@ -126,7 +130,7 @@ def select_show(page=1):
         # Fetch the query from the previous form in order to fill correctly the radio choices
         # Video games: search via IGDB API / Movies and TV shows: search via TMDB API
         if g.show_type == "videogame":
-                shows_list=igdb_api.search_games(query_show,page)
+                shows_list=igdb_api.search_games(query_show,page,exact_title)
         else:
                 shows_list=search_shows(query_show,g.show_type,page)
         select_form=SelectShowForm(g.show_type,shows_list)

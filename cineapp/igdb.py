@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from __future__ import print_function
+import math
 from builtins import str
 import json, os, time, requests, deepl
 from io import BytesIO
@@ -240,14 +241,32 @@ def _pick_display_name(game):
     return game.get("name")
 
 
-def search_games(query, page=1):
+def search_games(query, page=1,exact_title=False):
 
     """
         Search games on IGDB, return a list of VideoGame objects
     """
-
     offset = (page - 1) * IGDB_PAGE_SIZE
-    body = 'fields name,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name,release_dates.date,release_dates.platform.name,alternative_names.name,alternative_names.comment,game_localizations.cover.url,game_localizations.name,game_localizations.region.name; where name ~ *"%s"* ; sort first_release_date asc ; limit %d; offset %d ;' % (query.replace('"', '\\"'), IGDB_PAGE_SIZE, offset)
+    escaped_query = query.replace('"', '\\"')
+    
+    # Let's build the where clause based on the exact_title flag
+    if exact_title:
+        where_clause = ('where (name = "%s"'
+                        ' | alternative_names.name = "%s"'
+                        ' | game_localizations.name = "%s");') % (escaped_query, escaped_query, escaped_query)
+    else:
+        where_clause = (' where (name = "%s" | name ~ *"%s"*'
+                    ' | alternative_names.name = "%s" | alternative_names.name ~ *"%s"*'
+                    ' | game_localizations.name = "%s" | game_localizations.name ~ *"%s"*) ;' ) % (escaped_query, escaped_query, escaped_query, escaped_query, escaped_query, escaped_query)
+
+    body = ('fields name,cover.url,first_release_date,'
+            'involved_companies.company.name,involved_companies.developer,involved_companies.publisher,'
+            'platforms.name,release_dates.date,release_dates.platform.name,'
+            'alternative_names.name,alternative_names.comment,'
+            'game_localizations.cover.url,game_localizations.name,game_localizations.region.name;'
+            '%s'
+            ' sort first_release_date asc ;'
+            ' limit %d; offset %d ;') % (where_clause,IGDB_PAGE_SIZE, offset)
 
     results = _igdb_request("games", body)
     if results is None:
@@ -303,7 +322,13 @@ def get_game(external_id):
         Get full game details from IGDB
     """
 
-    body = 'fields name,summary,cover.url,first_release_date,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,platforms.name,url,alternative_names.name,alternative_names.comment,release_dates.date,release_dates.region,release_dates.release_region.region,release_dates.platform.name,game_localizations.cover.url,game_localizations.name,game_localizations.region.name,game_localizations.region.identifier; where id = %s;' % str(external_id)
+    body = ('fields name,summary,cover.url,first_release_date,'
+            'involved_companies.company.name,involved_companies.developer,involved_companies.publisher,'
+            'platforms.name,url,'
+            'alternative_names.name,alternative_names.comment,'
+            'release_dates.date,release_dates.region,release_dates.release_region.region,release_dates.platform.name,'
+            'game_localizations.cover.url,game_localizations.name,game_localizations.region.name,game_localizations.region.identifier;'
+            ' where id = %s;') % str(external_id)
 
     results = _igdb_request("games", body)
     if not results or len(results) == 0:
@@ -464,14 +489,23 @@ def download_poster(url):
         return False
 
 
-def search_page_number(query):
+def search_page_number(query,exact_title=False):
     """
         Return how many result pages a query yields. Counts with the same
-        `where name ~ "..."` clause as search_games, so the page count and the
-        displayed results always agree.
+        where clause as search_games, so the page count and the displayed
+        results always agree.
     """
-    import math
-    body = 'where name ~ *"%s"*;' % query.replace('"', '\\"')
+    escaped_query = query.replace('"', '\\"')
+    if exact_title:
+        where_clause = (' where (name = "%s"'
+                        ' | alternative_names.name = "%s"'
+                        ' | game_localizations.name = "%s");') % (escaped_query, escaped_query, escaped_query)
+    else:
+        where_clause = (' where (name = "%s" | name ~ *"%s"*'
+                    ' | alternative_names.name = "%s" | alternative_names.name ~ *"%s"*'
+                    ' | game_localizations.name = "%s" | game_localizations.name ~ *"%s"*);' ) % (escaped_query, escaped_query, escaped_query, escaped_query, escaped_query, escaped_query)
+
+    body = ('%s') % (where_clause)
 
     result = _igdb_request("games/count", body)
     if result is None or "count" not in result:

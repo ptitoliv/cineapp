@@ -78,6 +78,7 @@ class MarkShowForm(Form):
 
 class SearchShowForm(Form):
     search = StringField('Nom du film', [DataRequired()])
+    exact_title = BooleanField(u"Titre exact")
     submit_search = BooleanField(u"Chercher")
 
 class SelectShowForm(Form):
