@@ -979,10 +979,28 @@ class FlaskrTestCase(unittest.TestCase):
         assert rv.status_code == 200
         rv=self.client.post('/movie/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
         assert rv.status_code == 200
+        response=json.loads(rv.data)
+        assert response["recordsTotal"] == len(response["data"])
 
         # --- Filter: favorite + sort by my_fav ---
         rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_my_fav)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
         assert rv.status_code == 200
+        response=json.loads(rv.data)
+        assert response["recordsTotal"] == len(response["data"])
+
+        # --- Filter: favorite + sort by my_mark ---
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_my_mark)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+        response=json.loads(rv.data)
+        assert response["recordsTotal"] == len(response["data"])
+
+        # --- Filter: favorite + sort by average ---
+        args_average = dict(args)
+        args_average['order'] = [{'column': 2, 'dir': 'desc'}]
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_average)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+        response=json.loads(rv.data)
+        assert response["recordsTotal"] == len(response["data"])
 
         # Clean up favorite
         rv=self.client.post('/json/favshow/delete/1',follow_redirects=True)

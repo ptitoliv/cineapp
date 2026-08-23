@@ -897,16 +897,16 @@ def update_datatable():
 
                 # Sort my desc marks
                 if session.get('search_type') == 'list': 
-                        shows = shows_query.filter(filter_field != None).order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
-                        count_shows=shows_query.count()
+                        shows = shows_query.filter(filter_field != None).distinct().order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
+                        count_shows=shows_query.filter(filter_field != None).distinct().count()
 
                 elif session.get('search_type') == 'filter_origin_type':
-                        shows = shows_query.filter(filter_field != None).order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
-                        count_shows=shows_query.filter(Mark.mark != None).count()
+                        shows = shows_query.filter(filter_field != None).distinct().order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
+                        count_shows=shows_query.filter(filter_field != None).distinct().count()
                                 
                 elif session.get('search_type') == 'filter':
-                            shows=shows_query.filter(match(filter_item.name, filter_item.original_name, filter_item.director, against=fts_boolean_query(session.get('query'))).in_boolean_mode()).filter(filter_field != None).order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
-                            count_shows=shows_query.filter(match(filter_item.name,filter_item.original_name,filter_item.director,against=fts_boolean_query(session.get('query'))).in_boolean_mode()).filter(filter_field != None).count()
+                            shows=shows_query.filter(match(filter_item.name, filter_item.original_name, filter_item.director, against=fts_boolean_query(session.get('query'))).in_boolean_mode()).filter(filter_field != None).distinct().order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
+                            count_shows=shows_query.filter(match(filter_item.name,filter_item.original_name,filter_item.director,against=fts_boolean_query(session.get('query'))).in_boolean_mode()).filter(filter_field != None).distinct().count()
         else:
 
                 app.logger.info('Entering filter_user is Null')
@@ -954,10 +954,10 @@ def update_datatable():
                                 else:
                                         app.logger.info("Requete par moyenne ascendante")
                                         shows=shows_query.group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
+                                count_shows=shows_query.group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).count()
                         else:
-                                shows = shows_query.order_by(text(f"{order_column} {order_dir}")).slice(int(start),int(start) + int(length))
-
-                        count_shows=shows_query.count()
+                                shows = shows_query.distinct().order_by(text(f"{order_column} {order_dir}")).slice(int(start),int(start) + int(length))
+                                count_shows=shows_query.distinct().count()
 
                 # Here, this is for the string search (Show or director)
                 elif session.get('search_type') == 'filter':
