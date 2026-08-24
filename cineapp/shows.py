@@ -144,7 +144,19 @@ def select_show(page=1):
         # and propose it to make a new search
         if total_pages == 1 and len(select_form.show.choices) == 0:
                 flash("Aucun résultat pour cette recherche", "warning")
-                return redirect(url_for("show.add_show",show_type=g.show_type))
+                search_form = SearchShowForm()
+                search_form.search.data = query_show
+                search_form.exact_title.data = exact_title
+
+                # Complete the header with the show name if it's available
+                # Normally only in update mode
+                if endpoint == "update":
+                       header_text= u"%s %s" % (g.messages["label_update"], session["show"].name)
+                else:
+                       # We are in add mode if we're not in update mode
+                       header_text = u"%s" % (g.messages["label_add"])
+
+                return render_template('add_show_wizard.html', search_form=search_form, header_text=header_text,endpoint=endpoint)
 
         return render_template('select_show_wizard.html', select_form=select_form, cur_page=page, total_pages=total_pages, has_prev=has_prev, has_next=has_next,endpoint=endpoint)
 

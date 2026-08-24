@@ -458,6 +458,11 @@ class FlaskrTestCase(unittest.TestCase):
         # Send the form without a incorrect title
         rv=self.client.post('/movie/update/select',data=dict(search="fejsgjsgjsd",submit_search=True),follow_redirects=True)
         assert u"Aucun résultat" in rv.data.decode("utf-8")
+
+        # The wizard must stay in UPDATE mode with the failed query kept (#203)
+        parsed_html=BeautifulSoup(rv.data,"html.parser")
+        assert u"Mise à jour du film Les Tuche" == parsed_html.find(id="add_wizard_label").text
+        assert "fejsgjsgjsd" == parsed_html.find(id="search")["value"]
         
         # Fill the movie title
         rv=self.client.post('/movie/update/select',data=dict(search="Les Tuche",submit_search=True))
