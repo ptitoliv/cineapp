@@ -897,15 +897,15 @@ def update_datatable():
 
                 # Sort my desc marks
                 if session.get('search_type') == 'list': 
-                        shows = shows_query.filter(filter_field != None).distinct().order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
+                        shows = shows_query.filter(filter_field != None).distinct().order_by(text(f"{filter_field.key} {order_dir}, shows.id")).slice(int(start),int(start) + int(length))
                         count_shows=shows_query.filter(filter_field != None).distinct().count()
 
                 elif session.get('search_type') == 'filter_origin_type':
-                        shows = shows_query.filter(filter_field != None).distinct().order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
+                        shows = shows_query.filter(filter_field != None).distinct().order_by(text(f"{filter_field.key} {order_dir}, shows.id")).slice(int(start),int(start) + int(length))
                         count_shows=shows_query.filter(filter_field != None).distinct().count()
                                 
                 elif session.get('search_type') == 'filter':
-                            shows=shows_query.filter(match(filter_item.name, filter_item.original_name, filter_item.director, against=fts_boolean_query(session.get('query'))).in_boolean_mode()).filter(filter_field != None).distinct().order_by(text(f"{filter_field.key} {order_dir}")).slice(int(start),int(start) + int(length))
+                            shows=shows_query.filter(match(filter_item.name, filter_item.original_name, filter_item.director, against=fts_boolean_query(session.get('query'))).in_boolean_mode()).filter(filter_field != None).distinct().order_by(text(f"{filter_field.key} {order_dir}, shows.id")).slice(int(start),int(start) + int(length))
                             count_shows=shows_query.filter(match(filter_item.name,filter_item.original_name,filter_item.director,against=fts_boolean_query(session.get('query'))).in_boolean_mode()).filter(filter_field != None).distinct().count()
         else:
 
@@ -915,16 +915,16 @@ def update_datatable():
                         app.logger.info('Entering list search_type')
                         if order_column == "average":
                                 if order_dir == "desc":
-                                        shows=db.session.query(Show).filter(Show.show_type==g.show_type).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length))
+                                        shows=db.session.query(Show).filter(Show.show_type==g.show_type).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark)), Show.id).slice(int(start),int(start) + int(length))
                                 else:
-                                        shows=db.session.query(Show).filter(Show.show_type==g.show_type).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length))
+                                        shows=db.session.query(Show).filter(Show.show_type==g.show_type).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark), Show.id).slice(int(start),int(start) + int(length))
                                 
                                 count_shows=db.session.query(Show).filter(Show.show_type==g.show_type).join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
                         else:
                                 if order_dir == "desc":
-                                    shows = Show.query.filter(Show.show_type==g.show_type).order_by(desc(order_column)).slice(int(start),int(start) + int(length))
+                                    shows = Show.query.filter(Show.show_type==g.show_type).order_by(desc(order_column), Show.id).slice(int(start),int(start) + int(length))
                                 else:
-                                    shows = Show.query.filter(Show.show_type==g.show_type).order_by(order_column).slice(int(start),int(start) + int(length))
+                                    shows = Show.query.filter(Show.show_type==g.show_type).order_by(order_column, Show.id).slice(int(start),int(start) + int(length))
                                 count_shows=Show.query.filter(Show.show_type==g.show_type).count()
 
                 # Let's use the filter form
@@ -950,13 +950,13 @@ def update_datatable():
                         if order_column == "average":
                                 if order_dir == "desc":
                                         app.logger.info("Requete par moyenne desecendante")
-                                        shows=shows_query.group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length)).all()
+                                        shows=shows_query.group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark)), Show.id).slice(int(start),int(start) + int(length)).all()
                                 else:
                                         app.logger.info("Requete par moyenne ascendante")
-                                        shows=shows_query.group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
+                                        shows=shows_query.group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark), Show.id).slice(int(start),int(start) + int(length)).all()
                                 count_shows=shows_query.group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).count()
                         else:
-                                shows = shows_query.distinct().order_by(text(f"{order_column} {order_dir}")).slice(int(start),int(start) + int(length))
+                                shows = shows_query.distinct().order_by(text(f"{order_column} {order_dir}, shows.id")).slice(int(start),int(start) + int(length))
                                 count_shows=shows_query.distinct().count()
 
                 # Here, this is for the string search (Show or director)
@@ -973,13 +973,13 @@ def update_datatable():
 
                         if order_column == "average":
                                 if order_dir == "desc":
-                                        shows=basequery.join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark))).slice(int(start),int(start) + int(length)).all()
+                                        shows=basequery.join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(desc(db.func.avg(Mark.mark)), Show.id).slice(int(start),int(start) + int(length)).all()
                                 else:
-                                        shows=basequery.join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).slice(int(start),int(start) + int(length)).all()
+                                        shows=basequery.join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark), Show.id).slice(int(start),int(start) + int(length)).all()
 
                                 count_shows=basequery.join(Mark).group_by(Mark.show_id).having(db.func.avg(Mark.mark!=None)).order_by(db.func.avg(Mark.mark)).count()
                         else:
-                                shows = basequery.order_by(text(f"{order_column} {order_dir}")).slice(int(start),int(start) + int(length))
+                                shows = basequery.order_by(text(f"{order_column} {order_dir}, shows.id")).slice(int(start),int(start) + int(length))
                                 count_shows=basequery.count()
 
         # Let's fetch all the users, I will need them

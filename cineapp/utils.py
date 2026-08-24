@@ -117,7 +117,7 @@ def get_activity_list(start, length, show_type):
     favorite_query=db.session.query(FavoriteShow.show_id.label("id"),FavoriteShow.user_id.label("user_id"),FavoriteShow.added_when.label("entry_date"),literal("favorites").label("entry_type")).join(Show).filter(Show.show_type==show_type).filter(FavoriteShow.deleted_when == None)
 
     # Build the union request
-    activity_list = shows_query.union(marks_query,homework_query,comment_query,favorite_query).order_by(desc("entry_date")).slice(int(start),int(start) + int(length))
+    activity_list = shows_query.union(marks_query,homework_query,comment_query,favorite_query).order_by(desc("entry_date"),"entry_type","id","user_id").slice(int(start),int(start) + int(length))
 
     for cur_item in activity_list:
         if cur_item.entry_type == "shows":
@@ -132,7 +132,7 @@ def get_activity_list(start, length, show_type):
             object_list.append({"entry_type": "favorites", "object" : FavoriteShow.query.get((cur_item.id,cur_item.user_id))})
 
     # Count activity number (Will be used for the datatable pagination)
-    object_dict["count"]=shows_query.union(marks_query,homework_query).order_by(desc("entry_date")).count()
+    object_dict["count"]=shows_query.union(marks_query,homework_query,comment_query,favorite_query).count()
     object_dict["list"]=object_list
 
     # Return the filled object
