@@ -327,7 +327,7 @@
           </span>
           {% endif %}
           {% if cur_mark["seen_when"] %}<span class="review-when">{{ cur_mark["seen_when"] }}</span>{% endif %}
-          {% if cur_mark["seen_where"] %}<span class="review-where">{{ cur_mark["seen_where"] }}</span>{% endif %}
+          {% if show is movie and cur_mark["seen_where"] %}<span class="review-where">{{ cur_mark["seen_where"] }}</span>{% endif %}
           {% if u_fav %}<span class="review-favstar" data-star-type="{{ u_fav.star_type }}" title="{{ u_fav.star_type_obj.star_message }}">★</span>{% endif %}
           {# comment-count pill: toggle thread #}
           <button type="button" class="comment-count" data-review-id="{{ u.id }}" title="Déplier / replier les commentaires">
