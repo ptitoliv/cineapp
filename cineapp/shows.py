@@ -1010,11 +1010,7 @@ def update_datatable():
                         if cur_mark.user_id == g.user.id:
                                 my_mark=cur_mark.mark
 
-                                # Escape characters correctly for correct display in hover event
-                                if cur_mark.comment != None:
-                                        my_comment=cur_mark.comment.replace('"','\'')
-                                else:
-                                        my_comment=cur_mark.comment
+                                my_comment=cur_mark.comment
 
                                 # Convert the date object only if seen_when field is not null (Homework UC)
                                 if cur_mark.seen_when != None:
@@ -1046,11 +1042,7 @@ def update_datatable():
                                         dict_mark[cur_user.id]=cur_mark.mark            
                                         dict_where[cur_user.id]=cur_mark.seen_where
 
-                                        # Escape characters correctly for correct display in hover event
-                                        if cur_mark.comment != None:
-                                                dict_comments[cur_user.id]=cur_mark.comment.replace('"','\'')
-                                        else:
-                                                dict_comments[cur_user.id]=cur_mark.comment
+                                        dict_comments[cur_user.id]=cur_mark.comment
 
                                         dict_homework[cur_user.id]["when"]=str(cur_mark.homework_when)
 

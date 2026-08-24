@@ -328,7 +328,7 @@ def update_activity_flow():
                         }
                         entry["mark"] = {
                                 "value": mark.mark,
-                                "comment": "" if mark.comment is None else mark.comment.replace('"', '\''),
+                                "comment": "" if mark.comment is None else mark.comment,
                                 "is_homework_mark": mark.updated_when is not None and mark.homework_when is not None,
                         }
                         entry["when"] = humanize_when(mark.updated_when)
