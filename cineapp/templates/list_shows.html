@@ -380,7 +380,8 @@ $(document).ready(function() {
   // coordinates here on hover: centered on the cell, above it by default, and
   // flipped below when the above-placement would clip past the top of the
   // viewport. Delegated event because DataTables re-renders cells on every draw.
-  $('#showslist').on('mouseenter', '.cell-mark-val.has-comment', function () {
+  $('#showslist').on('mouseenter touchstart', '.cell-mark-val.has-comment', function () {
+    document.body.classList.remove('bubble-scroll-hide');
     var bubble = this.querySelector('.bubble');
     if (!bubble) return;
     var cell = this.getBoundingClientRect();
@@ -391,6 +392,15 @@ $(document).ready(function() {
     bubble.style.top = below ? (cell.bottom + 10) + 'px'
                              : (cell.top - bubbleH - 10) + 'px';
   });
+
+  // Scroll dismiss — on touch the emulated :hover sticks after a tap, so the
+  // bubble (position:fixed) would stay glued to the viewport while the list
+  // scrolls under it. Hide bubbles on any scroll (capture also catches the
+  // table card's horizontal scroller); the hover/tap handler above lifts the
+  // suppression.
+  document.addEventListener('scroll', function () {
+    document.body.classList.add('bubble-scroll-hide');
+  }, { capture: true, passive: true });
 
   // Sticky header (desktop). The table card is an overflow-x scroller, so a plain
   // position:sticky on the real header can't pin to the viewport (it resolves

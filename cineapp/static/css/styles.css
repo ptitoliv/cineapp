@@ -920,6 +920,11 @@ tr:hover .cell-fav-icon.on { transform: scale(1.1); }
 .cell-mark .cell-mark-val:hover .bubble {
   opacity: 1; transform: translate(-50%, 0);
 }
+/* Scroll dismiss — on touch the emulated :hover sticks after a tap, so the
+   fixed-position bubble would stay glued to the viewport while the list
+   scrolls under it. JS adds this class on any scroll and the next hover/tap
+   on a mark removes it (see list_shows.html). */
+body.bubble-scroll-hide .cell-mark .cell-mark-val:hover .bubble { opacity: 0; }
 .cell-mark .cell-mark-val .bubble .b-title {
   display: block; padding: 9px 14px 7px;
   background: var(--ink); color: var(--paper);
