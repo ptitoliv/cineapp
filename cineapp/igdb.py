@@ -251,9 +251,9 @@ def search_games(query, page=1,exact_title=False):
     
     # Let's build the where clause based on the exact_title flag
     if exact_title:
-        where_clause = ('where (name = "%s"'
-                        ' | alternative_names.name = "%s"'
-                        ' | game_localizations.name = "%s");') % (escaped_query, escaped_query, escaped_query)
+        where_clause = ('where (name ~ "%s"'
+                        ' | alternative_names.name ~ "%s"'
+                        ' | game_localizations.name ~ "%s");') % (escaped_query, escaped_query, escaped_query)
     else:
         where_clause = (' where (name = "%s" | name ~ *"%s"*'
                     ' | alternative_names.name = "%s" | alternative_names.name ~ *"%s"*'
@@ -497,9 +497,9 @@ def search_page_number(query,exact_title=False):
     """
     escaped_query = query.replace('"', '\\"')
     if exact_title:
-        where_clause = (' where (name = "%s"'
-                        ' | alternative_names.name = "%s"'
-                        ' | game_localizations.name = "%s");') % (escaped_query, escaped_query, escaped_query)
+        where_clause = (' where (name ~ "%s"'
+                        ' | alternative_names.name ~ "%s"'
+                        ' | game_localizations.name ~ "%s");') % (escaped_query, escaped_query, escaped_query)
     else:
         where_clause = (' where (name = "%s" | name ~ *"%s"*'
                     ' | alternative_names.name = "%s" | alternative_names.name ~ *"%s"*'
