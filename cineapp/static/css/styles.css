@@ -1209,20 +1209,41 @@ body.bubble-scroll-hide .cell-mark .cell-mark-val:hover .bubble { opacity: 0; }
   position: sticky; top: 0; z-index: 20;
   display: flex; overflow: hidden;
   background: var(--paper-card);
-  border: 1px solid var(--rule); border-bottom: 0;
+  border: 1px solid var(--rule);
   border-radius: var(--card-radius) var(--card-radius) 0 0;
 }
+/* The header/body separation rule sits on the bar's own bottom edge (above),
+   not on the cloned header cells — so the strip Chrome reserves for the thin
+   scrollbar stays ABOVE the rule (like Firefox's overlay bar) instead of
+   opening a gap between the rule and the first row. */
+.list-stickyhead .list thead .cols th { border-bottom: 0; }
 /* Two zones : the frozen header (--frozen-w is measured on the real columns by
    initStickyHead, never hardcoded) and the scrolling header — whose own
    scrollbar therefore starts at the frozen edge, spanning only the columns
    that actually scroll. */
 .list-stickyhead-fixed { flex: 0 0 var(--frozen-w, 0px); overflow: hidden; }
-.list-stickyhead-scroll { flex: 1; min-width: 0; overflow-x: auto; overflow-y: hidden; }
+/* Thin standard scrollbar (honoured by Firefox AND Chrome 121+) with a
+   transparent track — Chrome's default classic scrollbar took 15px of
+   layout and visually split the header from the first row. The zone is
+   absolutely pinned over the bar (whose height comes from the scrollbar-less
+   frozen zone alone), so whatever space the browser reserves for the
+   scrollbar overlays the cells' bottom padding instead of adding height —
+   the bar renders at Firefox's exact height in every browser. */
+.list-stickyhead-scroll {
+  position: absolute; top: 0; right: 0; bottom: 0; left: var(--frozen-w, 0px);
+  overflow-x: auto; overflow-y: hidden;
+  scrollbar-width: thin; scrollbar-color: var(--ink-dim) transparent;
+}
 .list-stickyhead-scroll .list-stickyhead-table { margin-left: calc(-1 * var(--frozen-w, 0px)); }
 /* the cloned frozen cells must not re-freeze inside the scroll zone (the
    sticky rules above match the clone too) — !important outweighs their
    higher-specificity selectors */
 .list-stickyhead-scroll .list thead th { position: static !important; }
+/* those static cells can't anchor the frozen-edge hairline ::after either —
+   since the zone became position:absolute it anchors on the zone and would
+   paint a stray vertical line drifting through the scrolled columns (the
+   fixed zone's own clone already draws the hairline at the frozen edge) */
+.list-stickyhead-scroll .list thead th::after { content: none !important; }
 .list-stickyhead-table { margin: 0; box-shadow: none; }
 /* Sticky backing strip laid behind the bar's rounded corners (z-index one
    below, top set by initStickyHead) : painted in the page background, so
