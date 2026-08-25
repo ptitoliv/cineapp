@@ -1,6 +1,6 @@
-Version 4.2.0 (2026-08-23)
+Version 4.2.0 (2026-08-25)
 --------------------------
-  * [FEAT]: Improve the video game search engine with localized titles and an exact title option (#195)
+  * [FEAT]: Improve the video game search engine with localized titles and a case-insensitive exact title option (#195)
   * [FEAT]: Improve the CircleCI configuration (#196)
   * [FEAT]: Remove the pagination info on the activity flow page (#197)
   * [FEAT]: Add additional videogame types (#199)
@@ -9,6 +9,9 @@ Version 4.2.0 (2026-08-23)
   * [FIX]: Fix row counting and pagination stability on the show lists and the activity flow (#200)
   * [FIX]: Harden the JS/CSS libraries loading with integrity checks (#201)
   * [FIX]: Remove the seen-where badge on TV show and video game marks (#202)
+  * [FIX]: Load the update wizard instead of the add one when an update search returns no result (#203)
+  * [FIX]: Hide the comment bubble on the show lists when scrolling resumes on mobile (#204)
+  * [FIX]: Integrate the show list header scrollbar into the header consistently across browsers (#205)
 
 Version 4.1.3 (2026-08-16)
 --------------------------
