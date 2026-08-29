@@ -59,6 +59,20 @@
 <script>
 $(document).ready(function () {
   var GRAPH_TYPE = {{ graph_type|tojson }};
+
+  // On mobile the x axis is too narrow to display every category label,
+  // so bar graphs switch to horizontal bars: one row per category on the
+  // y axis, values on the x axis. 920px is the site-wide mobile breakpoint.
+  var mobileQuery = window.matchMedia('(max-width: 920px)');
+  var useHorizontalBars = (GRAPH_TYPE === 'bar' && mobileQuery.matches);
+
+  // The orientation is chosen at load time ; if the screen later crosses
+  // the breakpoint (tablet rotation, window resize) reload so the graph is
+  // rebuilt the right way for the new width.
+  if (GRAPH_TYPE === 'bar') {
+    mobileQuery.addEventListener('change', function () { location.reload(); });
+  }
+
   var labels = [{% for l in labels %}{{ l|tojson }}, {% endfor %}];
   // values injected raw : numbers stay numbers, and the route's "null"
   // placeholder (missing average) must reach JS as the null literal — tojson
@@ -106,6 +120,13 @@ $(document).ready(function () {
       pointLabels: { font: axisFont, color: '#5d5460' },
       ticks: { font: axisFont, color: '#9a8fa1', backdropColor: 'transparent' }
     } };
+  } else if (useHorizontalBars) {
+    // Horizontal bars: the x axis carries the values, the y axis lists every
+    // category (autoSkip: false so no label is dropped).
+    scales = {
+      x: { grid: { color: '#e8e2ec' }, ticks: { font: axisFont, color: '#9a8fa1' }, beginAtZero: true },
+      y: { grid: { color: '#e8e2ec' }, ticks: { font: axisFont, color: '#9a8fa1', autoSkip: false } }
+    };
   } else {
     scales = {
       x: { grid: { color: '#e8e2ec' }, ticks: { font: axisFont, color: '#9a8fa1', autoSkip: true, maxRotation: 0 } },
@@ -113,11 +134,28 @@ $(document).ready(function () {
     };
   }
 
+  if (useHorizontalBars) {
+    // Give the canvas enough height for all the rows: each category shows
+    // one bar per user, plus some space between categories and for the axis.
+    var heightPerBar = 14;
+    var spacePerCategory = (series.length * heightPerBar) + 16;
+    var chartHeight = (labels.length * spacePerCategory) + 60;
+
+    // The mobile CSS already gives .canvas-wrap its minimum height ; only
+    // override it when the rows need more room than that.
+    var $canvasWrap = $('.canvas-wrap');
+    if (chartHeight > $canvasWrap.height()) {
+      $canvasWrap.css('height', chartHeight + 'px');
+    }
+  }
+
   var chart = new Chart(document.getElementById('statChart'), {
     type: GRAPH_TYPE,
     data: { labels: labels, datasets: buildDatasets() },
     options: {
       responsive: true, maintainAspectRatio: false,
+      // indexAxis 'y' flips a bar graph to horizontal bars (mobile only).
+      indexAxis: useHorizontalBars ? 'y' : 'x',
       plugins: {
         legend: { display: false },
         tooltip: {
