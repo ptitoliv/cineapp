@@ -4268,6 +4268,9 @@ table.flux tbody tr:last-child  .act-node::before { bottom: calc(100% - 24px); }
 @media (max-width: 920px) {
   .graph-nav-wrap, .graph-wrap { padding-left: 20px; padding-right: 20px; }
   .graph-toolbar { padding: 14px 18px; }
+  /* On mobile the legend wraps unevenly with flex — align the user entries
+     in a regular two-column grid instead. */
+  .graph-legend { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px 12px; width: 100%; }
   .graph-body { padding: 16px 12px 20px; }
   .canvas-wrap { height: 320px; }
 }
