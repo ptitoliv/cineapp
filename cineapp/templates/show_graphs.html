@@ -66,10 +66,15 @@ $(document).ready(function () {
   var mobileQuery = window.matchMedia('(max-width: 920px)');
   var useHorizontalBars = (GRAPH_TYPE === 'bar' && mobileQuery.matches);
 
-  // The orientation is chosen at load time ; if the screen later crosses
-  // the breakpoint (tablet rotation, window resize) reload so the graph is
+  // Radar graphs are also unreadable on a narrow screen (the axes and the
+  // polygons overlap), so on mobile they become a dot plot: one row per
+  // category, one point per user.
+  var useDotPlot = (GRAPH_TYPE === 'radar' && mobileQuery.matches);
+
+  // The layout is chosen at load time ; if the screen later crosses the
+  // breakpoint (tablet rotation, window resize) reload so the graph is
   // rebuilt the right way for the new width.
-  if (GRAPH_TYPE === 'bar') {
+  if (GRAPH_TYPE === 'bar' || GRAPH_TYPE === 'radar') {
     mobileQuery.addEventListener('change', function () { location.reload(); });
   }
 
@@ -93,6 +98,12 @@ $(document).ready(function () {
         ds.backgroundColor = s.color;
         ds.borderWidth = 0;
         ds.borderRadius = 4;
+      } else if (useDotPlot) {
+        // Dot plot: no line between the points, just one dot per value.
+        ds.showLine = false;
+        ds.pointRadius = 5;
+        ds.pointHoverRadius = 7;
+        ds.pointBackgroundColor = s.color;
       } else if (GRAPH_TYPE === 'radar') {
         ds.backgroundColor = s.color + '22';
         ds.borderWidth = 2;
@@ -114,12 +125,20 @@ $(document).ready(function () {
 
   var axisFont = { family: 'Outfit', size: 11 };
   var scales;
-  if (GRAPH_TYPE === 'radar') {
+  if (GRAPH_TYPE === 'radar' && !useDotPlot) {
     scales = { r: {
       grid: { color: '#e8e2ec' }, angleLines: { color: '#e8e2ec' },
       pointLabels: { font: axisFont, color: '#5d5460' },
       ticks: { font: axisFont, color: '#9a8fa1', backdropColor: 'transparent' }
     } };
+  } else if (useDotPlot) {
+    // Dot plot: marks on the x axis, zoomed on the useful 10-18 range so the
+    // differences stay visible (the axis grows if a value falls outside) ;
+    // every category listed on the y axis.
+    scales = {
+      x: { suggestedMin: 10, suggestedMax: 18, grid: { color: '#e8e2ec' }, ticks: { font: axisFont, color: '#9a8fa1' } },
+      y: { grid: { color: '#e8e2ec' }, ticks: { font: axisFont, color: '#9a8fa1', autoSkip: false } }
+    };
   } else if (useHorizontalBars) {
     // Horizontal bars: the x axis carries the values, the y axis lists every
     // category (autoSkip: false so no label is dropped).
@@ -134,28 +153,36 @@ $(document).ready(function () {
     };
   }
 
+  // The horizontal layouts need a canvas tall enough for all their rows.
+  var neededHeight = 0;
   if (useHorizontalBars) {
-    // Give the canvas enough height for all the rows: each category shows
-    // one bar per user, plus some space between categories and for the axis.
+    // Each category shows one bar per user, plus some space between
+    // categories and for the axis.
     var heightPerBar = 14;
     var spacePerCategory = (series.length * heightPerBar) + 16;
-    var chartHeight = (labels.length * spacePerCategory) + 60;
+    neededHeight = (labels.length * spacePerCategory) + 60;
+  }
+  if (useDotPlot) {
+    // One row of dots per category, plus some room for the axis.
+    neededHeight = (labels.length * 34) + 70;
+  }
 
-    // The mobile CSS already gives .canvas-wrap its minimum height ; only
-    // override it when the rows need more room than that.
-    var $canvasWrap = $('.canvas-wrap');
-    if (chartHeight > $canvasWrap.height()) {
-      $canvasWrap.css('height', chartHeight + 'px');
-    }
+  // The mobile CSS already gives .canvas-wrap its minimum height ; only
+  // override it when the rows need more room than that.
+  var $canvasWrap = $('.canvas-wrap');
+  if (neededHeight > $canvasWrap.height()) {
+    $canvasWrap.css('height', neededHeight + 'px');
   }
 
   var chart = new Chart(document.getElementById('statChart'), {
-    type: GRAPH_TYPE,
+    // A dot plot is drawn as a Chart.js line graph with the lines hidden.
+    type: useDotPlot ? 'line' : GRAPH_TYPE,
     data: { labels: labels, datasets: buildDatasets() },
     options: {
       responsive: true, maintainAspectRatio: false,
-      // indexAxis 'y' flips a bar graph to horizontal bars (mobile only).
-      indexAxis: useHorizontalBars ? 'y' : 'x',
+      // indexAxis 'y' lays the graph out horizontally (mobile only) :
+      // categories on the y axis, values on the x axis.
+      indexAxis: (useHorizontalBars || useDotPlot) ? 'y' : 'x',
       plugins: {
         legend: { display: false },
         tooltip: {
