@@ -1,3 +1,7 @@
+Version 4.2.1 (2026-08-30)
+--------------------------
+  * [FIX]: Change some graphs in mobile mode in order to make them readable (#206)
+
 Version 4.2.0 (2026-08-25)
 --------------------------
   * [FEAT]: Improve the video game search engine with localized titles and a case-insensitive exact title option (#195)
