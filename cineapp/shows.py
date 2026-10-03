@@ -668,18 +668,28 @@ def list_shows():
                 else:
                         type=Type.query.get(session_query['type'])
 
-                if session_query['seen_where'] == None:
-                        seen_where=None
-                else:
-                        seen_where=User.query.get(session_query['seen_where'])
-
                 if session_query['favorite'] == None:
                         favorite=None
                 else:
                         favorite=User.query.get(session_query['favorite'])
 
+                if session_query['user'] == None:
+                        user=None
+                else:
+                        user=User.query.get(session_query['user'])
+
+                if session_query['seen_where'] == None:
+                        seen_where=None
+                else:
+                        seen_where=session_query['seen_where']
+
+                if session_query['seen_when'] == None:
+                        seen_when=None
+                else:
+                        seen_when=session_query['seen_when']
+
                 # Recreate the form with the set default values
-                filter_form=FilterForm(origin=origin,type=type,where=seen_where)
+                filter_form=FilterForm(origin=origin,type=type,seen_where=seen_where,seen_when=seen_when,favorite=favorite,user=user)
 
         else:
                 # We are in list mode, check if we must clear the table after a reset
