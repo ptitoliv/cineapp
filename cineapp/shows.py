@@ -607,7 +607,7 @@ def list_shows():
                 # We come from the filter form above the datatable
                 # Build the filter request
 
-                if filter_form.origin.data == None and filter_form.type.data == None and filter_form.seen_where.data == None and filter_form.favorite.data == None and filter_form.user.data == None and filter_form.seen_when.data == None:
+                if filter_form.origin.data == None and filter_form.type.data == None and filter_form.favorite.data == None and not filter_form.user.data and not filter_form.seen_when.data and not filter_form.seen_where.data:
                         # All filter are empty => Let's display the list
                         session['search_type']="list"
                 else:
@@ -619,23 +619,12 @@ def list_shows():
                         # Check that the all fields linked to the seen function are filled when doing a search
                         # The field seen_where, seen_when and user must be all filled or all empty
                         # The seen_when field is only applicable for movies.
-                        if g.show_type == "movie":
-                               if (filter_form.seen_where.data != '' and filter_form.user.data != None and filter_form.seen_when.data != '') or (filter_form.seen_where.data == '' and filter_form.user.data == None and filter_form.seen_when.data == ''): 
+                        if (filter_form.user.data != None and filter_form.seen_when.data != '') or (filter_form.user.data == None and filter_form.seen_when.data == ''):
                                       pass
-                               else:
-                                      flash("Les 3 champs Vu par, Où et Quand doivent être tous remplis","warning")  
-                                      return redirect(url_for("main.reset_list",show_type=g.show_type))  
                         else:
-                               if (filter_form.user.data != None and filter_form.seen_when.data != '') or (filter_form.user.data == None and filter_form.seen_when.data == ''): 
-                                      pass
-                               else:
-                                      if g.show_type == "videogame":
-                                          flash("Les 3 champs Joué par, Où et Quand doivent tous être remplis","warning")  
-                                      else:
-                                          flash("Les 2 champs Vu par et Quand doivent être tous remplis","warning")
-                                                
-                                      return redirect(url_for("main.reset_list",show_type=g.show_type))                   
-                                                                   
+                                      flash("Les champs Vu par et Quand doivent être tous remplis","warning")
+                                      return redirect(url_for("main.reset_list",show_type=g.show_type))
+
                         if filter_form.origin.data != None:
                                 filter_dict['origin'] = filter_form.origin.data.id
 
