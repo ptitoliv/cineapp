@@ -160,7 +160,7 @@ class FilterForm(Form):
     origin = QuerySelectField('Origine',query_factory=get_origins, get_label='origin',allow_blank=True,blank_text=u'--Pas de filtre--')
     type = QuerySelectField('Type',query_factory=get_types,get_label='type',allow_blank=True,blank_text=u'--Pas de filtre--')
     favorite = QuerySelectField('Favori de',query_factory=get_users,get_label='nickname',allow_blank=True,blank_text=u'--Pas de filtre--')
-    user = QuerySelectField('Vu/joué par:',query_factory=get_users,get_label='nickname',allow_blank=True,blank_text=u'--Pas de filtre--')
+    seen_by_user = QuerySelectField('Vu/joué par:',query_factory=get_users,get_label='nickname',allow_blank=True,blank_text=u'--Pas de filtre--')
     seen_where = SelectField('Où',choices=[('','--Pas de filtre--'),('C','Cinéma'),('M','Maison')])
     seen_when = SelectField('Quand:',choices=[],default='')
     submit_filter = SubmitField("Filtrer")
@@ -183,9 +183,9 @@ class FilterForm(Form):
 
         # Update the user label field to match the current show type (movie, tvshow, videogame)
         if g.show_type == "videogame":
-            self.user.label.text = u"Joué par:"
+            self.seen_by_user.label.text = u"Joué par:"
         else:
-            self.user.label.text = u"Vu par:"
+            self.seen_by_user.label.text = u"Vu par:"
 
 class UserForm(Form):
     email = StringField('Adresse Email', [DataRequired('Champ Requis'), Email(message="Adresse E-Mail Incorrecte")])

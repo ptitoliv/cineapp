@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function
+from flask_sqlalchemy.query import Query
 from future import standard_library
 standard_library.install_aliases()
 from builtins import next
@@ -607,19 +608,19 @@ def list_shows():
                 # We come from the filter form above the datatable
                 # Build the filter request
 
-                if filter_form.origin.data == None and filter_form.type.data == None and filter_form.favorite.data == None and not filter_form.user.data and not filter_form.seen_when.data and not filter_form.seen_where.data:
+                if filter_form.origin.data == None and filter_form.type.data == None and filter_form.favorite.data == None and not filter_form.seen_by_user.data and not filter_form.seen_when.data and not filter_form.seen_where.data:
                         # All filter are empty => Let's display the list
                         session['search_type']="list"
                 else:
 
                         # Put the forms parameter into a session object in order to be handled by the datatable
                         session['search_type']="filter_origin_type"
-                        filter_dict = {'origin' : None, 'type': None, 'seen_where' : None, 'favorite': None, 'user': None, 'seen_when': None}
+                        filter_dict = {'origin' : None, 'type': None, 'seen_where' : None, 'favorite': None, 'seen_by_user': None, 'seen_when': None}
 
                         # Check that the all fields linked to the seen function are filled when doing a search
                         # The field seen_where, seen_when and user must be all filled or all empty
                         # The seen_when field is only applicable for movies.
-                        if (filter_form.user.data != None and filter_form.seen_when.data != '') or (filter_form.user.data == None and filter_form.seen_when.data == ''):
+                        if (filter_form.seen_by_user.data != None and filter_form.seen_when.data != '') or (filter_form.seen_by_user.data == None and filter_form.seen_when.data == ''):
                                       pass
                         else:
                                       flash("Les champs Vu par et Quand doivent être tous remplis","warning")
@@ -640,8 +641,8 @@ def list_shows():
                         if filter_form.favorite.data != None:
                                 filter_dict['favorite'] = filter_form.favorite.data.id
 
-                        if filter_form.user.data != None:
-                                filter_dict['user'] = filter_form.user.data.id
+                        if filter_form.seen_by_user.data != None:
+                                filter_dict['seen_by_user'] = filter_form.seen_by_user.data.id
 
                         if filter_form.seen_when.data != '':
                                 filter_dict['seen_when'] = filter_form.seen_when.data
@@ -673,10 +674,10 @@ def list_shows():
                 else:
                         favorite=User.query.get(session_query['favorite'])
 
-                if session_query['user'] == None:
-                        user=None
+                if session_query['seen_by_user'] == None:
+                        seen_by_user=None
                 else:
-                        user=User.query.get(session_query['user'])
+                        seen_by_user=User.query.get(session_query['seen_by_user'])
 
                 if session_query['seen_where'] == None:
                         seen_where=None
@@ -689,7 +690,7 @@ def list_shows():
                         seen_when=session_query['seen_when']
 
                 # Recreate the form with the set default values
-                filter_form=FilterForm(origin=origin,type=type,seen_where=seen_where,seen_when=seen_when,favorite=favorite,user=user)
+                filter_form=FilterForm(origin=origin,type=type,seen_where=seen_where,seen_when=seen_when,favorite=favorite,seen_by_user=seen_by_user)
 
         else:
                 # We are in list mode, check if we must clear the table after a reset
@@ -902,25 +903,40 @@ def update_datatable():
                         if filter_fields['type'] != None:
                                 shows_query = shows_query.filter(Show.type==filter_fields['type'])
 
-                        if filter_fields['user'] != None:
-                                shows_query = shows_query.filter(Mark.user_id==filter_fields['user'])
+                        if filter_fields['seen_by_user'] != None:
 
-                        if filter_fields['seen_when'] != None:
-                                shows_query = shows_query.filter(extract('year', Mark.seen_when)==filter_fields['seen_when'])
+                               # In this branch, the Mark row of the main query belongs to the sort user
+                               # (Mark.user_id==filter_user above). The user, seen_when and seen_where
+                               # filters describe the mark of another user (the "seen by" one), so they
+                               # can't be applied on that same row : the list would be empty or wrong.
+                               # These three filters target the same Mark row, so they are grouped in a
+                               # dedicated query that builds the list of the shows seen by that user.
+                               # The main query is then only restricted to these shows.
+                               mark_table_query = Mark.query.filter(Mark.user_id==filter_fields['seen_by_user'])
+                               mark_table_query_array = []
 
-                        if filter_fields['seen_where'] != None:
-                                shows_query = shows_query.filter(Mark.seen_where==filter_fields['seen_where'])
+                               if filter_fields['seen_when'] != None:
+                                        mark_table_query = mark_table_query.filter(extract('year', Mark.seen_when)==filter_fields['seen_when'])
+
+                               if filter_fields['seen_where'] != None:
+                                        mark_table_query = mark_table_query.filter(Mark.seen_where==filter_fields['seen_where'])
+
+                               for cur_mark_table_show in mark_table_query:
+                                      mark_table_query_array.append(cur_mark_table_show.show_id)
+
+                               shows_query = shows_query.filter(Mark.show_id.in_(mark_table_query_array))
+
 
                         if filter_fields['favorite'] !=None:
 
-                                # Same behaviour than the previous one
-                                favorite_shows = FavoriteShow.query.filter(FavoriteShow.user_id == filter_fields['favorite']).all()
-                                favorite_shows_array = []
+                                # Same behaviour than for the fields linked to the Mark table
+                                favorite_table_shows = FavoriteShow.query.filter(FavoriteShow.user_id == filter_fields['favorite'])
+                                favorite_table_shows_array = []
 
-                                for cur_favorite_show in favorite_shows:
-                                        favorite_shows_array.append(cur_favorite_show.show_id)
+                                for cur_favorite_show in favorite_table_shows:
+                                        favorite_table_shows_array.append(cur_favorite_show.show_id)
 
-                                shows_query = shows_query.filter(FavoriteShow.show_id.in_(favorite_shows_array))
+                                shows_query = shows_query.filter(FavoriteShow.show_id.in_(favorite_table_shows_array))
 
                 # Sort my desc marks
                 if session.get('search_type') == 'list': 
@@ -974,8 +990,8 @@ def update_datatable():
                         if filter_fields['favorite'] !=None:
                                 shows_query = shows_query.filter(FavoriteShow.user_id==filter_fields['favorite'])
 
-                        if filter_fields['user'] !=None:
-                                shows_query = shows_query.filter(Mark.user_id==filter_fields['user'])
+                        if filter_fields['seen_by_user'] !=None:
+                                shows_query = shows_query.filter(Mark.user_id==filter_fields['seen_by_user'])
                         
                         if filter_fields['seen_when'] !=None:      
                                 shows_query = shows_query.filter(extract('year', Mark.seen_when)==filter_fields['seen_when'])
