@@ -655,7 +655,7 @@ def list_shows():
 
                 # We come from an homework link and we want to fill the form
                 session['search_type']="filter_origin_type"
-                
+
                 # Rebuild the form setting default values stores into the session object
                 # We need to check if the variable is not or none in order to avoid an exception
                 if session_query['origin'] == None:
@@ -902,11 +902,11 @@ def update_datatable():
                         if filter_fields['type'] != None:
                                 shows_query = shows_query.filter(Show.type==filter_fields['type'])
 
-                        if filter_fields['seen_when'] != '':
-                                shows_query = shows_query.filter(extract('year', Mark.seen_when)==filter_fields['seen_when'])
-
-                        if filter_fields['seen_when'] != '':
+                        if filter_fields['user'] != None:
                                 shows_query = shows_query.filter(Mark.user_id==filter_fields['user'])
+
+                        if filter_fields['seen_when'] != None:
+                                shows_query = shows_query.filter(extract('year', Mark.seen_when)==filter_fields['seen_when'])
 
                         if filter_fields['seen_where'] != None:
                                 shows_query = shows_query.filter(Mark.seen_where==filter_fields['seen_where'])
