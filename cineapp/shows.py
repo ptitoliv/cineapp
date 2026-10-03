@@ -21,7 +21,7 @@ from cineapp.utils import frange, get_activity_list, resize_avatar, fts_boolean_
 from cineapp.push import notification_unsubscribe
 from sqlalchemy.exc import IntegrityError, InvalidRequestError
 from sqlalchemy.orm.exc import FlushError
-from sqlalchemy import desc, or_, and_, Table, text
+from sqlalchemy import desc, extract, or_, and_, Table, text
 from sqlalchemy.sql.expression import select, case, literal
 from sqlalchemy.dialects.mysql import match
 from bcrypt import hashpw, gensalt
@@ -607,30 +607,55 @@ def list_shows():
                 # We come from the filter form above the datatable
                 # Build the filter request
 
-                if filter_form.origin.data == None and filter_form.type.data == None and filter_form.where.data == None and filter_form.favorite.data == None:
+                if filter_form.origin.data == None and filter_form.type.data == None and filter_form.seen_where.data == None and filter_form.favorite.data == None and filter_form.user.data == None and filter_form.seen_when.data == None:
                         # All filter are empty => Let's display the list
                         session['search_type']="list"
                 else:
 
                         # Put the forms parameter into a session object in order to be handled by the datatable
                         session['search_type']="filter_origin_type"
-                        filter_dict = {'origin' : None, 'type': None, 'seen_where' : None, 'favorite': None}
+                        filter_dict = {'origin' : None, 'type': None, 'seen_where' : None, 'favorite': None, 'user': None, 'seen_when': None}
 
+                        # Check that the all fields linked to the seen function are filled when doing a search
+                        # The field seen_where, seen_when and user must be all filled or all empty
+                        # The seen_when field is only applicable for movies.
+                        if g.show_type == "movie":
+                               if (filter_form.seen_where.data != '' and filter_form.user.data != None and filter_form.seen_when.data != '') or (filter_form.seen_where.data == '' and filter_form.user.data == None and filter_form.seen_when.data == ''): 
+                                      pass
+                               else:
+                                      flash("Les 3 champs Vu par, Où et Quand doivent être tous remplis","warning")  
+                                      return redirect(url_for("main.reset_list",show_type=g.show_type))  
+                        else:
+                               if (filter_form.user.data != None and filter_form.seen_when.data != '') or (filter_form.user.data == None and filter_form.seen_when.data == ''): 
+                                      pass
+                               else:
+                                      if g.show_type == "videogame":
+                                          flash("Les 3 champs Joué par, Où et Quand doivent tous être remplis","warning")  
+                                      else:
+                                          flash("Les 2 champs Vu par et Quand doivent être tous remplis","warning")
+                                                
+                                      return redirect(url_for("main.reset_list",show_type=g.show_type))                   
+                                                                   
                         if filter_form.origin.data != None:
                                 filter_dict['origin'] = filter_form.origin.data.id
 
                         if filter_form.type.data != None:
                                 filter_dict['type'] = filter_form.type.data.id
 
-                        if filter_form.where.data != None:
-
+                        if filter_form.seen_where.data != '':
                                 # Use that field only if we are in movie mode
                                 # In other mode, we are necessarily at home
                                 if g.show_type=="movie":
-                                    filter_dict['seen_where'] = filter_form.where.data.id
+                                    filter_dict['seen_where'] = filter_form.seen_where.data
 
                         if filter_form.favorite.data != None:
                                 filter_dict['favorite'] = filter_form.favorite.data.id
+
+                        if filter_form.user.data != None:
+                                filter_dict['user'] = filter_form.user.data.id
+
+                        if filter_form.seen_when.data != '':
+                                filter_dict['seen_when'] = filter_form.seen_when.data
 
                         session['query']=filter_dict
 
@@ -878,23 +903,14 @@ def update_datatable():
                         if filter_fields['type'] != None:
                                 shows_query = shows_query.filter(Show.type==filter_fields['type'])
 
+                        if filter_fields['seen_when'] != '':
+                                shows_query = shows_query.filter(extract('year', Mark.seen_when)==filter_fields['seen_when'])
+
+                        if filter_fields['seen_when'] != '':
+                                shows_query = shows_query.filter(Mark.user_id==filter_fields['user'])
+
                         if filter_fields['seen_where'] != None:
-
-                                # We want to sort shows for a specific user keeping the seen_where filter enabled
-                                # So we want to see shows seen in theater (or not) by a user sorting these shows by marks of another user
-                                # Since we sort by marks, we don't want to see shows without a mark for that user
-                                # So we need that to build that specific subquery.
-
-                                # First let's fetch the shows seen by a user in theaters
-                                shows_seen_in_theater = Mark.query.filter(Mark.user_id==filter_fields['seen_where']).filter(Mark.seen_where=='C').all()
-                                array_shows_seen_in_theater = []
-
-                                # Then build a list of these shows
-                                for cur_show_seen_in_theater in shows_seen_in_theater:
-                                        array_shows_seen_in_theater.append(cur_show_seen_in_theater.show_id)
-                                
-                                # Finally let's build the filter that will be used later building the query
-                                shows_query = shows_query.filter(Mark.show_id.in_(array_shows_seen_in_theater))
+                                shows_query = shows_query.filter(Mark.seen_where==filter_fields['seen_where'])
 
                         if filter_fields['favorite'] !=None:
 
@@ -942,6 +958,7 @@ def update_datatable():
                 # Let's use the filter form
                 elif session.get('search_type') == 'filter_origin_type':
                         app.logger.info('Entering list filter_origin_type')
+                        
                         # Let's build the filtered requested following what has been posted in the filter form
                         filter_fields=session.get('query')
                         shows_query = Show.query.filter(Show.show_type==g.show_type).outerjoin(Mark).outerjoin(FavoriteShow)
@@ -953,10 +970,16 @@ def update_datatable():
                                 shows_query = shows_query.filter(Show.type==filter_fields['type'])
 
                         if filter_fields['seen_where'] !=None:
-                                shows_query = shows_query.filter(Mark.user_id==filter_fields['seen_where']).filter(Mark.seen_where=='C')
+                                shows_query = shows_query.filter(Mark.seen_where==filter_fields['seen_where'])
 
                         if filter_fields['favorite'] !=None:
                                 shows_query = shows_query.filter(FavoriteShow.user_id==filter_fields['favorite'])
+
+                        if filter_fields['user'] !=None:
+                                shows_query = shows_query.filter(Mark.user_id==filter_fields['user'])
+                        
+                        if filter_fields['seen_when'] !=None:      
+                                shows_query = shows_query.filter(extract('year', Mark.seen_when)==filter_fields['seen_when'])
 
                         # Build the request
                         if order_column == "average":
