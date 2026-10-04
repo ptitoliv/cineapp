@@ -564,6 +564,65 @@ nav.menu a.active { font-weight: 500; }
   margin-left: auto;
   display: inline-flex; align-items: center; gap: 10px;
 }
+
+/* ----- shows list filter bar (.filter-bar-shows) -----
+   Variant of .filter-bar used by list_shows.html only (the homework list
+   keeps the plain bar). Each field is a column : centred caption above a
+   centred pill, all the same width whether the show type has 5 or 6 fields.
+   The fields share one row and the buttons sit centred on their own row ;
+   from 1481px (page at full width) fields and buttons are on one single line.
+   155px is the smallest pill that shows "--Pas de filtre--" in full : when
+   the window is too narrow for that, the last field wraps to a second row. */
+.filter-bar-shows {
+  gap: 14px 12px;
+}
+.filter-bar-shows .form-group {
+  flex: 1 1 155px;
+  min-width: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+}
+.filter-bar-shows .control-label {
+  text-align: center;
+}
+/* Same height as the buttons. The side paddings are equal so the text is
+   centred under its caption (the arrow stays on the right) ; text-align-last
+   is what centres a select in Chrome. A value too long ends with "…". */
+.filter-bar-shows select {
+  width: 100%;
+  height: 41px;
+  padding-left: 26px;
+  padding-right: 26px;
+  text-align: center;
+  text-align-last: center;
+  text-overflow: ellipsis;
+}
+.filter-bar-shows .filter-actions {
+  flex-basis: 100%;
+  margin-left: 0;
+  justify-content: center;
+}
+/* One single line : fields then buttons, bottom-aligned, with a vertical
+   rule in front of the buttons. */
+@media (min-width: 1481px) {
+  .filter-bar-shows {
+    flex-wrap: nowrap;
+    align-items: flex-end;
+  }
+  .filter-bar-shows .filter-actions {
+    flex-basis: auto;
+    flex-shrink: 0;
+    align-self: stretch;
+    align-items: flex-end;
+    margin-left: 8px;
+    padding-left: 20px;
+    border-left: 1px solid var(--rule-soft);
+  }
+  .filter-bar-shows .btn {
+    white-space: nowrap;
+  }
+}
 /* ============== [BUTTONS] — one .btn pill ; modifiers carry colour & size ==============
    Used everywhere via class="btn", "btn btn-solid", "btn btn-ghost", etc. */
 .btn {
@@ -1283,6 +1342,8 @@ body.bubble-scroll-hide .cell-mark .cell-mark-val:hover .bubble { opacity: 0; }
    with the actions (the action group wraps onto its own full-width line). */
 @media (max-width: 1280px) and (min-width: 921px) {
   .list-wrap { padding: 0 24px 24px; }
+  /* Same side padding as the table, so both keep the same edges. */
+  .filter-strip-shows { padding-left: 24px; padding-right: 24px; }
   .filter-bar { justify-content: center; }
   .filter-bar .filter-actions { flex-basis: 100%; justify-content: center; }
 }
@@ -1327,6 +1388,34 @@ body.bubble-scroll-hide .cell-mark .cell-mark-val:hover .bubble { opacity: 0; }
   .filter-bar-homework .lbl {
     grid-column: 1 / -1;
     text-align: center;
+  }
+  /* Shows list : two fields per row instead of one, to halve the bar height.
+     More space between rows, so each caption reads with the pill below it. */
+  .filter-bar-shows {
+    row-gap: 16px;
+  }
+  .filter-bar-shows .form-group {
+    grid-column: auto;
+  }
+  /* The fields come in pairs : Origine + Type, Vu par + Quand, Où + Favori de.
+     TV shows and video games have no "Où" field, so "Favori de" comes right
+     after "Quand" and is alone on its row : it keeps the width of one column
+     (half the row minus half the 10px gap) and sits in the middle. */
+  #div_seen_when + #div_favorite {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: calc(50% - 5px);
+  }
+  /* Narrow pills : smaller side paddings (still equal) and the arrow closer
+     to the edge, so "--Pas de filtre--" fits on a 360px-wide phone. */
+  .filter-bar-shows select {
+    padding-left: 16px;
+    padding-right: 16px;
+    background-position: right 8px center;
+  }
+  /* Let the two buttons shrink to exactly the width of the columns above. */
+  .filter-bar-shows .btn {
+    min-width: 0;
   }
 
   /* Mobile sort bar — same card aesthetic as .filter-bar above:
