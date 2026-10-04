@@ -964,15 +964,30 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_my_mark)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
         assert rv.status_code == 200
 
-        # --- Filter: seen_where ---
-        rv=self.client.post('/filter',data=dict(submit_filter=True,where=1),follow_redirects=True)
+        # --- Filter: seen_by_user + seen_when + seen_where ---
+        # The movie 1 has been marked by the user 1 in a theater today (test_08)
+        rv=self.client.post('/filter',data=dict(submit_filter=True,seen_by_user=1,seen_when=datetime.now().year,seen_where="C"),follow_redirects=True)
         assert rv.status_code == 200
         rv=self.client.post('/movie/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
         assert rv.status_code == 200
+        assert 1 in [row["id"] for row in json.loads(rv.data)["data"]]
 
-        # --- Filter: seen_where + sort by my_mark ---
+        # --- Filter: seen_by_user + seen_when + seen_where + sort by my_mark ---
         rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_my_mark)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
         assert rv.status_code == 200
+        assert 1 in [row["id"] for row in json.loads(rv.data)["data"]]
+
+        # --- Filter: seen_by_user + seen_when with an empty seen_where (location is optional) ---
+        rv=self.client.post('/filter',data=dict(submit_filter=True,seen_by_user=1,seen_when=datetime.now().year,seen_where=""),follow_redirects=True)
+        assert rv.status_code == 200
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+        assert 1 in [row["id"] for row in json.loads(rv.data)["data"]]
+
+        # --- Filter: seen_by_user + seen_when with an empty seen_where + sort by my_mark ---
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_my_mark)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+        assert 1 in [row["id"] for row in json.loads(rv.data)["data"]]
 
         # --- Filter: favorite ---
         # First set a favorite
@@ -1020,12 +1035,20 @@ class FlaskrTestCase(unittest.TestCase):
         assert rv.status_code == 200
 
         # --- Reload list with full filter dict (L578, 585, 590, 595) ---
-        # Set a filter with type, where and favorite (but no origin) to cover all reconstruction branches
-        rv=self.client.post('/filter',data=dict(submit_filter=True,type="C",where=1,favorite=1),follow_redirects=True)
+        # Set a filter with type, seen fields and favorite (but no origin) to cover all reconstruction branches
+        rv=self.client.post('/filter',data=dict(submit_filter=True,type="C",seen_by_user=1,seen_when=datetime.now().year,seen_where="C",favorite=1),follow_redirects=True)
         assert rv.status_code == 200
         # GET the list to trigger form reconstruction from session dict
         rv=self.client.get('/movie/list', follow_redirects=True)
         assert rv.status_code == 200
+        # The seen fields must be selected again in the rebuilt form
+        assert '<option selected value="C">Cinéma</option>' in rv.data.decode("utf-8")
+        assert '<option selected value="%s">%s</option>' % (datetime.now().year, datetime.now().year) in rv.data.decode("utf-8")
+
+        # --- Filter: seen_by_user without seen_when => both fields are mandatory together ---
+        rv=self.client.post('/filter',data=dict(submit_filter=True,seen_by_user=1),follow_redirects=True)
+        assert rv.status_code == 200
+        assert "Les champs Vu par et Quand doivent être tous remplis" in rv.data.decode("utf-8")
 
         # --- Reset list ---
         rv=self.client.get('/reset', follow_redirects=True)
