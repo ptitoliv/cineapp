@@ -31,16 +31,18 @@ class CKTextAreaWidget(widgets.TextArea):
             Bold,
             Italic,
             Font,
-            List
+            List,
+            Emoji,
+            Mention
         } from 'ckeditor5';
 
         ClassicEditor
         .create( document.querySelector( '#%s' ), {
             licenseKey: 'GPL', 
-            plugins: [ Essentials, Paragraph, Bold, Italic, Font, List ],
+            plugins: [ Essentials, Paragraph, Bold, Italic, Font, List, Emoji, Mention ],
             toolbar: [
                     'undo', 'redo', '|', 'bold', 'italic', '|',
-                    'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'bulletedList', 'numberedList'
+                    'fontSize', 'fontFamily', 'fontColor', 'fontBackgroundColor', 'bulletedList', 'numberedList', 'emoji'
                 ],
                 initialData: "%s"
             } )

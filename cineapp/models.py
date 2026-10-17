@@ -252,7 +252,7 @@ class Mark(db.Model):
     seen_where = db.Column(db.String(4))
     mark = db.Column(db.Float)
     updated_when = db.Column(db.DateTime())
-    comment = db.Column(db.String(5000))
+    comment = db.Column(db.String(5000, collation='utf8mb4_general_ci'))
     homework_when = db.Column(db.DateTime)
     # Server_default allow to put the column with DEFAULT VALUE to NULL which is mandatory if we want the foreign key to be added
     # If the value is not NULL, the default value is O so the foreign constraint is violated
@@ -270,7 +270,7 @@ class ChatMessage(db.Model):
     message_id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('users.id', name='chat_messages_ibfk_1'))
     posted_when = db.Column(db.DateTime())
-    message = db.Column(db.String(1000))
+    message = db.Column(db.String(1000, collation='utf8mb4_general_ci'))
 
 class MarkComment(db.Model):
     __tablename__ = "mark_comment"
@@ -282,7 +282,7 @@ class MarkComment(db.Model):
     mark_show_id = db.Column(db.Integer)
     posted_when = db.Column(db.DateTime())
     deleted_when = db.Column(db.DateTime())
-    message = db.Column(db.String(1000))
+    message = db.Column(db.String(1000, collation='utf8mb4_general_ci'))
     user = db.relationship("User", backref="comments")
     old_message = None
 

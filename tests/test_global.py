@@ -707,7 +707,7 @@ class FlaskrTestCase(unittest.TestCase):
         # --- Stored XSS regression: a malicious comment must be sanitized on
         # write (sanitize_comment) so the display page never renders a script
         # payload, while legitimate CKEditor formatting is preserved ---
-        rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment='<p>Bon <strong>film</strong></p><img src=x onerror=alert(1)><script>alert(2)</script>',seen_where="C",submit_mark=1),follow_redirects=True)
+        rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment='<p>Bon <strong>film</strong> 🤔</p><img src=x onerror=alert(1)><script>alert(2)</script>',seen_where="C",submit_mark=1),follow_redirects=True)
         assert "Note mise" in str(rv.data)
         rv=self.client.get('/movie/display/1',follow_redirects=True)
         page=rv.data.decode("utf-8")
@@ -715,6 +715,8 @@ class FlaskrTestCase(unittest.TestCase):
         assert "<img src=x" not in page
         assert "<script>alert(2)" not in page
         assert "<strong>film</strong>" in page
+        # An emoji (4 bytes character) must be stored and displayed
+        assert "🤔" in page
 
         # --- Edge case: GET mark page for already marked show (L709-710) ---
         rv=self.client.get('/movie/mark/1',follow_redirects=True)
@@ -807,7 +809,7 @@ class FlaskrTestCase(unittest.TestCase):
         assert response_args["error"] == "La note ciblée n'existe pas"
 
         # Comment the movie
-        rv=self.client.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment="plop"),follow_redirects=True)
+        rv=self.client.post('/json/add_mark_comment',data=dict(show_id=1,dest_user=1,comment="plop 🤔"),follow_redirects=True)
         # The serialized user in the JSON response must never leak the password hash
         assert "password" not in json.loads(rv.data)["user"]
         rv=self.client.get('/movie/display/1', follow_redirects=True)
@@ -2976,7 +2978,7 @@ class FlaskrTestCase(unittest.TestCase):
         received = socketio_client.get_received(namespace='/chat_ws')
 
         # --- SocketIO: send a message (L106-130, L40-73) ---
-        socketio_client.emit('chat_message', {"data": "Hello tout le monde !"}, namespace='/chat_ws')
+        socketio_client.emit('chat_message', {"data": "Hello tout le monde ! 🤔"}, namespace='/chat_ws')
 
         received = socketio_client.get_received(namespace='/chat_ws')
         assert len(received) > 0, "No messages received after sending chat message"
@@ -2986,7 +2988,7 @@ class FlaskrTestCase(unittest.TestCase):
 
         # Check message was stored in database
         with self.app.app_context():
-            msg = ChatMessage.query.filter_by(message="Hello tout le monde !").first()
+            msg = ChatMessage.query.filter_by(message="Hello tout le monde ! 🤔").first()
             assert msg is not None
             assert msg.user_id == 1
 
