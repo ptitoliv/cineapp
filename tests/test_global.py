@@ -1045,10 +1045,15 @@ class FlaskrTestCase(unittest.TestCase):
         assert '<option selected value="C">Cinéma</option>' in rv.data.decode("utf-8")
         assert '<option selected value="%s">%s</option>' % (datetime.now().year, datetime.now().year) in rv.data.decode("utf-8")
 
-        # --- Filter: seen_by_user without seen_when => both fields are mandatory together ---
-        rv=self.client.post('/filter',data=dict(submit_filter=True,seen_by_user=1),follow_redirects=True)
+        # --- Filter: seen_where without seen_by_user => seen_by_user is mandatory ---
+        rv=self.client.post('/filter',data=dict(submit_filter=True,seen_where="C"),follow_redirects=True)
         assert rv.status_code == 200
-        assert "Les champs Vu par et Quand doivent être tous remplis" in rv.data.decode("utf-8")
+        assert "Le champ <strong>Vu par</strong> doit être rempli" in rv.data.decode("utf-8")
+
+        # --- Filter: seen_when without seen_by_user => seen_by_user is mandatory ---
+        rv=self.client.post('/filter',data=dict(submit_filter=True,seen_when=datetime.now().year),follow_redirects=True)
+        assert rv.status_code == 200
+        assert "Le champ <strong>Vu par</strong> doit être rempli" in rv.data.decode("utf-8")
 
         # --- Reset list ---
         rv=self.client.get('/reset', follow_redirects=True)

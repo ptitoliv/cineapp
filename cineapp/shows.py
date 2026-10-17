@@ -27,6 +27,7 @@ from sqlalchemy.sql.expression import select, case, literal
 from sqlalchemy.dialects.mysql import match
 from bcrypt import hashpw, gensalt
 from werkzeug.utils import secure_filename
+from markupsafe import Markup
 from random import randint
 from cineapp.slack import slack_mark_notification
 from cineapp.auth import guest_control
@@ -617,13 +618,10 @@ def list_shows():
                         session['search_type']="filter_origin_type"
                         filter_dict = {'origin' : None, 'type': None, 'seen_where' : None, 'favorite': None, 'seen_by_user': None, 'seen_when': None}
 
-                        # Check that the all fields linked to the seen function are filled when doing a search
-                        # The field seen_where, seen_when and user must be all filled or all empty
-                        # The seen_when field is only applicable for movies.
-                        if (filter_form.seen_by_user.data != None and filter_form.seen_when.data != '') or (filter_form.seen_by_user.data == None and filter_form.seen_when.data == ''):
-                                      pass
-                        else:
-                                      flash("Les champs Vu par et Quand doivent être tous remplis","warning")
+                        # The seen_when and seen_where fields need the seen_by_user field
+                        # The seen_where field is only applicable for movies.
+                        if (filter_form.seen_when.data or filter_form.seen_where.data) and not filter_form.seen_by_user.data:
+                                      flash(Markup("Le champ <strong>%s</strong> doit être rempli") % filter_form.seen_by_user.label.text.rstrip(":"),"warning")
                                       return redirect(url_for("main.reset_list",show_type=g.show_type))
 
                         if filter_form.origin.data != None:
