@@ -1,3 +1,10 @@
+Version 4.3.0 (2026-10-17)
+--------------------------
+  * [FEAT]: Filter the show lists by user and review year and location for movies (#208)
+  * [FEAT]: Support emojis in comments and chat messages (#210)
+  * [FIX]: Display the comment bubble above the table header on the show lists (#209)
+  * [FIX]: Update python dependencies (#212)
+
 Version 4.2.1 (2026-08-30)
 --------------------------
   * [FIX]: Change some graphs in mobile mode in order to make them readable (#206)
