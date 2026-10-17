@@ -612,6 +612,7 @@ def list_shows():
                 if filter_form.origin.data == None and filter_form.type.data == None and filter_form.favorite.data == None and not filter_form.seen_by_user.data and not filter_form.seen_when.data and not filter_form.seen_where.data:
                         # All filter are empty => Let's display the list
                         session['search_type']="list"
+                        session.pop('query',None)
                 else:
 
                         # Put the forms parameter into a session object in order to be handled by the datatable

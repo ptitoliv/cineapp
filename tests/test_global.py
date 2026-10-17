@@ -1033,6 +1033,9 @@ class FlaskrTestCase(unittest.TestCase):
         # --- Filter: all filters empty (L542) ---
         rv=self.client.post('/filter',data=dict(submit_filter=True),follow_redirects=True)
         assert rv.status_code == 200
+        # The previous origin filter must not come back when the list is reloaded
+        rv=self.client.get('/movie/list', follow_redirects=True)
+        assert '<option selected value="F">' not in rv.data.decode("utf-8")
 
         # --- Reload list with full filter dict (L578, 585, 590, 595) ---
         # Set a filter with type, seen fields and favorite (but no origin) to cover all reconstruction branches
