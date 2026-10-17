@@ -983,17 +983,28 @@ def update_datatable():
                         if filter_fields['type'] != None:
                                 shows_query = shows_query.filter(Show.type==filter_fields['type'])
 
-                        if filter_fields['seen_where'] !=None:
-                                shows_query = shows_query.filter(Mark.seen_where==filter_fields['seen_where'])
-
                         if filter_fields['favorite'] !=None:
                                 shows_query = shows_query.filter(FavoriteShow.user_id==filter_fields['favorite'])
 
                         if filter_fields['seen_by_user'] !=None:
-                                shows_query = shows_query.filter(Mark.user_id==filter_fields['seen_by_user'])
-                        
-                        if filter_fields['seen_when'] !=None:      
-                                shows_query = shows_query.filter(extract('year', Mark.seen_when)==filter_fields['seen_when'])
+
+                               # The user, seen_when and seen_where filters target the same Mark row.
+                               # They are applied in a dedicated query that builds the list of the shows
+                               # seen by that user : the main query keeps all the marks of these shows,
+                               # so the average sort uses the same average as the one displayed.
+                               mark_table_query = Mark.query.filter(Mark.user_id==filter_fields['seen_by_user'])
+                               mark_table_query_array = []
+
+                               if filter_fields['seen_when'] != None:
+                                        mark_table_query = mark_table_query.filter(extract('year', Mark.seen_when)==filter_fields['seen_when'])
+
+                               if filter_fields['seen_where'] != None:
+                                        mark_table_query = mark_table_query.filter(Mark.seen_where==filter_fields['seen_where'])
+
+                               for cur_mark_table_show in mark_table_query:
+                                      mark_table_query_array.append(cur_mark_table_show.show_id)
+
+                               shows_query = shows_query.filter(Show.id.in_(mark_table_query_array))
 
                         # Build the request
                         if order_column == "average":

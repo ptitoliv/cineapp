@@ -989,6 +989,21 @@ class FlaskrTestCase(unittest.TestCase):
         assert rv.status_code == 200
         assert 1 in [row["id"] for row in json.loads(rv.data)["data"]]
 
+        # --- Filter: seen_by_user + sort by average ---
+        # The average sort must use the average of all the marks, not only the mark of the "seen by" user
+        # Movie 2 : user 2 = 6, user 1 = 18 => average 12 / Movie 3 : user 2 = 10 => average 10
+        with self.app.app_context():
+            db.session.add(Mark(user_id=2,show_id=2,mark=6,seen_where="M",seen_when=datetime.now()))
+            db.session.add(Mark(user_id=1,show_id=2,mark=18,seen_where="M",seen_when=datetime.now()))
+            db.session.add(Mark(user_id=2,show_id=3,mark=10,seen_where="M",seen_when=datetime.now()))
+            db.session.commit()
+        rv=self.client.post('/filter',data=dict(submit_filter=True,seen_by_user=2),follow_redirects=True)
+        assert rv.status_code == 200
+        rv=self.client.post('/movie/json', data=dict(args=json.dumps(args_avg_desc)),headers=[('X-Requested-With', 'XMLHttpRequest')], follow_redirects=True)
+        assert rv.status_code == 200
+        response_ids=[row["id"] for row in json.loads(rv.data)["data"]]
+        assert response_ids.index(2) < response_ids.index(3)
+
         # --- Filter: favorite ---
         # First set a favorite
         rv=self.client.post('/json/favshow/set/1',data=dict({'star_type': 'favorite_star'}),follow_redirects=True)
