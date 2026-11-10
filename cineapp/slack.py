@@ -1,5 +1,6 @@
 from builtins import str
 from builtins import object
+import traceback
 from flask import request
 from slack import WebClient
 from cineapp.utils import html_to_markdown
@@ -89,14 +90,31 @@ def slack_mark_notification(mark,app,show_type):
                         # (below the card, not squeezed beside the poster thumbnail).
                         blocks = [section_block]
                         if comment_text:
-                                blocks.append({ "type": "section", "text": { "type": "mrkdwn", "text": ">" + comment_text.replace("\n", "\n>") } })
+                                # A section text is limited to 3000 chars by Slack: split the quoted
+                                # comment into several consecutive sections instead of truncating it.
+                                max_len = 2900
+                                chunk = ""
+                                for line in comment_text.split("\n"):
+                                        line = ">" + line
+  
+                                        # Close the current chunk when the next line would not fit
+                                        if chunk and len(chunk) + 1 + len(line) > max_len:
+                                                blocks.append({ "type": "section", "text": { "type": "mrkdwn", "text": chunk } })
+                                                chunk = ""
+
+                                        if chunk:
+                                                chunk += "\n" + line
+                                        else:
+                                                chunk = line
+                                if chunk:
+                                        blocks.append({ "type": "section", "text": { "type": "mrkdwn", "text": chunk } })
 
                         # Send the message
                         slack_channel.send_message(message=title, blocks=blocks)
                         return 0
 
                 except Exception as e:
-                        app.logger.error("Impossible d'envoyer l'URL du film sur SLACK: %s",str(e))
+                        app.logger.error("Impossible d'envoyer l'URL du film sur SLACK: %s",str(traceback.format_exc()))
                         return 1
         else:
                 return -1
