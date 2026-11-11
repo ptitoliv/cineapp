@@ -6,7 +6,7 @@ Par qui : {% if you_user == True %}Toi{% else %}{{ add_user.nickname }}{% endif 
 
 Note : {{ mark.mark }}
 
-Commentaire : {{ mark.comment }}
+Commentaire : {{ comment }}
 
 Pour voir la fiche {{ g.messages["label_generic_possessive"] }}: {{ url_for('show.display_show', show_type=g.show_type,show_id=mark.show.id, _external=True) }}
 

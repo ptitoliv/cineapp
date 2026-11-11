@@ -58,7 +58,7 @@ def mark_show_notification(mark,notif_type):
 
     # Convert the HTML content to text in order to have a nice display in the mail
     # (same transformation as the Slack notification: no hard-wrapping, clean whitespace)
-    mark.comment = html_to_markdown(mark.comment)
+    comment = html_to_markdown(mark.comment)
 
     for cur_user in users:
         # Check if the cur_user is the logged user who added the show
@@ -80,13 +80,13 @@ def mark_show_notification(mark,notif_type):
             try:
                 if notif_type == "add": 
                     send_email('[Cineapp] - %s' % g.messages["email_title_mark"] , app.config['MAIL_SENDER'],[ cur_user.email ] ,
-                    render_template('mark_show_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
+                    render_template('mark_show_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,comment=comment,you_user=you_user,notif_type=notif_type))
                 elif notif_type == "update":
                     send_email('[Cineapp] - Note mise à jour' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
-                    render_template('mark_show_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
+                    render_template('mark_show_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,comment=comment,you_user=you_user,notif_type=notif_type))
                 elif notif_type == "homework":
                     send_email('[Cineapp] - Devoir rempli' , app.config['MAIL_SENDER'],[ cur_user.email ] ,
-                    render_template('mark_show_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,you_user=you_user,notif_type=notif_type))
+                    render_template('mark_show_notification.txt', dest_user=cur_user, add_user=g.user,mark=mark,comment=comment,you_user=you_user,notif_type=notif_type))
             except Exception as e: # pragma: no cover
                 app.logger.error("Impossible d'envoyer le mail: %s",e)
                 continue
