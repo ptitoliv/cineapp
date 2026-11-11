@@ -704,6 +704,15 @@ class FlaskrTestCase(unittest.TestCase):
         rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment="cool",seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
         assert "Note mise" in str(rv.data)
 
+        # We are logged => mark the movie with a long comment (~4500 chars, over the
+        # 3000 chars limit of a Slack block): it is split into several blocks
+        sentence="Une critique très détaillée avec <strong>du gras</strong> sur ce film culte. "
+        paragraph="<p>" + sentence * 6 + "</p>"
+        long_comment=paragraph * 10
+        rv=self.client.post('/movie/mark/1',data=dict(mark=16,comment=long_comment,seen_where="C",submit_mark=1,submit_mark_slack=1),follow_redirects=True)
+        assert "Note mise" in rv.data.decode("utf-8")
+        assert "Note envoyée sur Slack" in rv.data.decode("utf-8")
+
         # --- Stored XSS regression: a malicious comment must be sanitized on
         # write (sanitize_comment) so the display page never renders a script
         # payload, while legitimate CKEditor formatting is preserved ---
