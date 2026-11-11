@@ -1,3 +1,8 @@
+Version 4.3.1 (2026-11-11)
+--------------------------
+  * [FIX]: Fix the Slack notification failing when the mark comment is very long (#213)
+  * [FIX]: Update python dependencies (#214)
+
 Version 4.3.0 (2026-10-17)
 --------------------------
   * [FEAT]: Filter the show lists by user and review year and location for movies (#208)
